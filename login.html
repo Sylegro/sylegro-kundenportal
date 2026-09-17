@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login | Sylegro Kundenportal</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div style="max-width:420px; margin:80px auto; padding:0 20px;">
+    <div class="card">
+      <h2 style="margin-bottom:4px;">Sylegro Kundenportal</h2>
+      <p class="hint">Anmeldung (Demo-Prototyp mit Testkunden)</p>
+
+      <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Benutzername</label>
+      <input id="login-user" type="text" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px; margin-bottom:14px;">
+
+      <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Passwort</label>
+      <input id="login-pass" type="password" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px; margin-bottom:16px;">
+
+      <button class="btn primary" style="width:100%;" onclick="handleLogin()">Anmelden</button>
+      <div id="login-error" style="display:none; margin-top:12px;"><span class="badge danger">Benutzername oder Passwort falsch</span></div>
+
+      <div class="wip-note" style="margin-top:20px;">
+        Demo-Zugänge zum Testen:<br>
+        Unterhaltsreinigung: <strong>uhr-muster</strong> / demo2026<br>
+        Spezialreinigung: <strong>spez-beispiel</strong> / demo2026<br>
+        Hauswartung: <strong>hw-wohnbau</strong> / demo2026
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/demo-data.js"></script>
+  <script src="assets/auth.js"></script>
+  <script>
+    function handleLogin() {
+      const u = document.getElementById('login-user').value.trim();
+      const p = document.getElementById('login-pass').value;
+      const kunde = sylegroLogin(u, p);
+      if (kunde) {
+        window.location.href = "kunde/dashboard.html";
+      } else {
+        document.getElementById('login-error').style.display = 'block';
+      }
+    }
+    document.getElementById('login-pass').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+  </script>
+</body>
+</html>
