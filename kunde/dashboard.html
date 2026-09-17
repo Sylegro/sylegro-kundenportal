@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kundenportal – Übersicht | Sylegro</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Kundenportal (Muster GmbH)</small></div>
+    <nav>
+      <a href="dashboard.html" class="active">Übersicht</a>
+      <a href="rechnungen.html">Rechnungen</a>
+      <a href="offerten.html">Offerten</a>
+      <a href="vertraege.html">Verträge</a>
+      <a href="kontakte.html">Kontakte</a>
+      <a href="tickets.html">Tickets</a>
+      <div class="section-label">Meine Leistungen</div>
+      <a href="unterhaltsreinigung.html">Unterhaltsreinigung</a>
+      <a href="spezialreinigung.html">Spezialreinigung</a>
+      <a href="baureinigung.html">Baureinigung</a>
+      <a href="hauswartung.html">Hauswartung</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="../index.html" style="font-size:0.8rem; opacity:0.7;">&larr; Portal wechseln</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Übersicht</h1>
+      <div class="role-switch">Angemeldet als <strong>Muster GmbH</strong> (Platzhalter)</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-tile">
+        <div class="value">2</div>
+        <div class="label">Offene Tickets</div>
+      </div>
+      <div class="stat-tile">
+        <div class="value">CHF 4'250</div>
+        <div class="label">Offene Rechnungen</div>
+      </div>
+      <div class="stat-tile">
+        <div class="value">17.09.</div>
+        <div class="label">Nächster Einsatz</div>
+      </div>
+      <div class="stat-tile">
+        <div class="value">1</div>
+        <div class="label">Vertrag läuft in 60 Tagen aus</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Anstehende Einsätze</h2>
+      <p class="hint">Platzhalter-Daten – wird später live aus der Einsatzplanung gespeist.</p>
+      <table>
+        <thead><tr><th>Datum</th><th>Leistung</th><th>Objekt</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>17.09.2026</td><td>Unterhaltsreinigung</td><td>Musterstrasse 12</td><td><span class="badge neutral">Geplant</span></td></tr>
+          <tr><td>19.09.2026</td><td>Glasreinigung</td><td>Musterstrasse 12</td><td><span class="badge neutral">Geplant</span></td></tr>
+          <tr><td>22.09.2026</td><td>Hauswartung – Turnus</td><td>Bahnhofstrasse 4</td><td><span class="badge neutral">Geplant</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Abnahme ausstehend</h2>
+      <p class="hint">Spezialreinigung: Fotodokumentation wartet auf deine Bestätigung (automatische Abnahme nach 48h).</p>
+      <table>
+        <thead><tr><th>Auftrag</th><th>Hochgeladen am</th><th>Frist</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Teppichreinigung, Sitzungszimmer 2. OG</td>
+            <td>16.09.2026, 14:20</td>
+            <td>18.09.2026, 14:20</td>
+            <td><a class="btn primary" href="spezialreinigung.html">Prüfen &amp; abnehmen</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</body>
+</html>
