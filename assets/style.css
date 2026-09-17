@@ -1,21 +1,21 @@
 /* Sylegro Kundenportal – gemeinsames Stylesheet
-   Platzhalter-Design (Farben/Logo bitte später an Sylegro-CI anpassen) */
+   Sylegro CI-Farben: #00609D (Blau), #31A971 (Grün), #878988 (Grau), Schwarz */
 
 :root {
-  --color-bg: #f4f6f5;
+  --color-bg: #f4f5f5;
   --color-surface: #ffffff;
-  --color-border: #e2e6e4;
-  --color-text: #1c2b27;
-  --color-text-muted: #5c6b66;
-  --color-primary: #1f6f5c;
-  --color-primary-dark: #164f41;
-  --color-primary-bg: #e7f2ef;
+  --color-border: #dcdedd;
+  --color-text: #1a1a1a;
+  --color-text-muted: #6c6e6d;
+  --color-primary: #00609d;
+  --color-primary-dark: #00456f;
+  --color-primary-bg: #e3eef5;
   --color-warning: #b8860b;
   --color-warning-bg: #fbf2df;
   --color-danger: #b3261e;
   --color-danger-bg: #fbe9e8;
-  --color-success: #2e7d32;
-  --color-success-bg: #e9f5ea;
+  --color-success: #31a971;
+  --color-success-bg: #e6f6ee;
   --sidebar-width: 240px;
   --radius: 10px;
   font-size: 16px;
@@ -67,7 +67,7 @@ a:hover { text-decoration: underline; }
 
 .sidebar nav a {
   display: block;
-  color: #dfeee9;
+  color: #e3eef5;
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 0.92rem;
@@ -231,7 +231,7 @@ tr:last-child td { border-bottom: none; }
 .progress > span {
   display: block;
   height: 100%;
-  background: var(--color-primary);
+  background: var(--color-success);
 }
 
 /* Placeholder note */
@@ -241,7 +241,7 @@ tr:last-child td { border-bottom: none; }
   padding: 14px 16px;
   color: var(--color-text-muted);
   font-size: 0.85rem;
-  background: #fbfcfb;
+  background: #fbfbfb;
 }
 
 /* Photo grid */
