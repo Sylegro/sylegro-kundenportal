@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mitarbeiterportal – Übersicht | Sylegro</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Mitarbeiterportal</small></div>
+    <nav>
+      <a href="dashboard.html" class="active">Übersicht</a>
+      <a href="zeiterfassung.html">Zeiterfassung</a>
+      <a href="#" style="opacity:0.5;">Material &amp; Lager (geplant)</a>
+      <a href="#" style="opacity:0.5;">Tickets (geplant)</a>
+      <a href="#" style="opacity:0.5;">Einsatzplanung (geplant)</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="../index.html" style="font-size:0.8rem; opacity:0.7;">&larr; Portal wechseln</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Übersicht</h1>
+      <div class="role-switch">Angemeldet als <strong>M. Rossi</strong> (Platzhalter)</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-tile"><div class="value">3</div><div class="label">Heutige Einsätze</div></div>
+      <div class="stat-tile"><div class="value">1</div><div class="label">Offene Zeit-Bestätigung</div></div>
+      <div class="stat-tile"><div class="value">38.5 h</div><div class="label">Diese Woche erfasst</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Heutige Einsätze</h2>
+      <table>
+        <thead><tr><th>Zeit</th><th>Objekt</th><th>Leistung</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>07:00–09:00</td><td>Musterstrasse 12</td><td>Unterhaltsreinigung</td><td><a href="zeiterfassung.html">Zeit erfassen</a></td></tr>
+          <tr><td>10:00–12:00</td><td>Bahnhofstrasse 4</td><td>Hauswartung – Rundgang</td><td><a href="zeiterfassung.html">Zeit erfassen</a></td></tr>
+          <tr><td>13:30–17:00</td><td>Lager Erweiterung</td><td>Baureinigung</td><td><a href="zeiterfassung.html">Zeit erfassen</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</body>
+</html>
