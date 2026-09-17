@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rechnungen | Sylegro Kundenportal</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Kundenportal (Muster GmbH)</small></div>
+    <nav>
+      <a href="dashboard.html">Übersicht</a>
+      <a href="rechnungen.html" class="active">Rechnungen</a>
+      <a href="offerten.html">Offerten</a>
+      <a href="vertraege.html">Verträge</a>
+      <a href="kontakte.html">Kontakte</a>
+      <a href="tickets.html">Tickets</a>
+      <div class="section-label">Meine Leistungen</div>
+      <a href="unterhaltsreinigung.html">Unterhaltsreinigung</a>
+      <a href="spezialreinigung.html">Spezialreinigung</a>
+      <a href="baureinigung.html">Baureinigung</a>
+      <a href="hauswartung.html">Hauswartung</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="../index.html" style="font-size:0.8rem; opacity:0.7;">&larr; Portal wechseln</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Rechnungen</h1>
+    </div>
+
+    <div class="wip-note" style="margin-bottom:20px;">
+      Geplant: Daten kommen später live aus Bexio (siehe Projekt-Notizen zur Bexio-Integration). Online-Zahlung (TWINT/Kreditkarte/QR) ist als Ausbaustufe vorgesehen.
+    </div>
+
+    <div class="card">
+      <h2>Alle Rechnungen</h2>
+      <table>
+        <thead><tr><th>Nr.</th><th>Datum</th><th>Betrag</th><th>Fällig am</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>RE-2026-0143</td><td>01.09.2026</td><td>CHF 2'150.00</td><td>01.10.2026</td><td><span class="badge warning">Offen</span></td><td><a href="#">PDF</a></td></tr>
+          <tr><td>RE-2026-0122</td><td>15.08.2026</td><td>CHF 2'100.00</td><td>15.09.2026</td><td><span class="badge danger">Überfällig</span></td><td><a href="#">PDF</a></td></tr>
+          <tr><td>RE-2026-0098</td><td>01.08.2026</td><td>CHF 2'150.00</td><td>01.09.2026</td><td><span class="badge success">Bezahlt</span></td><td><a href="#">PDF</a></td></tr>
+          <tr><td>RE-2026-0071</td><td>01.07.2026</td><td>CHF 2'150.00</td><td>01.08.2026</td><td><span class="badge success">Bezahlt</span></td><td><a href="#">PDF</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</body>
+</html>
