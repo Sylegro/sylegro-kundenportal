@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin – Kunden | Sylegro Portal</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="uebersicht.html" class="top-cat active">Kunden</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
+      <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
+      <a href="#" class="sub-item disabled">Dokumente (bald)</a>
+
+      <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Kunden verwalten</h1>
+    </div>
+
+    <div class="card">
+      <h2>Neuer Kunde</h2>
+      <form id="neuer-kunde-form">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Firma</label>
+            <input id="f-firma" required style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Objekt / Adresse</label>
+            <input id="f-objekt" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Branche</label>
+            <input id="f-branche" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;" placeholder="z. B. Verwaltung, Industrie, Gewerbe">
+          </div>
+          <div></div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Login-E-Mail</label>
+            <input id="f-email" type="email" required style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Passwort (für den Kunden)</label>
+            <input id="f-password" type="text" required minlength="8" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+        </div>
+
+        <label style="display:block; font-size:0.85rem; margin-bottom:8px;">Leistungen / Kategorie</label>
+        <div style="display:flex; gap:18px; margin-bottom:18px; flex-wrap:wrap;">
+          <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
+          <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
+          <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
+          <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
+        </div>
+
+        <button type="submit" class="btn primary">Kunde anlegen</button>
+        <span id="form-status" style="margin-left:14px; font-size:0.9rem;"></span>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Alle Kunden</h2>
+      <table>
+        <thead><tr><th>Firma</th><th>Objekt</th><th>Branche</th><th>Login-E-Mail</th><th>Leistungen</th></tr></thead>
+        <tbody id="kunden-body">
+          <tr><td colspan="5" class="hint">Lade Kunden…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+  const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
+
+  async function ladeKunden() {
+    const body = document.getElementById('kunden-body');
+    const { data: customers, error } = await supabaseClient
+      .from('customers')
+      .select('id, firma, objekt, branche, login_email, customer_services(service)')
+      .order('firma');
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+    if (!customers || customers.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Kunden angelegt.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    customers.forEach(c => {
+      const services = (c.customer_services || []).map(s => SERVICE_LABEL[s.service] || s.service).join(', ') || '—';
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + c.firma + '</td><td>' + (c.objekt || '—') + '</td><td>' + (c.branche || '—') + '</td><td>' + (c.login_email || '—') + '</td><td>' + services + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  document.getElementById('neuer-kunde-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const status = document.getElementById('form-status');
+    status.textContent = 'Lege Kunde an…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const services = Array.from(document.querySelectorAll('.f-service:checked')).map(el => el.value);
+
+    const { data, error } = await supabaseClient.functions.invoke('admin-create-kunde', {
+      body: {
+        firma: document.getElementById('f-firma').value.trim(),
+        objekt: document.getElementById('f-objekt').value.trim(),
+        branche: document.getElementById('f-branche').value.trim(),
+        email: document.getElementById('f-email').value.trim(),
+        password: document.getElementById('f-password').value,
+        services: services
+      }
+    });
+
+    if (error || (data && data.error)) {
+      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Kunde erfolgreich angelegt.';
+    status.style.color = 'var(--color-success)';
+    document.getElementById('neuer-kunde-form').reset();
+    ladeKunden();
+  });
+
+  (async function () {
+    const admin = await sylegroRequireAdmin();
+    if (!admin) return;
+    ladeKunden();
+  })();
+</script>
+</body>
+</html>
