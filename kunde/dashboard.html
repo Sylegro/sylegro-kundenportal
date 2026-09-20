@@ -83,17 +83,25 @@
   </main>
 </div>
 
-<script src="../assets/demo-data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/supabase-client.js"></script>
 <script src="../assets/auth.js"></script>
 <script>
-  const kunde = sylegroRequireLogin();
-  if (kunde) {
+  (async function () {
+    const kunde = await sylegroRequireLogin();
+    if (!kunde) return;
     sylegroApplyNavVisibility(kunde);
-    const offen = kunde.rechnungen.filter(r => r.status === 'offen');
-    const summe = offen.reduce((sum, r) => sum + parseFloat(r.betrag.replace(/[^0-9.]/g, '')), 0);
+
+    const { data: invoices } = await supabaseClient
+      .from('invoices')
+      .select('betrag, status')
+      .eq('customer_id', kunde.customerId)
+      .eq('status', 'offen');
+
+    const summe = (invoices || []).reduce((sum, r) => sum + Number(r.betrag), 0);
     document.getElementById('stat-offene-rechnungen').textContent =
-      offen.length ? ("CHF " + summe.toLocaleString('de-CH')) : "CHF 0";
-  }
+      (invoices && invoices.length) ? ("CHF " + summe.toLocaleString('de-CH')) : "CHF 0";
+  })();
 </script>
 </body>
 </html>
