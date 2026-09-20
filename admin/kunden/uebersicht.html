@@ -27,6 +27,10 @@
   <main class="main">
     <div class="topbar">
       <h1>Kunden verwalten</h1>
+      <div>
+        <button class="btn" onclick="bexioSync()">Von Bexio synchronisieren</button>
+        <span id="bexio-status" style="margin-left:10px; font-size:0.85rem;"></span>
+      </div>
     </div>
 
     <div class="card">
@@ -142,6 +146,24 @@
     document.getElementById('neuer-kunde-form').reset();
     ladeKunden();
   });
+
+  async function bexioSync() {
+    const status = document.getElementById('bexio-status');
+    status.textContent = 'Synchronisiere mit Bexio…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const { data, error } = await supabaseClient.functions.invoke('bexio-sync-kunden', {});
+
+    if (error || (data && data.error)) {
+      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Fertig: ' + data.neu + ' neu, ' + data.aktualisiert + ' aktualisiert (von ' + data.gesamt + ' Bexio-Kontakten).';
+    status.style.color = 'var(--color-success)';
+    ladeKunden();
+  }
 
   (async function () {
     const admin = await sylegroRequireAdmin();
