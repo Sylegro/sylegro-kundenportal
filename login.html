@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Login | Sylegro Kundenportal</title>
+<title>Login | Sylegro Portal</title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <div style="max-width:420px; margin:80px auto; padding:0 20px;">
     <div class="card">
-      <h2 style="margin-bottom:4px;">Sylegro Kundenportal</h2>
+      <h2 style="margin-bottom:4px;">Sylegro Portal</h2>
       <p class="hint">Anmeldung</p>
 
       <label style="display:block; font-size:0.85rem; margin-bottom:6px;">E-Mail</label>
@@ -36,7 +36,31 @@
         document.getElementById('login-error').style.display = 'block';
         return;
       }
-      window.location.href = "kunde/dashboard.html";
+
+      // Anmeldung war korrekt – jetzt herausfinden, welche Rolle das Konto
+      // hat, und zur passenden, für diese Rolle vorgesehenen Ansicht
+      // weiterleiten. Was diese Rolle dann sehen darf, wird zusätzlich
+      // serverseitig über Row-Level-Security durchgesetzt, nicht nur hier.
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile && profile.role === 'admin') {
+        window.location.href = "admin/kunden.html";
+      } else if (profile && profile.role === 'kunde') {
+        window.location.href = "kunde/dashboard.html";
+      } else if (profile && profile.role === 'mitarbeiter') {
+        window.location.href = "mitarbeiter/dashboard.html";
+      } else {
+        // Kein gültiges Profil/keine erkannte Rolle -> sofort wieder
+        // abmelden und dieselbe generische Fehlermeldung zeigen wie bei
+        // falschem Passwort. Kein zusätzlicher Hinweis, was genau fehlt.
+        await supabaseClient.auth.signOut();
+        document.getElementById('login-error').style.display = 'block';
+      }
     }
     document.getElementById('login-pass').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') handleLogin();
