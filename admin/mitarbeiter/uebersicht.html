@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin – Mitarbeiter | Sylegro Portal</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="../kunden/uebersicht.html" class="top-cat">Kunden</a>
+
+      <a href="uebersicht.html" class="top-cat active">Mitarbeiter</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Mitarbeiter</a>
+      <a href="#" class="sub-item disabled">Funktionsfreigabe (bald)</a>
+      <a href="#" class="sub-item disabled">Stunden/Zeiten (bald)</a>
+      <a href="#" class="sub-item disabled">Mitarbeitergespräche (bald)</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Mitarbeiter verwalten</h1>
+    </div>
+
+    <div class="wip-note">
+      Dieser Bereich ist als Nächstes dran: Mitarbeiter mit Login anlegen, Funktionsfreigabe pro Mitarbeiter (welche Portal-Bereiche er nutzen darf), Kontrolle der erfassten Stunden/Zeiten pro Kunde, sowie eine Ablage für Mitarbeitergespräche.
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+  (async function () {
+    const admin = await sylegroRequireAdmin();
+    if (!admin) return;
+  })();
+</script>
+</body>
+</html>
