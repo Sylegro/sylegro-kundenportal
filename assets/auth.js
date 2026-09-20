@@ -51,6 +51,36 @@ async function sylegroLogout() {
   window.location.href = "../login.html";
 }
 
+// Auf jeder Admin-Seite (in /admin) ganz oben aufrufen:
+//   const admin = await sylegroRequireAdmin();
+//   if (!admin) return;
+// Leitet auf login.html um, falls niemand angemeldet ist oder die Person
+// keine Admin-Rolle hat. Die eigentliche Absicherung passiert zusätzlich
+// serverseitig über Row-Level-Security – diese Prüfung hier blendet nur
+// die Oberfläche korrekt ein/aus.
+async function sylegroRequireAdmin() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    window.location.href = "../login.html";
+    return null;
+  }
+
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('role, display_name')
+    .eq('id', session.user.id)
+    .single();
+
+  if (error || !profile || profile.role !== 'admin') {
+    window.location.href = "../login.html";
+    return null;
+  }
+
+  return {
+    name: profile.display_name || 'Admin'
+  };
+}
+
 // Auf einer leistungsspezifischen Seite (z. B. hauswartung.html) nach
 // sylegroRequireLogin() aufrufen. Hat der Kunde diese Leistung nicht
 // gebucht, wird er zurück zum Dashboard geschickt – ohne Hinweis, er sieht
