@@ -1,62 +1,28 @@
-<!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Verträge | Sylegro Kundenportal</title>
-<link rel="stylesheet" href="../assets/style.css">
-</head>
-<body>
-<div class="app-shell">
-  <aside class="sidebar">
-    <div class="brand">Sylegro <small>Kundenportal (Muster GmbH)</small></div>
-    <nav>
-      <a href="dashboard.html">Übersicht</a>
-      <a href="rechnungen.html">Rechnungen</a>
-      <a href="offerten.html">Offerten</a>
-      <a href="vertraege.html" class="active">Verträge</a>
-      <a href="kontakte.html">Kontakte</a>
-      <a href="tickets.html">Tickets</a>
-      <div class="section-label">Meine Leistungen</div>
-      <a href="unterhaltsreinigung.html">Unterhaltsreinigung</a>
-      <a href="spezialreinigung.html">Spezialreinigung</a>
-      <a href="baureinigung.html">Baureinigung</a>
-      <a href="hauswartung.html">Hauswartung</a>
-    </nav>
-    <div style="margin-top:auto; padding-top:20px;">
-      <a href="../index.html" style="font-size:0.8rem; opacity:0.7;">&larr; Portal wechseln</a>
-    </div>
-  </aside>
-  <main class="main">
-    <div class="topbar"><h1>Verträge</h1></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/supabase-client.js"></script>
+<script src="../assets/auth.js"></script>
+<script>
+  (async function () {
+    const kunde = await sylegroRequireLogin();
+    if (!kunde) return;
+    sylegroApplyNavVisibility(kunde);
 
-    <div class="card">
-      <h2>Aktive Verträge</h2>
-      <table>
-        <thead><tr><th>Vertrag</th><th>Leistung</th><th>Laufzeit</th><th>Status</th><th></th></tr></thead>
-        <tbody>
-          <tr>
-            <td>V-2026-004</td>
-            <td>Unterhaltsreinigung (wöchentlich)</td>
-            <td>bis 30.11.2026</td>
-            <td><span class="badge warning">Läuft in 60 Tagen aus</span></td>
-            <td><a href="#">Details</a></td>
-          </tr>
-          <tr>
-            <td>V-2025-011</td>
-            <td>Hauswartung Bahnhofstrasse 4</td>
-            <td>bis 31.12.2027</td>
-            <td><span class="badge success">Aktiv</span></td>
-            <td><a href="#">Details</a></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    const { data: vertraege } = await supabaseClient
+      .from('contracts')
+      .select('nr, titel, start_datum, laufzeit, status')
+      .eq('customer_id', kunde.customerId)
+      .order('start_datum', { ascending: false });
 
-    <div class="wip-note">
-      Geplant: automatischer Hinweis 90 Tage vor Vertragsende sowie Online-Verlängerung/Kündigung direkt hier im Portal.
-    </div>
-  </main>
-</div>
-</body>
-</html>
+    const body = document.getElementById('vertraege-body');
+    (vertraege || []).forEach(v => {
+      const tr = document.createElement('tr');
+      const badgeClass = v.status === 'aktiv' ? 'success' : (v.status === 'laeuft_aus' ? 'warning' : 'neutral');
+      const badgeText = v.status === 'aktiv' ? 'Aktiv' : (v.status === 'laeuft_aus' ? 'Läuft bald aus' : (v.status || '—'));
+      tr.innerHTML = '<td>' + v.nr + '</td><td>' + v.titel + '</td><td>Start ' + v.start_datum + ', ' + v.laufzeit + '</td><td><span class="badge ' + badgeClass + '">' + badgeText + '</span></td><td><a href="#">Details</a></td>';
+      body.appendChild(tr);
+    });
+    if (!vertraege || vertraege.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Verträge hinterlegt.</td></tr>';
+    }
+  })();
+</script>
