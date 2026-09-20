@@ -1,40 +1,66 @@
-// Sylegro Kundenportal – einfache Demo-Anmeldung (Prototyp)
-// ACHTUNG: Dies ist KEIN sicheres Login-System. Es dient nur dazu, im
-// Prototyp zu zeigen und zu testen, wie sich das Portal je nach Kundentyp
-// (Unterhaltsreinigung / Spezialreinigung / Hauswartung) unterscheiden soll.
-// Für echte Kundendaten braucht es zwingend ein richtiges Backend mit
-// Datenbank, gehashten Passwörtern und Verschlüsselung.
+// Sylegro Kundenportal – echte Anmeldung & Zugriffsprüfung über Supabase
+//
+// Diese Datei ersetzt die frühere Demo-Logik (die nur im Browser lief).
+// Jede Prüfung hier fragt echte, serverseitig durch Row-Level-Security
+// abgesicherte Daten aus Supabase ab.
 
-function sylegroLogin(username, password) {
-  const match = SYLEGRO_DEMO_CUSTOMERS.find(
-    c => c.username === username && c.password === password
-  );
-  if (match) {
-    sessionStorage.setItem("sylegro_kunde", JSON.stringify(match));
-    return match;
-  }
-  return null;
-}
-
-function sylegroLogout() {
-  sessionStorage.removeItem("sylegro_kunde");
-  window.location.href = "../login.html";
-}
-
-function sylegroCurrentCustomer() {
-  const raw = sessionStorage.getItem("sylegro_kunde");
-  return raw ? JSON.parse(raw) : null;
-}
-
-// Auf jeder geschützten Kundenseite (in /kunde) ganz oben aufrufen.
-// Leitet auf login.html um, falls niemand angemeldet ist.
-function sylegroRequireLogin() {
-  const kunde = sylegroCurrentCustomer();
-  if (!kunde) {
+// Auf jeder geschützten Kundenseite (in /kunde) ganz oben aufrufen:
+//   const kunde = await sylegroRequireLogin();
+//   if (!kunde) return;
+// Leitet auf login.html um, falls niemand angemeldet ist oder die Person
+// keine Kundenrolle hat.
+async function sylegroRequireLogin() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
     window.location.href = "../login.html";
     return null;
   }
-  return kunde;
+
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('role, customer_id, display_name')
+    .eq('id', session.user.id)
+    .single();
+
+  if (error || !profile || profile.role !== 'kunde' || !profile.customer_id) {
+    window.location.href = "../login.html";
+    return null;
+  }
+
+  const { data: customer } = await supabaseClient
+    .from('customers')
+    .select('id, firma, objekt')
+    .eq('id', profile.customer_id)
+    .single();
+
+  const { data: services } = await supabaseClient
+    .from('customer_services')
+    .select('service')
+    .eq('customer_id', profile.customer_id);
+
+  return {
+    customerId: profile.customer_id,
+    firma: customer ? customer.firma : (profile.display_name || 'Kunde'),
+    objekt: customer ? customer.objekt : '',
+    services: services ? services.map(s => s.service) : []
+  };
+}
+
+async function sylegroLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = "../login.html";
+}
+
+// Auf einer leistungsspezifischen Seite (z. B. hauswartung.html) nach
+// sylegroRequireLogin() aufrufen. Hat der Kunde diese Leistung nicht
+// gebucht, wird er zurück zum Dashboard geschickt – ohne Hinweis, er sieht
+// die Seite einfach gar nicht.
+function sylegroRequireService(kunde, service) {
+  if (!kunde.services.includes(service)) {
+    window.location.href = "dashboard.html";
+    return false;
+  }
+  return true;
 }
 
 // Blendet Elemente aus, die der aktuelle Kunde nicht gebucht hat.
