@@ -9,7 +9,7 @@
 <body>
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="brand">Sylegro <small>Kundenportal (Muster GmbH)</small></div>
+    <div class="brand">Sylegro <small>Kundenportal (<span data-kundenname>…</span>)</small></div>
     <nav>
       <a href="dashboard.html">Übersicht</a>
       <a href="rechnungen.html">Rechnungen</a>
@@ -18,13 +18,13 @@
       <a href="kontakte.html">Kontakte</a>
       <a href="tickets.html">Tickets</a>
       <div class="section-label">Meine Leistungen</div>
-      <a href="unterhaltsreinigung.html">Unterhaltsreinigung</a>
-      <a href="spezialreinigung.html">Spezialreinigung</a>
-      <a href="baureinigung.html">Baureinigung</a>
-      <a href="hauswartung.html">Hauswartung</a>
+      <a href="unterhaltsreinigung.html" data-service="uhr">Unterhaltsreinigung</a>
+      <a href="spezialreinigung.html" data-service="spezial">Spezialreinigung</a>
+      <a href="baureinigung.html" data-service="bau">Baureinigung</a>
+      <a href="hauswartung.html" data-service="hauswartung">Hauswartung</a>
     </nav>
     <div style="margin-top:auto; padding-top:20px;">
-      <a href="../index.html" style="font-size:0.8rem; opacity:0.7;">&larr; Portal wechseln</a>
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
     </div>
   </aside>
   <main class="main">
@@ -43,5 +43,16 @@
     </div>
   </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../assets/supabase-client.js"></script>
+<script src="../assets/auth.js"></script>
+<script>
+  (async function () {
+    const kunde = await sylegroRequireLogin();
+    if (!kunde) return;
+    sylegroApplyNavVisibility(kunde);
+  })();
+</script>
 </body>
 </html>
