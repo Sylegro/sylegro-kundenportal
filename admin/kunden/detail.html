@@ -30,75 +30,124 @@
       <a href="uebersicht.html" style="font-size:0.9rem;">← Zurück zur Übersicht</a>
     </div>
 
-    <div class="card">
-      <h2>Stammdaten</h2>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
-        <div>
-          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Firma</label>
-          <input id="f-firma" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Objekt / Adresse</label>
-          <input id="f-objekt" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Branche</label>
-          <input id="f-branche" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-        </div>
+    <div class="profile-header">
+      <div class="info-grid">
+        <div><div class="label">Objekt / Adresse</div><div id="ov-objekt">—</div></div>
+        <div><div class="label">Branche</div><div id="ov-branche">—</div></div>
+        <div><div class="label">Leistungen</div><div id="ov-leistungen">—</div></div>
+        <div><div class="label">Login-E-Mail</div><div id="ov-login">—</div></div>
       </div>
-      <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
-      <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
     </div>
 
-    <div class="card">
-      <h2>Leistungen / Kategorie</h2>
-      <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
-        <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
-        <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
-        <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
-        <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
-      </div>
-      <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
-      <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="stammdaten">Stammdaten & Leistungen</button>
+      <button class="tab-btn" data-tab="login">Portal-Login</button>
+      <button class="tab-btn" data-tab="ansprechpartner">Ansprechpartner</button>
+      <button class="tab-btn" data-tab="angebote">Angebote</button>
+      <button class="tab-btn" data-tab="dokumente">Dokumente</button>
     </div>
 
-    <div class="card">
-      <h2>Portal-Login</h2>
-      <div id="login-bereich">Lade…</div>
+    <div class="tab-panel" data-panel="stammdaten">
+      <div class="card">
+        <h2>Stammdaten</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Firma</label>
+            <input id="f-firma" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Objekt / Adresse</label>
+            <input id="f-objekt" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Branche</label>
+            <input id="f-branche" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+        </div>
+        <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
+        <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
+      </div>
+
+      <div class="card">
+        <h2>Leistungen / Kategorie</h2>
+        <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
+          <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
+          <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
+          <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
+          <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
+        </div>
+        <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
+        <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>Dokumente</h2>
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:16px;">
-        <div>
-          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Titel</label>
-          <input id="doc-titel" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-        </div>
-        <div>
-          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Kategorie</label>
-          <select id="doc-kategorie" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-            <option value="Vertrag">Vertrag</option>
-            <option value="Rechnung">Rechnung</option>
-            <option value="Offerte">Offerte</option>
-            <option value="Sonstiges">Sonstiges</option>
-          </select>
-        </div>
-        <div>
-          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Datei</label>
-          <input id="doc-datei" type="file" style="width:100%;">
-        </div>
-        <div>
-          <button class="btn primary" onclick="dokumentHochladen()">Hochladen</button>
-        </div>
+    <div class="tab-panel hidden" data-panel="login">
+      <div class="card">
+        <h2>Portal-Login</h2>
+        <div id="login-bereich">Lade…</div>
       </div>
-      <span id="doc-status" style="font-size:0.9rem;"></span>
+    </div>
 
-      <table style="margin-top:10px;">
-        <thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead>
-        <tbody id="doc-body">
-          <tr><td colspan="4" class="hint">Lade Dokumente…</td></tr>
-        </tbody>
-      </table>
+    <div class="tab-panel hidden" data-panel="ansprechpartner">
+      <div class="card">
+        <h2>Ansprechpartner</h2>
+        <p class="hint">Wird aus Bexio übernommen (Button "Ansprechpartner synchronisieren" auf der Kundenübersicht).</p>
+        <table>
+          <thead><tr><th>Name</th><th>Rolle</th><th>E-Mail</th><th>Telefon</th></tr></thead>
+          <tbody id="ansprechpartner-body">
+            <tr><td colspan="4" class="hint">Lade…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel hidden" data-panel="angebote">
+      <div class="card">
+        <h2>Angebote</h2>
+        <p class="hint">Wird aus Bexio übernommen (Button "Angebote synchronisieren" auf der Kundenübersicht). Status zeigt vorerst den rohen Bexio-Code, wird nach Kalibrierung in Klartext übersetzt.</p>
+        <table>
+          <thead><tr><th>Nr.</th><th>Betreff</th><th>Datum</th><th>Betrag</th><th>Status</th></tr></thead>
+          <tbody id="angebote-body">
+            <tr><td colspan="5" class="hint">Lade…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel hidden" data-panel="dokumente">
+      <div class="card">
+        <h2>Dokumente</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:16px;">
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Titel</label>
+            <input id="doc-titel" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Kategorie</label>
+            <select id="doc-kategorie" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+              <option value="Vertrag">Vertrag</option>
+              <option value="Rechnung">Rechnung</option>
+              <option value="Offerte">Offerte</option>
+              <option value="Sonstiges">Sonstiges</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Datei</label>
+            <input id="doc-datei" type="file" style="width:100%;">
+          </div>
+          <div>
+            <button class="btn primary" onclick="dokumentHochladen()">Hochladen</button>
+          </div>
+        </div>
+        <span id="doc-status" style="font-size:0.9rem;"></span>
+
+        <table style="margin-top:10px;">
+          <thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead>
+          <tbody id="doc-body">
+            <tr><td colspan="4" class="hint">Lade Dokumente…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </main>
 </div>
@@ -108,6 +157,16 @@
 <script src="../../assets/auth.js"></script>
 <script>
   const customerId = new URLSearchParams(window.location.search).get('id');
+  const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      btn.classList.add('active');
+      document.querySelector('.tab-panel[data-panel="' + btn.dataset.tab + '"]').classList.remove('hidden');
+    });
+  });
 
   async function ladeKunde() {
     const { data: customer, error } = await supabaseClient
@@ -131,6 +190,12 @@
       cb.checked = aktiv.includes(cb.value);
     });
 
+    const leistungenText = aktiv.map(s => SERVICE_LABEL[s] || s).join(', ') || '—';
+    document.getElementById('ov-objekt').textContent = customer.objekt || '—';
+    document.getElementById('ov-branche').textContent = customer.branche || '—';
+    document.getElementById('ov-leistungen').textContent = leistungenText;
+    document.getElementById('ov-login').textContent = customer.login_email || '—';
+
     renderLoginBereich(customer.login_email);
   }
 
@@ -152,7 +217,7 @@
     }
     status.textContent = 'Gespeichert.';
     status.style.color = 'var(--color-success)';
-    document.getElementById('page-title').textContent = document.getElementById('f-firma').value.trim();
+    ladeKunde();
   }
 
   async function speichereLeistungen() {
@@ -181,12 +246,19 @@
 
     status.textContent = 'Gespeichert.';
     status.style.color = 'var(--color-success)';
+    ladeKunde();
   }
 
   function renderLoginBereich(loginEmail) {
     const el = document.getElementById('login-bereich');
     if (loginEmail) {
-      el.innerHTML = '<p class="hint">Login vorhanden: <strong>' + loginEmail + '</strong></p>';
+      el.innerHTML =
+        '<p class="hint">Login vorhanden: <strong>' + loginEmail + '</strong></p>' +
+        '<div style="display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; max-width:500px;">' +
+        '<div><label style="display:block; font-size:0.85rem; margin-bottom:6px;">Neues Passwort setzen</label>' +
+        '<input id="reset-password" type="text" minlength="8" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;"></div>' +
+        '<div><button class="btn" onclick="passwortZuruecksetzen()">Setzen</button></div>' +
+        '</div><span id="reset-status" style="font-size:0.9rem; display:block; margin-top:10px;"></span>';
       return;
     }
     el.innerHTML =
@@ -219,6 +291,79 @@
     }
 
     ladeKunde();
+  }
+
+  async function passwortZuruecksetzen() {
+    const status = document.getElementById('reset-status');
+    status.textContent = 'Setze neues Passwort…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const { data, error } = await supabaseClient.functions.invoke('admin-reset-kunde-password', {
+      body: {
+        customer_id: customerId,
+        password: document.getElementById('reset-password').value
+      }
+    });
+
+    if (error || (data && data.error)) {
+      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Neues Passwort gesetzt.';
+    status.style.color = 'var(--color-success)';
+    document.getElementById('reset-password').value = '';
+  }
+
+  async function ladeAnsprechpartner() {
+    const body = document.getElementById('ansprechpartner-body');
+    const { data: personen, error } = await supabaseClient
+      .from('contact_persons')
+      .select('name, rolle, email, telefon')
+      .eq('customer_id', customerId)
+      .order('name');
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+    if (!personen || personen.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="hint">Noch keine Ansprechpartner synchronisiert.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    personen.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + (p.name || '—') + '</td><td>' + (p.rolle || '—') + '</td><td>' + (p.email || '—') + '</td><td>' + (p.telefon || '—') + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  async function ladeAngebote() {
+    const body = document.getElementById('angebote-body');
+    const { data: angebote, error } = await supabaseClient
+      .from('quotes')
+      .select('nr, betreff, datum, betrag, status')
+      .eq('customer_id', customerId)
+      .order('datum', { ascending: false });
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+    if (!angebote || angebote.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Angebote synchronisiert.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    angebote.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + (a.nr || '—') + '</td><td>' + (a.betreff || '—') + '</td><td>' + (a.datum || '—') + '</td><td>' + (a.betrag != null ? a.betrag : '—') + '</td><td>' + (a.status || '—') + '</td>';
+      body.appendChild(tr);
+    });
   }
 
   async function ladeDokumente() {
@@ -304,6 +449,8 @@
       return;
     }
     ladeKunde();
+    ladeAnsprechpartner();
+    ladeAngebote();
     ladeDokumente();
   })();
 </script>
