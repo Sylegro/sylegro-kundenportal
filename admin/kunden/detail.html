@@ -30,92 +30,90 @@
       <a href="uebersicht.html" style="font-size:0.9rem;">← Zurück zur Übersicht</a>
     </div>
 
-    <div class="profile-header">
-      <img id="ov-logo" src="" alt="Logo" style="width:64px; height:64px; object-fit:contain; border-radius:8px; border:1px solid var(--color-border); display:none;">
-      <div class="info-grid">
-        <div><div class="label">Objekt / Adresse</div><div id="ov-objekt">—</div></div>
-        <div><div class="label">Branche</div><div id="ov-branche">—</div></div>
-        <div><div class="label">Leistungen</div><div id="ov-leistungen">—</div></div>
-        <div><div class="label">Login-E-Mail</div><div id="ov-login">—</div></div>
-      </div>
-    </div>
-
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
-      <button class="tab-btn" data-tab="finanzen">Finanzen</button>
-      <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
-      <button class="tab-btn" data-tab="liegenschaften">Liegenschaften</button>
-      <button class="tab-btn" data-tab="schluessel">Schlüsselverzeichnis</button>
-      <button class="tab-btn" data-tab="login">Portal-Login</button>
-      <button class="tab-btn" data-tab="dokumente">Dokumente</button>
-    </div>
-
-    <!-- ÜBERSICHT -->
-    <div class="tab-panel" data-panel="uebersicht">
-      <div class="uebersicht-grid">
-        <div>
-          <div class="card">
-            <h2>Stammdaten</h2>
-            <div class="form-grid">
-              <div>
-                <label>Firma</label>
-                <input id="f-firma">
-              </div>
-              <div>
-                <label>Objekt / Adresse</label>
-                <input id="f-objekt">
-              </div>
-              <div>
-                <label>Branche</label>
-                <input id="f-branche">
-              </div>
-            </div>
-            <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
-            <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
-          </div>
-
-          <div class="card">
-            <h2>Leistungen / Kategorie</h2>
-            <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
-              <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
-              <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
-              <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
-              <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
-            </div>
-            <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
-            <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
-          </div>
-
-          <div class="card">
-            <h2>Angebote</h2>
-            <p class="hint">Wird aus Bexio übernommen. Status zeigt vorerst den rohen Bexio-Code, wird nach Kalibrierung in Klartext übersetzt.</p>
-            <table>
-              <thead><tr><th>Nr.</th><th>Betreff</th><th>Datum</th><th>Betrag</th><th>Status</th></tr></thead>
-              <tbody id="angebote-body">
-                <tr><td colspan="5" class="hint">Lade…</td></tr>
-              </tbody>
-            </table>
+    <div class="top-grid">
+      <div class="card">
+        <div class="firma-header">
+          <img id="ov-logo" src="" alt="Logo" style="display:none;">
+          <div>
+            <div class="firma-name" id="ov-firma-name">—</div>
+            <span class="badge success">Kunde</span>
           </div>
         </div>
 
-        <div>
-          <div class="card">
-            <h2>Kontakte</h2>
-            <p class="hint">Wird aus Bexio übernommen. Rechte pro Ansprechpartner folgen in einem späteren Schritt.</p>
-            <div id="kontakte-liste">Lade…</div>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
+          <button class="tab-btn" data-tab="finanzen">Finanzen</button>
+          <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
+        </div>
+
+        <div class="tab-panel" data-panel="uebersicht">
+          <div class="info-grid">
+            <div><div class="label">Objekt / Adresse</div><div id="ov-objekt">—</div></div>
+            <div><div class="label">Branche</div><div id="ov-branche">—</div></div>
+            <div><div class="label">Leistungen</div><div id="ov-leistungen">—</div></div>
+            <div><div class="label">Login-E-Mail</div><div id="ov-login">—</div></div>
+          </div>
+
+          <h2>Stammdaten</h2>
+          <div class="form-grid">
+            <div><label>Firma</label><input id="f-firma"></div>
+            <div><label>Objekt / Adresse</label><input id="f-objekt"></div>
+            <div><label>Branche</label><input id="f-branche"></div>
+          </div>
+          <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
+          <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
+
+          <h2 style="margin-top:24px;">Leistungen / Kategorie</h2>
+          <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
+            <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
+            <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
+            <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
+            <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
+          </div>
+          <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
+          <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
+        </div>
+
+        <div class="tab-panel hidden" data-panel="finanzen">
+          <h2>Umsatz (letzte 12 Monate)</h2>
+          <div class="chart-wrap"><canvas id="umsatz-chart"></canvas></div>
+        </div>
+
+        <div class="tab-panel hidden" data-panel="qualitaet">
+          <div class="wip-note">
+            Dieser Bereich zeigt künftig eine monatliche Auswertung der durchgeführten Qualitätskontrollen (aggregiert über alle Liegenschaften, filterbar nach einzelnen Liegenschaften). Die Datenquelle dafür – die Qualitätskontrolle auf Mitarbeiterseite – ist noch nicht gebaut.
           </div>
         </div>
       </div>
+
+      <div class="card">
+        <h2>Kontakte</h2>
+        <p class="hint">Wird aus Bexio übernommen. Rechte pro Ansprechpartner folgen in einem späteren Schritt.</p>
+        <div id="kontakte-liste">Lade…</div>
+      </div>
     </div>
 
-    <!-- FINANZEN -->
-    <div class="tab-panel hidden" data-panel="finanzen">
-      <div class="card">
-        <h2>Umsatz (letzte 12 Monate)</h2>
-        <div class="chart-wrap"><canvas id="umsatz-chart"></canvas></div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="angebote">Angebote</button>
+        <button class="tab-btn" data-tab="rechnungen">Rechnungen</button>
+        <button class="tab-btn" data-tab="liegenschaften">Liegenschaften</button>
+        <button class="tab-btn" data-tab="schluessel">Schlüsselverzeichnis</button>
+        <button class="tab-btn" data-tab="login">Portal-Login</button>
+        <button class="tab-btn" data-tab="dokumente">Dokumente</button>
       </div>
-      <div class="card">
-        <h2>Offene Rechnungen</h2>
+
+      <div class="tab-panel" data-panel="angebote">
+        <p class="hint">Wird aus Bexio übernommen. Status zeigt vorerst den rohen Bexio-Code, wird nach Kalibrierung in Klartext übersetzt.</p>
+        <table>
+          <thead><tr><th>Nr.</th><th>Betreff</th><th>Datum</th><th>Betrag</th><th>Status</th></tr></thead>
+          <tbody id="angebote-body">
+            <tr><td colspan="5" class="hint">Lade…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tab-panel hidden" data-panel="rechnungen">
         <p class="hint">"Überfällig" markiert Rechnungen, deren Fälligkeitsdatum in der Vergangenheit liegt. "Als bezahlt markieren" ist eine manuelle Angabe im Portal.</p>
         <table>
           <thead><tr><th>Nr.</th><th>Betreff</th><th>Fällig am</th><th>Betrag</th><th>Status</th><th></th></tr></thead>
@@ -124,31 +122,12 @@
           </tbody>
         </table>
       </div>
-    </div>
 
-    <!-- QUALITÄTSBERICHT -->
-    <div class="tab-panel hidden" data-panel="qualitaet">
-      <div class="card">
-        <h2>Qualitätskontrolle</h2>
-        <div class="wip-note">
-          Dieser Bereich zeigt künftig eine monatliche Auswertung der durchgeführten Qualitätskontrollen (aggregiert über alle Liegenschaften, filterbar nach einzelnen Liegenschaften). Die Datenquelle dafür – die Qualitätskontrolle auf Mitarbeiterseite – ist noch nicht gebaut.
-        </div>
-      </div>
-    </div>
-
-    <!-- LIEGENSCHAFTEN -->
-    <div class="tab-panel hidden" data-panel="liegenschaften">
-      <div class="card">
+      <div class="tab-panel hidden" data-panel="liegenschaften">
         <h2>Liegenschaft hinzufügen</h2>
         <div class="form-grid">
-          <div>
-            <label>Name</label>
-            <input id="lg-name" placeholder="z.B. Hauptsitz Zürich">
-          </div>
-          <div>
-            <label>Adresse</label>
-            <input id="lg-adresse">
-          </div>
+          <div><label>Name</label><input id="lg-name" placeholder="z.B. Hauptsitz Zürich"></div>
+          <div><label>Adresse</label><input id="lg-adresse"></div>
           <div>
             <label>Typ</label>
             <select id="lg-typ">
@@ -156,16 +135,12 @@
               <option value="hauswartung">Hauswartung</option>
             </select>
           </div>
-          <div>
-            <button class="btn primary" onclick="liegenschaftHinzufuegen()">Hinzufügen</button>
-          </div>
+          <div><button class="btn primary" onclick="liegenschaftHinzufuegen()">Hinzufügen</button></div>
         </div>
         <span id="lg-status" style="font-size:0.9rem;"></span>
-      </div>
 
-      <div class="card">
-        <h2>Liegenschaften</h2>
-        <p class="hint">Klicke auf eine Liegenschaft, um die zugehörigen Dokumente (Leistungsverzeichnis, Objektplan usw.) zu sehen.</p>
+        <h2 style="margin-top:24px;">Liegenschaften</h2>
+        <p class="hint">Klicke auf eine Liegenschaft, um die zugehörigen Dokumente zu sehen.</p>
         <table>
           <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th></tr></thead>
           <tbody id="liegenschaften-body">
@@ -173,46 +148,21 @@
           </tbody>
         </table>
       </div>
-    </div>
 
-    <!-- SCHLÜSSELVERZEICHNIS -->
-    <div class="tab-panel hidden" data-panel="schluessel">
-      <div class="card">
+      <div class="tab-panel hidden" data-panel="schluessel">
         <h2>Schlüssel hinzufügen</h2>
         <div class="form-grid">
-          <div>
-            <label>Bezeichnung</label>
-            <input id="sk-bezeichnung" placeholder="z.B. Haupteingang, Chip 3">
-          </div>
-          <div>
-            <label>Liegenschaft</label>
-            <select id="sk-liegenschaft"><option value="">— keine —</option></select>
-          </div>
-          <div>
-            <label>Aufbewahrungsort</label>
-            <input id="sk-ort" placeholder="z.B. Schlüsselschrank Büro">
-          </div>
-          <div>
-            <label>Inhaber</label>
-            <input id="sk-inhaber" placeholder="Name der Person">
-          </div>
-          <div>
-            <label>Erhalten am</label>
-            <input id="sk-datum" type="date">
-          </div>
-          <div>
-            <label>Quittung (Scan/Foto)</label>
-            <input id="sk-datei" type="file">
-          </div>
-          <div>
-            <button class="btn primary" onclick="schluesselHinzufuegen()">Hinzufügen</button>
-          </div>
+          <div><label>Bezeichnung</label><input id="sk-bezeichnung" placeholder="z.B. Haupteingang, Chip 3"></div>
+          <div><label>Liegenschaft</label><select id="sk-liegenschaft"><option value="">— keine —</option></select></div>
+          <div><label>Aufbewahrungsort</label><input id="sk-ort" placeholder="z.B. Schlüsselschrank Büro"></div>
+          <div><label>Inhaber</label><input id="sk-inhaber" placeholder="Name der Person"></div>
+          <div><label>Erhalten am</label><input id="sk-datum" type="date"></div>
+          <div><label>Quittung (Scan/Foto)</label><input id="sk-datei" type="file"></div>
+          <div><button class="btn primary" onclick="schluesselHinzufuegen()">Hinzufügen</button></div>
         </div>
         <span id="sk-status" style="font-size:0.9rem;"></span>
-      </div>
 
-      <div class="card">
-        <h2>Schlüssel</h2>
+        <h2 style="margin-top:24px;">Schlüssel</h2>
         <table>
           <thead><tr><th>Bezeichnung</th><th>Liegenschaft</th><th>Aufbewahrungsort</th><th>Inhaber</th><th>Erhalten am</th><th>Quittung</th></tr></thead>
           <tbody id="schluessel-body">
@@ -220,25 +170,14 @@
           </tbody>
         </table>
       </div>
-    </div>
 
-    <!-- PORTAL-LOGIN -->
-    <div class="tab-panel hidden" data-panel="login">
-      <div class="card">
-        <h2>Portal-Login</h2>
+      <div class="tab-panel hidden" data-panel="login">
         <div id="login-bereich">Lade…</div>
       </div>
-    </div>
 
-    <!-- DOKUMENTE -->
-    <div class="tab-panel hidden" data-panel="dokumente">
-      <div class="card">
-        <h2>Dokumente</h2>
+      <div class="tab-panel hidden" data-panel="dokumente">
         <div class="form-grid">
-          <div>
-            <label>Titel</label>
-            <input id="doc-titel">
-          </div>
+          <div><label>Titel</label><input id="doc-titel"></div>
           <div>
             <label>Kategorie</label>
             <select id="doc-kategorie">
@@ -250,13 +189,8 @@
               <option value="Sonstiges">Sonstiges</option>
             </select>
           </div>
-          <div>
-            <label>Datei</label>
-            <input id="doc-datei" type="file">
-          </div>
-          <div>
-            <button class="btn primary" onclick="dokumentHochladen()">Hochladen</button>
-          </div>
+          <div><label>Datei</label><input id="doc-datei" type="file"></div>
+          <div><button class="btn primary" onclick="dokumentHochladen()">Hochladen</button></div>
         </div>
         <span id="doc-status" style="font-size:0.9rem;"></span>
 
@@ -280,12 +214,15 @@
   const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
   let umsatzChart = null;
 
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-      btn.classList.add('active');
-      document.querySelector('.tab-panel[data-panel="' + btn.dataset.tab + '"]').classList.remove('hidden');
+  document.querySelectorAll('.tabs').forEach(tabBar => {
+    const container = tabBar.closest('.card');
+    tabBar.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        container.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.add('hidden'));
+        btn.classList.add('active');
+        container.querySelector(':scope > .tab-panel[data-panel="' + btn.dataset.tab + '"]').classList.remove('hidden');
+      });
     });
   });
 
@@ -308,6 +245,7 @@
     }
 
     document.getElementById('page-title').textContent = customer.firma;
+    document.getElementById('ov-firma-name').textContent = customer.firma;
     document.getElementById('f-firma').value = customer.firma || '';
     document.getElementById('f-objekt').value = customer.objekt || '';
     document.getElementById('f-branche').value = customer.branche || '';
@@ -532,7 +470,6 @@
       return;
     }
 
-    // Umsatz-Chart: letzte 12 Monate
     const heute = new Date();
     const monate = [];
     for (let i = 11; i >= 0; i--) {
@@ -562,7 +499,6 @@
       }
     });
 
-    // Offene Rechnungen
     const body = document.getElementById('rechnungen-body');
     const offen = (rechnungen || []).filter(r => !r.bezahlt);
     if (offen.length === 0) {
