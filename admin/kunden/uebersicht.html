@@ -31,21 +31,29 @@
 
     <div class="card">
       <h2>Bexio-Synchronisation</h2>
-      <p class="hint">Firma/Adresse/Logo/Branche, Ansprechpartner, Angebote und Rechnungen werden aus Bexio übernommen. Leistungen/Kategorie und Portal-Login bleiben manuelle Schritte im Kundenprofil. Kunden werden ausschliesslich in Bexio hinzugefügt oder entfernt.</p>
+      <p class="hint">Läuft automatisch im Hintergrund alle paar Stunden (siehe Supabase Cron). Diese Buttons sind nur für eine sofortige manuelle Aktualisierung gedacht, du musst sie nicht mehr regelmässig selbst klicken.</p>
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <button class="btn" onclick="bexioSyncKunden()">Kunden synchronisieren</button>
-        <button class="btn" onclick="bexioSyncAnsprechpartner()">Ansprechpartner synchronisieren</button>
-        <button class="btn" onclick="bexioSyncAngebote()">Angebote synchronisieren</button>
-        <button class="btn" onclick="bexioSyncRechnungen()">Rechnungen synchronisieren</button>
+        <button class="btn" onclick="bexioSyncKunden()">Kunden jetzt synchronisieren</button>
+        <button class="btn" onclick="bexioSyncAnsprechpartner()">Ansprechpartner jetzt synchronisieren</button>
+        <button class="btn" onclick="bexioSyncAngebote()">Angebote jetzt synchronisieren</button>
+        <button class="btn" onclick="bexioSyncRechnungen()">Rechnungen jetzt synchronisieren</button>
       </div>
       <div id="bexio-status" style="margin-top:10px; font-size:0.85rem;"></div>
     </div>
 
     <div class="card">
       <h2>Alle Kunden</h2>
-      <p class="hint">Klicke auf einen Kunden, um Übersicht, Finanzen, Qualitätsbericht, Liegenschaften, Schlüsselverzeichnis, Login und Dokumente zu bearbeiten.</p>
+      <p class="hint">Klicke auf eine Spaltenüberschrift zum Sortieren. Klicke auf einen Kunden, um das Profil zu öffnen.</p>
       <table>
-        <thead><tr><th>Firma</th><th>Objekt</th><th>Branche</th><th>Login-E-Mail</th><th>Leistungen</th></tr></thead>
+        <thead>
+          <tr>
+            <th class="sortable" data-sort="kundennummer">Kundennr. <span class="sort-arrow">↕</span></th>
+            <th class="sortable" data-sort="firma">Firma <span class="sort-arrow">↕</span></th>
+            <th class="sortable" data-sort="objekt">Objekt <span class="sort-arrow">↕</span></th>
+            <th class="sortable" data-sort="branche">Branche <span class="sort-arrow">↕</span></th>
+            <th>Leistungen</th>
+          </tr>
+        </thead>
         <tbody id="kunden-body">
           <tr><td colspan="5" class="hint">Lade Kunden…</td></tr>
         </tbody>
@@ -59,33 +67,70 @@
 <script src="../../assets/auth.js"></script>
 <script>
   const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
+  let kundenDaten = [];
+  let sortSpalte = 'kundennummer';
+  let sortRichtung = 'asc';
 
   async function ladeKunden() {
     const body = document.getElementById('kunden-body');
     const { data: customers, error } = await supabaseClient
       .from('customers')
-      .select('id, firma, objekt, branche, login_email, customer_services(service)')
-      .order('firma');
+      .select('id, kundennummer, firma, objekt, branche, customer_services(service)');
 
     if (error) {
       body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
       return;
     }
-    if (!customers || customers.length === 0) {
+
+    kundenDaten = customers || [];
+    renderKunden();
+  }
+
+  function renderKunden() {
+    const body = document.getElementById('kunden-body');
+    if (kundenDaten.length === 0) {
       body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Kunden angelegt.</td></tr>';
       return;
     }
 
+    const sortiert = [...kundenDaten].sort((a, b) => {
+      let av = a[sortSpalte] || '';
+      let bv = b[sortSpalte] || '';
+      if (typeof av === 'string') av = av.toLowerCase();
+      if (typeof bv === 'string') bv = bv.toLowerCase();
+      if (av < bv) return sortRichtung === 'asc' ? -1 : 1;
+      if (av > bv) return sortRichtung === 'asc' ? 1 : -1;
+      return 0;
+    });
+
     body.innerHTML = '';
-    customers.forEach(c => {
+    sortiert.forEach(c => {
       const services = (c.customer_services || []).map(s => SERVICE_LABEL[s.service] || s.service).join(', ') || '—';
       const tr = document.createElement('tr');
       tr.style.cursor = 'pointer';
-      tr.innerHTML = '<td>' + c.firma + '</td><td>' + (c.objekt || '—') + '</td><td>' + (c.branche || '—') + '</td><td>' + (c.login_email || '—') + '</td><td>' + services + '</td>';
+      tr.innerHTML = '<td>' + (c.kundennummer || '—') + '</td><td>' + c.firma + '</td><td>' + (c.objekt || '—') + '</td><td>' + (c.branche || '—') + '</td><td>' + services + '</td>';
       tr.addEventListener('click', () => { window.location.href = 'detail.html?id=' + c.id; });
       body.appendChild(tr);
     });
+
+    document.querySelectorAll('th.sortable').forEach(th => {
+      th.classList.toggle('active', th.dataset.sort === sortSpalte);
+      th.querySelector('.sort-arrow').textContent = th.dataset.sort === sortSpalte ? (sortRichtung === 'asc' ? '↑' : '↓') : '↕';
+    });
   }
+
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const spalte = th.dataset.sort;
+      if (sortSpalte === spalte) {
+        sortRichtung = sortRichtung === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortSpalte = spalte;
+        sortRichtung = 'asc';
+      }
+      renderKunden();
+    });
+  });
 
   async function bexioAufruf(funktionsname, erfolgstext) {
     const status = document.getElementById('bexio-status');
@@ -106,7 +151,7 @@
   }
 
   function bexioSyncKunden() {
-    bexioAufruf('bexio-sync-kunden', d => 'Kunden: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').' + (d.kundenGruppeGefunden ? '' : ' Hinweis: keine Bexio-Kategorie "Kunden" gefunden, nur nach Firmentyp gefiltert.'));
+    bexioAufruf('bexio-sync-kunden', d => 'Kunden: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').');
   }
   function bexioSyncAnsprechpartner() {
     bexioAufruf('bexio-sync-ansprechpartner', d => 'Ansprechpartner: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ' Verknüpfungen).');
