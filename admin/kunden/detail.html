@@ -11,7 +11,7 @@
   <aside class="sidebar">
     <div class="brand">Sylegro <small>Admin</small></div>
     <nav>
-      <a href="uebersicht.html" class="top-cat active">Kunden</a>
+      <a href="uebersicht.html" class="top-cat">Kunden</a>
       <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
       <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
       <a href="#" class="sub-item disabled">Dokumente (bald)</a>
@@ -31,6 +31,7 @@
     </div>
 
     <div class="profile-header">
+      <img id="ov-logo" src="" alt="Logo" style="width:64px; height:64px; object-fit:contain; border-radius:8px; border:1px solid var(--color-border); display:none;">
       <div class="info-grid">
         <div><div class="label">Objekt / Adresse</div><div id="ov-objekt">—</div></div>
         <div><div class="label">Branche</div><div id="ov-branche">—</div></div>
@@ -171,7 +172,7 @@
   async function ladeKunde() {
     const { data: customer, error } = await supabaseClient
       .from('customers')
-      .select('id, firma, objekt, branche, login_email, customer_services(service)')
+      .select('id, firma, objekt, branche, login_email, logo, customer_services(service)')
       .eq('id', customerId)
       .single();
 
@@ -184,6 +185,14 @@
     document.getElementById('f-firma').value = customer.firma || '';
     document.getElementById('f-objekt').value = customer.objekt || '';
     document.getElementById('f-branche').value = customer.branche || '';
+
+    const logoImg = document.getElementById('ov-logo');
+    if (customer.logo) {
+      logoImg.src = 'data:image/png;base64,' + customer.logo;
+      logoImg.style.display = 'block';
+    } else {
+      logoImg.style.display = 'none';
+    }
 
     const aktiv = (customer.customer_services || []).map(s => s.service);
     document.querySelectorAll('.f-service').forEach(cb => {
