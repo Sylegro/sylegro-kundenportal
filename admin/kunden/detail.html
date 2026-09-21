@@ -41,47 +41,188 @@
     </div>
 
     <div class="tabs">
-      <button class="tab-btn active" data-tab="stammdaten">Stammdaten & Leistungen</button>
+      <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
+      <button class="tab-btn" data-tab="finanzen">Finanzen</button>
+      <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
+      <button class="tab-btn" data-tab="liegenschaften">Liegenschaften</button>
+      <button class="tab-btn" data-tab="schluessel">Schlüsselverzeichnis</button>
       <button class="tab-btn" data-tab="login">Portal-Login</button>
-      <button class="tab-btn" data-tab="ansprechpartner">Ansprechpartner</button>
-      <button class="tab-btn" data-tab="angebote">Angebote</button>
       <button class="tab-btn" data-tab="dokumente">Dokumente</button>
     </div>
 
-    <div class="tab-panel" data-panel="stammdaten">
-      <div class="card">
-        <h2>Stammdaten</h2>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Firma</label>
-            <input id="f-firma" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+    <!-- ÜBERSICHT -->
+    <div class="tab-panel" data-panel="uebersicht">
+      <div class="uebersicht-grid">
+        <div>
+          <div class="card">
+            <h2>Stammdaten</h2>
+            <div class="form-grid">
+              <div>
+                <label>Firma</label>
+                <input id="f-firma">
+              </div>
+              <div>
+                <label>Objekt / Adresse</label>
+                <input id="f-objekt">
+              </div>
+              <div>
+                <label>Branche</label>
+                <input id="f-branche">
+              </div>
+            </div>
+            <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
+            <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
           </div>
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Objekt / Adresse</label>
-            <input id="f-objekt" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Branche</label>
-            <input id="f-branche" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-          </div>
-        </div>
-        <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
-        <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
-      </div>
 
-      <div class="card">
-        <h2>Leistungen / Kategorie</h2>
-        <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
-          <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
-          <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
-          <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
-          <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
+          <div class="card">
+            <h2>Leistungen / Kategorie</h2>
+            <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
+              <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
+              <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
+              <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
+              <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
+            </div>
+            <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
+            <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
+          </div>
+
+          <div class="card">
+            <h2>Angebote</h2>
+            <p class="hint">Wird aus Bexio übernommen. Status zeigt vorerst den rohen Bexio-Code, wird nach Kalibrierung in Klartext übersetzt.</p>
+            <table>
+              <thead><tr><th>Nr.</th><th>Betreff</th><th>Datum</th><th>Betrag</th><th>Status</th></tr></thead>
+              <tbody id="angebote-body">
+                <tr><td colspan="5" class="hint">Lade…</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
-        <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
+
+        <div>
+          <div class="card">
+            <h2>Kontakte</h2>
+            <p class="hint">Wird aus Bexio übernommen. Rechte pro Ansprechpartner folgen in einem späteren Schritt.</p>
+            <div id="kontakte-liste">Lade…</div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- FINANZEN -->
+    <div class="tab-panel hidden" data-panel="finanzen">
+      <div class="card">
+        <h2>Umsatz (letzte 12 Monate)</h2>
+        <div class="chart-wrap"><canvas id="umsatz-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Offene Rechnungen</h2>
+        <p class="hint">"Überfällig" markiert Rechnungen, deren Fälligkeitsdatum in der Vergangenheit liegt. "Als bezahlt markieren" ist eine manuelle Angabe im Portal.</p>
+        <table>
+          <thead><tr><th>Nr.</th><th>Betreff</th><th>Fällig am</th><th>Betrag</th><th>Status</th><th></th></tr></thead>
+          <tbody id="rechnungen-body">
+            <tr><td colspan="6" class="hint">Lade…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- QUALITÄTSBERICHT -->
+    <div class="tab-panel hidden" data-panel="qualitaet">
+      <div class="card">
+        <h2>Qualitätskontrolle</h2>
+        <div class="wip-note">
+          Dieser Bereich zeigt künftig eine monatliche Auswertung der durchgeführten Qualitätskontrollen (aggregiert über alle Liegenschaften, filterbar nach einzelnen Liegenschaften). Die Datenquelle dafür – die Qualitätskontrolle auf Mitarbeiterseite – ist noch nicht gebaut.
+        </div>
+      </div>
+    </div>
+
+    <!-- LIEGENSCHAFTEN -->
+    <div class="tab-panel hidden" data-panel="liegenschaften">
+      <div class="card">
+        <h2>Liegenschaft hinzufügen</h2>
+        <div class="form-grid">
+          <div>
+            <label>Name</label>
+            <input id="lg-name" placeholder="z.B. Hauptsitz Zürich">
+          </div>
+          <div>
+            <label>Adresse</label>
+            <input id="lg-adresse">
+          </div>
+          <div>
+            <label>Typ</label>
+            <select id="lg-typ">
+              <option value="reinigung">Reinigung</option>
+              <option value="hauswartung">Hauswartung</option>
+            </select>
+          </div>
+          <div>
+            <button class="btn primary" onclick="liegenschaftHinzufuegen()">Hinzufügen</button>
+          </div>
+        </div>
+        <span id="lg-status" style="font-size:0.9rem;"></span>
+      </div>
+
+      <div class="card">
+        <h2>Liegenschaften</h2>
+        <p class="hint">Klicke auf eine Liegenschaft, um die zugehörigen Dokumente (Leistungsverzeichnis, Objektplan usw.) zu sehen.</p>
+        <table>
+          <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th></tr></thead>
+          <tbody id="liegenschaften-body">
+            <tr><td colspan="3" class="hint">Lade…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SCHLÜSSELVERZEICHNIS -->
+    <div class="tab-panel hidden" data-panel="schluessel">
+      <div class="card">
+        <h2>Schlüssel hinzufügen</h2>
+        <div class="form-grid">
+          <div>
+            <label>Bezeichnung</label>
+            <input id="sk-bezeichnung" placeholder="z.B. Haupteingang, Chip 3">
+          </div>
+          <div>
+            <label>Liegenschaft</label>
+            <select id="sk-liegenschaft"><option value="">— keine —</option></select>
+          </div>
+          <div>
+            <label>Aufbewahrungsort</label>
+            <input id="sk-ort" placeholder="z.B. Schlüsselschrank Büro">
+          </div>
+          <div>
+            <label>Inhaber</label>
+            <input id="sk-inhaber" placeholder="Name der Person">
+          </div>
+          <div>
+            <label>Erhalten am</label>
+            <input id="sk-datum" type="date">
+          </div>
+          <div>
+            <label>Quittung (Scan/Foto)</label>
+            <input id="sk-datei" type="file">
+          </div>
+          <div>
+            <button class="btn primary" onclick="schluesselHinzufuegen()">Hinzufügen</button>
+          </div>
+        </div>
+        <span id="sk-status" style="font-size:0.9rem;"></span>
+      </div>
+
+      <div class="card">
+        <h2>Schlüssel</h2>
+        <table>
+          <thead><tr><th>Bezeichnung</th><th>Liegenschaft</th><th>Aufbewahrungsort</th><th>Inhaber</th><th>Erhalten am</th><th>Quittung</th></tr></thead>
+          <tbody id="schluessel-body">
+            <tr><td colspan="6" class="hint">Lade…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PORTAL-LOGIN -->
     <div class="tab-panel hidden" data-panel="login">
       <div class="card">
         <h2>Portal-Login</h2>
@@ -89,52 +230,29 @@
       </div>
     </div>
 
-    <div class="tab-panel hidden" data-panel="ansprechpartner">
-      <div class="card">
-        <h2>Ansprechpartner</h2>
-        <p class="hint">Wird aus Bexio übernommen (Button "Ansprechpartner synchronisieren" auf der Kundenübersicht).</p>
-        <table>
-          <thead><tr><th>Name</th><th>Rolle</th><th>E-Mail</th><th>Telefon</th></tr></thead>
-          <tbody id="ansprechpartner-body">
-            <tr><td colspan="4" class="hint">Lade…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="tab-panel hidden" data-panel="angebote">
-      <div class="card">
-        <h2>Angebote</h2>
-        <p class="hint">Wird aus Bexio übernommen (Button "Angebote synchronisieren" auf der Kundenübersicht). Status zeigt vorerst den rohen Bexio-Code, wird nach Kalibrierung in Klartext übersetzt.</p>
-        <table>
-          <thead><tr><th>Nr.</th><th>Betreff</th><th>Datum</th><th>Betrag</th><th>Status</th></tr></thead>
-          <tbody id="angebote-body">
-            <tr><td colspan="5" class="hint">Lade…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
+    <!-- DOKUMENTE -->
     <div class="tab-panel hidden" data-panel="dokumente">
       <div class="card">
         <h2>Dokumente</h2>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:16px;">
+        <div class="form-grid">
           <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Titel</label>
-            <input id="doc-titel" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+            <label>Titel</label>
+            <input id="doc-titel">
           </div>
           <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Kategorie</label>
-            <select id="doc-kategorie" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+            <label>Kategorie</label>
+            <select id="doc-kategorie">
               <option value="Vertrag">Vertrag</option>
               <option value="Rechnung">Rechnung</option>
               <option value="Offerte">Offerte</option>
+              <option value="Leistungsverzeichnis">Leistungsverzeichnis</option>
+              <option value="Objektplan">Objektplan</option>
               <option value="Sonstiges">Sonstiges</option>
             </select>
           </div>
           <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Datei</label>
-            <input id="doc-datei" type="file" style="width:100%;">
+            <label>Datei</label>
+            <input id="doc-datei" type="file">
           </div>
           <div>
             <button class="btn primary" onclick="dokumentHochladen()">Hochladen</button>
@@ -143,9 +261,9 @@
         <span id="doc-status" style="font-size:0.9rem;"></span>
 
         <table style="margin-top:10px;">
-          <thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead>
+          <thead><tr><th>Titel</th><th>Kategorie</th><th>Liegenschaft</th><th>Hochgeladen am</th><th></th></tr></thead>
           <tbody id="doc-body">
-            <tr><td colspan="4" class="hint">Lade Dokumente…</td></tr>
+            <tr><td colspan="5" class="hint">Lade Dokumente…</td></tr>
           </tbody>
         </table>
       </div>
@@ -154,11 +272,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../../assets/supabase-client.js"></script>
 <script src="../../assets/auth.js"></script>
 <script>
   const customerId = new URLSearchParams(window.location.search).get('id');
   const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
+  let umsatzChart = null;
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -167,6 +287,12 @@
       btn.classList.add('active');
       document.querySelector('.tab-panel[data-panel="' + btn.dataset.tab + '"]').classList.remove('hidden');
     });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.kontakt-menu-btn')) {
+      document.querySelectorAll('.kontakt-menu-dropdown').forEach(d => d.classList.add('hidden'));
+    }
   });
 
   async function ladeKunde() {
@@ -263,19 +389,19 @@
     if (loginEmail) {
       el.innerHTML =
         '<p class="hint">Login vorhanden: <strong>' + loginEmail + '</strong></p>' +
-        '<div style="display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; max-width:500px;">' +
-        '<div><label style="display:block; font-size:0.85rem; margin-bottom:6px;">Neues Passwort setzen</label>' +
-        '<input id="reset-password" type="text" minlength="8" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;"></div>' +
+        '<div class="form-grid" style="max-width:500px;">' +
+        '<div><label>Neues Passwort setzen</label>' +
+        '<input id="reset-password" type="text" minlength="8"></div>' +
         '<div><button class="btn" onclick="passwortZuruecksetzen()">Setzen</button></div>' +
         '</div><span id="reset-status" style="font-size:0.9rem; display:block; margin-top:10px;"></span>';
       return;
     }
     el.innerHTML =
-      '<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end;">' +
-      '<div><label style="display:block; font-size:0.85rem; margin-bottom:6px;">Login-E-Mail</label>' +
-      '<input id="login-email" type="email" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;"></div>' +
-      '<div><label style="display:block; font-size:0.85rem; margin-bottom:6px;">Passwort</label>' +
-      '<input id="login-password" type="text" minlength="8" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;"></div>' +
+      '<div class="form-grid">' +
+      '<div><label>Login-E-Mail</label>' +
+      '<input id="login-email" type="email"></div>' +
+      '<div><label>Passwort</label>' +
+      '<input id="login-password" type="text" minlength="8"></div>' +
       '<div><button class="btn primary" onclick="loginErstellen()">Login erstellen</button></div>' +
       '</div><span id="login-status" style="font-size:0.9rem; display:block; margin-top:10px;"></span>';
   }
@@ -325,28 +451,47 @@
     document.getElementById('reset-password').value = '';
   }
 
-  async function ladeAnsprechpartner() {
-    const body = document.getElementById('ansprechpartner-body');
+  async function ladeKontakte() {
+    const el = document.getElementById('kontakte-liste');
     const { data: personen, error } = await supabaseClient
       .from('contact_persons')
-      .select('name, rolle, email, telefon')
+      .select('id, name, rolle, email, telefon')
       .eq('customer_id', customerId)
       .order('name');
 
     if (error) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      el.innerHTML = '<p class="hint">Fehler beim Laden: ' + error.message + '</p>';
       return;
     }
     if (!personen || personen.length === 0) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Noch keine Ansprechpartner synchronisiert.</td></tr>';
+      el.innerHTML = '<p class="hint">Noch keine Ansprechpartner synchronisiert.</p>';
       return;
     }
 
-    body.innerHTML = '';
+    el.innerHTML = '';
     personen.forEach(p => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + (p.name || '—') + '</td><td>' + (p.rolle || '—') + '</td><td>' + (p.email || '—') + '</td><td>' + (p.telefon || '—') + '</td>';
-      body.appendChild(tr);
+      const card = document.createElement('div');
+      card.className = 'kontakt-card';
+      card.innerHTML =
+        '<button class="kontakt-menu-btn" type="button">⋮</button>' +
+        '<div class="kontakt-menu-dropdown hidden">' +
+          '<button type="button" disabled>Rechte verwalten (bald)</button>' +
+          '<button type="button" disabled>Eigenes Login erstellen (bald)</button>' +
+        '</div>' +
+        '<div class="kontakt-name">' + (p.name || '—') + '</div>' +
+        '<div class="kontakt-rolle">' + (p.rolle || '—') + '</div>' +
+        '<div class="kontakt-zeile">' + (p.email || '—') + '</div>' +
+        '<div class="kontakt-zeile">' + (p.telefon || '—') + '</div>';
+
+      const menuBtn = card.querySelector('.kontakt-menu-btn');
+      const dropdown = card.querySelector('.kontakt-menu-dropdown');
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.kontakt-menu-dropdown').forEach(d => { if (d !== dropdown) d.classList.add('hidden'); });
+        dropdown.classList.toggle('hidden');
+      });
+
+      el.appendChild(card);
     });
   }
 
@@ -375,20 +520,364 @@
     });
   }
 
+  async function ladeFinanzen() {
+    const { data: rechnungen, error } = await supabaseClient
+      .from('invoices')
+      .select('id, nr, betreff, datum, faellig_am, betrag, status, bezahlt')
+      .eq('customer_id', customerId)
+      .order('datum', { ascending: false });
+
+    if (error) {
+      document.getElementById('rechnungen-body').innerHTML = '<tr><td colspan="6" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+
+    // Umsatz-Chart: letzte 12 Monate
+    const heute = new Date();
+    const monate = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
+      monate.push({ jahr: d.getFullYear(), monat: d.getMonth(), label: d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }), summe: 0 });
+    }
+    (rechnungen || []).forEach(r => {
+      if (!r.datum || r.betrag == null) return;
+      const d = new Date(r.datum);
+      const treffer = monate.find(m => m.jahr === d.getFullYear() && m.monat === d.getMonth());
+      if (treffer) treffer.summe += Number(r.betrag);
+    });
+
+    const ctx = document.getElementById('umsatz-chart');
+    if (umsatzChart) umsatzChart.destroy();
+    umsatzChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: monate.map(m => m.label),
+        datasets: [{ label: 'Umsatz (CHF)', data: monate.map(m => m.summe), backgroundColor: '#1f6f5c' }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    // Offene Rechnungen
+    const body = document.getElementById('rechnungen-body');
+    const offen = (rechnungen || []).filter(r => !r.bezahlt);
+    if (offen.length === 0) {
+      body.innerHTML = '<tr><td colspan="6" class="hint">Keine offenen Rechnungen.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    const heuteStr = new Date().toISOString().slice(0, 10);
+    offen.forEach(r => {
+      const ueberfaellig = r.faellig_am && r.faellig_am < heuteStr;
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + (r.nr || '—') + '</td>' +
+        '<td>' + (r.betreff || '—') + '</td>' +
+        '<td>' + (r.faellig_am || '—') + '</td>' +
+        '<td>' + (r.betrag != null ? r.betrag : '—') + '</td>' +
+        '<td>' + (ueberfaellig ? '<span class="badge danger">Überfällig</span>' : '<span class="badge neutral">Ausstehend</span>') + '</td>' +
+        '<td><button class="btn small">Als bezahlt markieren</button></td>';
+      tr.querySelector('button').addEventListener('click', async () => {
+        await supabaseClient.from('invoices').update({ bezahlt: true }).eq('id', r.id);
+        ladeFinanzen();
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  async function ladeLiegenschaften() {
+    const body = document.getElementById('liegenschaften-body');
+    const select = document.getElementById('sk-liegenschaft');
+
+    const { data: liegenschaften, error } = await supabaseClient
+      .from('properties')
+      .select('id, name, adresse, typ')
+      .eq('customer_id', customerId)
+      .order('name');
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="3" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+
+    select.innerHTML = '<option value="">— keine —</option>';
+    (liegenschaften || []).forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.id;
+      opt.textContent = l.name;
+      select.appendChild(opt);
+    });
+
+    if (!liegenschaften || liegenschaften.length === 0) {
+      body.innerHTML = '<tr><td colspan="3" class="hint">Noch keine Liegenschaften erfasst.</td></tr>';
+      return;
+    }
+
+    const TYP_LABEL = { reinigung: 'Reinigung', hauswartung: 'Hauswartung' };
+    body.innerHTML = '';
+    liegenschaften.forEach(l => {
+      const tr = document.createElement('tr');
+      tr.className = 'liegenschaft-row';
+      tr.innerHTML = '<td>' + l.name + '</td><td>' + (l.adresse || '—') + '</td><td>' + (TYP_LABEL[l.typ] || l.typ) + '</td>';
+
+      const detailTr = document.createElement('tr');
+      detailTr.className = 'liegenschaft-detail hidden';
+      const detailTd = document.createElement('td');
+      detailTd.colSpan = 3;
+      detailTd.innerHTML =
+        '<div class="form-grid">' +
+        '<div><label>Titel</label><input class="lg-doc-titel"></div>' +
+        '<div><label>Kategorie</label><select class="lg-doc-kategorie">' +
+          '<option value="Leistungsverzeichnis">Leistungsverzeichnis</option>' +
+          '<option value="Objektplan">Objektplan</option>' +
+          '<option value="Sonstiges">Sonstiges</option>' +
+        '</select></div>' +
+        '<div><label>Datei</label><input type="file" class="lg-doc-datei"></div>' +
+        '<div><button class="btn primary lg-doc-upload">Hochladen</button></div>' +
+        '</div>' +
+        '<span class="lg-doc-status" style="font-size:0.9rem;"></span>' +
+        '<table style="margin-top:10px;"><thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead><tbody class="lg-doc-body"><tr><td colspan="4" class="hint">Lade…</td></tr></tbody></table>';
+      detailTr.appendChild(detailTd);
+
+      tr.addEventListener('click', () => {
+        const wurdeGeoeffnet = !detailTr.classList.contains('hidden');
+        document.querySelectorAll('.liegenschaft-detail').forEach(d => d.classList.add('hidden'));
+        if (!wurdeGeoeffnet) {
+          detailTr.classList.remove('hidden');
+          ladeLiegenschaftDokumente(l.id, detailTd);
+        }
+      });
+
+      detailTd.querySelector('.lg-doc-upload').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await liegenschaftDokumentHochladen(l.id, detailTd);
+      });
+
+      body.appendChild(tr);
+      body.appendChild(detailTr);
+    });
+  }
+
+  async function ladeLiegenschaftDokumente(propertyId, container) {
+    const body = container.querySelector('.lg-doc-body');
+    const { data: docs, error } = await supabaseClient
+      .from('documents')
+      .select('id, titel, kategorie, pfad, hochgeladen_am')
+      .eq('property_id', propertyId)
+      .order('hochgeladen_am', { ascending: false });
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler: ' + error.message + '</td></tr>';
+      return;
+    }
+    if (!docs || docs.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="hint">Noch keine Dokumente für diese Liegenschaft.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    docs.forEach(d => {
+      const datum = d.hochgeladen_am ? new Date(d.hochgeladen_am).toLocaleDateString('de-CH') : '—';
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + d.titel + '</td><td>' + d.kategorie + '</td><td>' + datum + '</td><td><a href="#" class="doc-download">Herunterladen</a></td>';
+      tr.querySelector('.doc-download').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const { data: signed, error: signError } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(d.pfad, 60);
+        if (signError) { alert('Fehler: ' + signError.message); return; }
+        window.open(signed.signedUrl, '_blank');
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  async function liegenschaftDokumentHochladen(propertyId, container) {
+    const status = container.querySelector('.lg-doc-status');
+    const fileInput = container.querySelector('.lg-doc-datei');
+    const titel = container.querySelector('.lg-doc-titel').value.trim();
+    const kategorie = container.querySelector('.lg-doc-kategorie').value;
+
+    if (!fileInput.files.length || !titel) {
+      status.textContent = 'Bitte Titel und Datei angeben.';
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Lade hoch…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const file = fileInput.files[0];
+    const pfad = customerId + '/liegenschaft_' + propertyId + '/' + Date.now() + '_' + file.name;
+
+    const { error: uploadError } = await supabaseClient.storage.from('kunden-dokumente').upload(pfad, file);
+    if (uploadError) {
+      status.textContent = 'Fehler beim Hochladen: ' + uploadError.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    const { error: insertError } = await supabaseClient.from('documents').insert({
+      customer_id: customerId, property_id: propertyId, titel, kategorie, pfad
+    });
+    if (insertError) {
+      status.textContent = 'Fehler beim Speichern: ' + insertError.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Hochgeladen.';
+    status.style.color = 'var(--color-success)';
+    container.querySelector('.lg-doc-titel').value = '';
+    fileInput.value = '';
+    ladeLiegenschaftDokumente(propertyId, container);
+  }
+
+  async function liegenschaftHinzufuegen() {
+    const status = document.getElementById('lg-status');
+    const name = document.getElementById('lg-name').value.trim();
+    const adresse = document.getElementById('lg-adresse').value.trim();
+    const typ = document.getElementById('lg-typ').value;
+
+    if (!name) {
+      status.textContent = 'Bitte einen Namen angeben.';
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Speichere…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const { error } = await supabaseClient.from('properties').insert({ customer_id: customerId, name, adresse, typ });
+    if (error) {
+      status.textContent = 'Fehler: ' + error.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Hinzugefügt.';
+    status.style.color = 'var(--color-success)';
+    document.getElementById('lg-name').value = '';
+    document.getElementById('lg-adresse').value = '';
+    ladeLiegenschaften();
+  }
+
+  async function ladeSchluessel() {
+    const body = document.getElementById('schluessel-body');
+    const { data: schluessel, error } = await supabaseClient
+      .from('keys')
+      .select('id, bezeichnung, aufbewahrungsort, inhaber, erhalten_am, quittung_pfad, properties(name)')
+      .eq('customer_id', customerId)
+      .order('bezeichnung');
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="6" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+    if (!schluessel || schluessel.length === 0) {
+      body.innerHTML = '<tr><td colspan="6" class="hint">Noch keine Schlüssel erfasst.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    schluessel.forEach(k => {
+      const tr = document.createElement('tr');
+      const liegenschaftName = k.properties && k.properties.name ? k.properties.name : '—';
+      const quittungZelle = k.quittung_pfad ? '<a href="#" class="quittung-download">Ansehen</a>' : '—';
+      tr.innerHTML =
+        '<td>' + k.bezeichnung + '</td>' +
+        '<td>' + liegenschaftName + '</td>' +
+        '<td>' + (k.aufbewahrungsort || '—') + '</td>' +
+        '<td>' + (k.inhaber || '—') + '</td>' +
+        '<td>' + (k.erhalten_am || '—') + '</td>' +
+        '<td>' + quittungZelle + '</td>';
+
+      const link = tr.querySelector('.quittung-download');
+      if (link) {
+        link.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const { data: signed, error: signError } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(k.quittung_pfad, 60);
+          if (signError) { alert('Fehler: ' + signError.message); return; }
+          window.open(signed.signedUrl, '_blank');
+        });
+      }
+      body.appendChild(tr);
+    });
+  }
+
+  async function schluesselHinzufuegen() {
+    const status = document.getElementById('sk-status');
+    const bezeichnung = document.getElementById('sk-bezeichnung').value.trim();
+    const propertyId = document.getElementById('sk-liegenschaft').value || null;
+    const ort = document.getElementById('sk-ort').value.trim();
+    const inhaber = document.getElementById('sk-inhaber').value.trim();
+    const datum = document.getElementById('sk-datum').value || null;
+    const fileInput = document.getElementById('sk-datei');
+
+    if (!bezeichnung) {
+      status.textContent = 'Bitte eine Bezeichnung angeben.';
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Speichere…';
+    status.style.color = 'var(--color-text-muted)';
+
+    let quittungPfad = null;
+    if (fileInput.files.length) {
+      const file = fileInput.files[0];
+      quittungPfad = customerId + '/schluessel/' + Date.now() + '_' + file.name;
+      const { error: uploadError } = await supabaseClient.storage.from('kunden-dokumente').upload(quittungPfad, file);
+      if (uploadError) {
+        status.textContent = 'Fehler beim Hochladen der Quittung: ' + uploadError.message;
+        status.style.color = 'var(--color-danger)';
+        return;
+      }
+    }
+
+    const { error } = await supabaseClient.from('keys').insert({
+      customer_id: customerId,
+      property_id: propertyId,
+      bezeichnung,
+      aufbewahrungsort: ort,
+      inhaber,
+      erhalten_am: datum,
+      quittung_pfad: quittungPfad
+    });
+
+    if (error) {
+      status.textContent = 'Fehler: ' + error.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Hinzugefügt.';
+    status.style.color = 'var(--color-success)';
+    document.getElementById('sk-bezeichnung').value = '';
+    document.getElementById('sk-ort').value = '';
+    document.getElementById('sk-inhaber').value = '';
+    document.getElementById('sk-datum').value = '';
+    fileInput.value = '';
+    ladeSchluessel();
+  }
+
   async function ladeDokumente() {
     const body = document.getElementById('doc-body');
     const { data: docs, error } = await supabaseClient
       .from('documents')
-      .select('id, titel, kategorie, pfad, hochgeladen_am')
+      .select('id, titel, kategorie, pfad, hochgeladen_am, property_id, properties(name)')
       .eq('customer_id', customerId)
       .order('hochgeladen_am', { ascending: false });
 
     if (error) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
       return;
     }
     if (!docs || docs.length === 0) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Noch keine Dokumente hochgeladen.</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Dokumente hochgeladen.</td></tr>';
       return;
     }
 
@@ -396,7 +885,8 @@
     docs.forEach(d => {
       const tr = document.createElement('tr');
       const datum = d.hochgeladen_am ? new Date(d.hochgeladen_am).toLocaleDateString('de-CH') : '—';
-      tr.innerHTML = '<td>' + d.titel + '</td><td>' + d.kategorie + '</td><td>' + datum + '</td><td><a href="#" class="doc-download">Herunterladen</a></td>';
+      const liegenschaftName = d.properties && d.properties.name ? d.properties.name : '—';
+      tr.innerHTML = '<td>' + d.titel + '</td><td>' + d.kategorie + '</td><td>' + liegenschaftName + '</td><td>' + datum + '</td><td><a href="#" class="doc-download">Herunterladen</a></td>';
       tr.querySelector('.doc-download').addEventListener('click', async (e) => {
         e.preventDefault();
         const { data: signed, error: signError } = await supabaseClient.storage
@@ -458,8 +948,11 @@
       return;
     }
     ladeKunde();
-    ladeAnsprechpartner();
+    ladeKontakte();
     ladeAngebote();
+    ladeFinanzen();
+    ladeLiegenschaften();
+    ladeSchluessel();
     ladeDokumente();
   })();
 </script>
