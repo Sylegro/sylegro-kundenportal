@@ -203,6 +203,24 @@ th {
   letter-spacing: 0.03em;
 }
 
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable:hover {
+  color: var(--color-primary-dark);
+}
+
+th.sortable .sort-arrow {
+  margin-left: 4px;
+  opacity: 0.35;
+}
+
+th.sortable.active .sort-arrow {
+  opacity: 1;
+}
+
 tr:last-child td { border-bottom: none; }
 
 .badge {
@@ -285,32 +303,36 @@ tr:last-child td { border-bottom: none; }
   padding: 6px;
 }
 
-.profile-header {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 20px 22px;
-  margin-bottom: 20px;
+.firma-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 20px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
 }
 
-.profile-header .info-grid {
+.firma-header img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.firma-header .firma-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.top-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 16px;
-  flex: 1;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  align-items: start;
 }
 
-.profile-header .info-grid .label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--color-text-muted);
-  margin-bottom: 3px;
+@media (max-width: 900px) {
+  .top-grid { grid-template-columns: 1fr; }
 }
 
 .tabs {
@@ -340,15 +362,19 @@ tr:last-child td { border-bottom: none; }
 
 .tab-panel.hidden { display: none; }
 
-.uebersicht-grid {
+.info-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-@media (max-width: 900px) {
-  .uebersicht-grid { grid-template-columns: 1fr; }
+.info-grid .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  margin-bottom: 3px;
 }
 
 .kontakt-card {
@@ -433,7 +459,7 @@ tr:last-child td { border-bottom: none; }
 .chart-wrap {
   position: relative;
   height: 240px;
-  margin-bottom: 22px;
+  margin-bottom: 6px;
 }
 
 .form-grid {
