@@ -34,47 +34,8 @@
     </div>
 
     <div class="card">
-      <h2>Neuer Kunde</h2>
-      <form id="neuer-kunde-form">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Firma</label>
-            <input id="f-firma" required style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Objekt / Adresse</label>
-            <input id="f-objekt" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Branche</label>
-            <input id="f-branche" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;" placeholder="z. B. Verwaltung, Industrie, Gewerbe">
-          </div>
-          <div></div>
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Login-E-Mail</label>
-            <input id="f-email" type="email" required style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-          </div>
-          <div>
-            <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Passwort (für den Kunden)</label>
-            <input id="f-password" type="text" required minlength="8" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-          </div>
-        </div>
-
-        <label style="display:block; font-size:0.85rem; margin-bottom:8px;">Leistungen / Kategorie</label>
-        <div style="display:flex; gap:18px; margin-bottom:18px; flex-wrap:wrap;">
-          <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
-          <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
-          <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
-          <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
-        </div>
-
-        <button type="submit" class="btn primary">Kunde anlegen</button>
-        <span id="form-status" style="margin-left:14px; font-size:0.9rem;"></span>
-      </form>
-    </div>
-
-    <div class="card">
       <h2>Alle Kunden</h2>
+      <p class="hint">Klicke auf einen Kunden, um Stammdaten, Leistungen, Login und Dokumente zu bearbeiten.</p>
       <table>
         <thead><tr><th>Firma</th><th>Objekt</th><th>Branche</th><th>Login-E-Mail</th><th>Leistungen</th></tr></thead>
         <tbody id="kunden-body">
@@ -111,41 +72,12 @@
     customers.forEach(c => {
       const services = (c.customer_services || []).map(s => SERVICE_LABEL[s.service] || s.service).join(', ') || '—';
       const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
       tr.innerHTML = '<td>' + c.firma + '</td><td>' + (c.objekt || '—') + '</td><td>' + (c.branche || '—') + '</td><td>' + (c.login_email || '—') + '</td><td>' + services + '</td>';
+      tr.addEventListener('click', () => { window.location.href = 'detail.html?id=' + c.id; });
       body.appendChild(tr);
     });
   }
-
-  document.getElementById('neuer-kunde-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const status = document.getElementById('form-status');
-    status.textContent = 'Lege Kunde an…';
-    status.style.color = 'var(--color-text-muted)';
-
-    const services = Array.from(document.querySelectorAll('.f-service:checked')).map(el => el.value);
-
-    const { data, error } = await supabaseClient.functions.invoke('admin-create-kunde', {
-      body: {
-        firma: document.getElementById('f-firma').value.trim(),
-        objekt: document.getElementById('f-objekt').value.trim(),
-        branche: document.getElementById('f-branche').value.trim(),
-        email: document.getElementById('f-email').value.trim(),
-        password: document.getElementById('f-password').value,
-        services: services
-      }
-    });
-
-    if (error || (data && data.error)) {
-      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Kunde erfolgreich angelegt.';
-    status.style.color = 'var(--color-success)';
-    document.getElementById('neuer-kunde-form').reset();
-    ladeKunden();
-  });
 
   async function bexioSync() {
     const status = document.getElementById('bexio-status');
