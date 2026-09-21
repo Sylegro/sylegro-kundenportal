@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kunde bearbeiten | Sylegro Portal</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="uebersicht.html" class="top-cat active">Kunden</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
+      <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
+      <a href="#" class="sub-item disabled">Dokumente (bald)</a>
+
+      <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1 id="page-title">Kunde bearbeiten</h1>
+      <a href="uebersicht.html" style="font-size:0.9rem;">← Zurück zur Übersicht</a>
+    </div>
+
+    <div class="card">
+      <h2>Stammdaten</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+        <div>
+          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Firma</label>
+          <input id="f-firma" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Objekt / Adresse</label>
+          <input id="f-objekt" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Branche</label>
+          <input id="f-branche" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+        </div>
+      </div>
+      <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
+      <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
+    </div>
+
+    <div class="card">
+      <h2>Leistungen / Kategorie</h2>
+      <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
+        <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
+        <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
+        <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
+        <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
+      </div>
+      <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
+      <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
+    </div>
+
+    <div class="card">
+      <h2>Portal-Login</h2>
+      <div id="login-bereich">Lade…</div>
+    </div>
+
+    <div class="card">
+      <h2>Dokumente</h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:16px;">
+        <div>
+          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Titel</label>
+          <input id="doc-titel" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Kategorie</label>
+          <select id="doc-kategorie" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+            <option value="Vertrag">Vertrag</option>
+            <option value="Rechnung">Rechnung</option>
+            <option value="Offerte">Offerte</option>
+            <option value="Sonstiges">Sonstiges</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Datei</label>
+          <input id="doc-datei" type="file" style="width:100%;">
+        </div>
+        <div>
+          <button class="btn primary" onclick="dokumentHochladen()">Hochladen</button>
+        </div>
+      </div>
+      <span id="doc-status" style="font-size:0.9rem;"></span>
+
+      <table style="margin-top:10px;">
+        <thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead>
+        <tbody id="doc-body">
+          <tr><td colspan="4" class="hint">Lade Dokumente…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+  const customerId = new URLSearchParams(window.location.search).get('id');
+
+  async function ladeKunde() {
+    const { data: customer, error } = await supabaseClient
+      .from('customers')
+      .select('id, firma, objekt, branche, login_email, customer_services(service)')
+      .eq('id', customerId)
+      .single();
+
+    if (error || !customer) {
+      document.getElementById('page-title').textContent = 'Kunde nicht gefunden';
+      return;
+    }
+
+    document.getElementById('page-title').textContent = customer.firma;
+    document.getElementById('f-firma').value = customer.firma || '';
+    document.getElementById('f-objekt').value = customer.objekt || '';
+    document.getElementById('f-branche').value = customer.branche || '';
+
+    const aktiv = (customer.customer_services || []).map(s => s.service);
+    document.querySelectorAll('.f-service').forEach(cb => {
+      cb.checked = aktiv.includes(cb.value);
+    });
+
+    renderLoginBereich(customer.login_email);
+  }
+
+  async function speichereStammdaten() {
+    const status = document.getElementById('stamm-status');
+    status.textContent = 'Speichere…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const { error } = await supabaseClient.from('customers').update({
+      firma: document.getElementById('f-firma').value.trim(),
+      objekt: document.getElementById('f-objekt').value.trim(),
+      branche: document.getElementById('f-branche').value.trim()
+    }).eq('id', customerId);
+
+    if (error) {
+      status.textContent = 'Fehler: ' + error.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+    status.textContent = 'Gespeichert.';
+    status.style.color = 'var(--color-success)';
+    document.getElementById('page-title').textContent = document.getElementById('f-firma').value.trim();
+  }
+
+  async function speichereLeistungen() {
+    const status = document.getElementById('leistungen-status');
+    status.textContent = 'Speichere…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const gewaehlt = Array.from(document.querySelectorAll('.f-service:checked')).map(el => el.value);
+
+    const { error: delError } = await supabaseClient.from('customer_services').delete().eq('customer_id', customerId);
+    if (delError) {
+      status.textContent = 'Fehler: ' + delError.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    if (gewaehlt.length) {
+      const rows = gewaehlt.map(s => ({ customer_id: customerId, service: s }));
+      const { error: insError } = await supabaseClient.from('customer_services').insert(rows);
+      if (insError) {
+        status.textContent = 'Fehler: ' + insError.message;
+        status.style.color = 'var(--color-danger)';
+        return;
+      }
+    }
+
+    status.textContent = 'Gespeichert.';
+    status.style.color = 'var(--color-success)';
+  }
+
+  function renderLoginBereich(loginEmail) {
+    const el = document.getElementById('login-bereich');
+    if (loginEmail) {
+      el.innerHTML = '<p class="hint">Login vorhanden: <strong>' + loginEmail + '</strong></p>';
+      return;
+    }
+    el.innerHTML =
+      '<div style="display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end;">' +
+      '<div><label style="display:block; font-size:0.85rem; margin-bottom:6px;">Login-E-Mail</label>' +
+      '<input id="login-email" type="email" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;"></div>' +
+      '<div><label style="display:block; font-size:0.85rem; margin-bottom:6px;">Passwort</label>' +
+      '<input id="login-password" type="text" minlength="8" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px;"></div>' +
+      '<div><button class="btn primary" onclick="loginErstellen()">Login erstellen</button></div>' +
+      '</div><span id="login-status" style="font-size:0.9rem; display:block; margin-top:10px;"></span>';
+  }
+
+  async function loginErstellen() {
+    const status = document.getElementById('login-status');
+    status.textContent = 'Erstelle Login…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const { data, error } = await supabaseClient.functions.invoke('admin-create-kunde-login', {
+      body: {
+        customer_id: customerId,
+        email: document.getElementById('login-email').value.trim(),
+        password: document.getElementById('login-password').value
+      }
+    });
+
+    if (error || (data && data.error)) {
+      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    ladeKunde();
+  }
+
+  async function ladeDokumente() {
+    const body = document.getElementById('doc-body');
+    const { data: docs, error } = await supabaseClient
+      .from('documents')
+      .select('id, titel, kategorie, pfad, hochgeladen_am')
+      .eq('customer_id', customerId)
+      .order('hochgeladen_am', { ascending: false });
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+    if (!docs || docs.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" class="hint">Noch keine Dokumente hochgeladen.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = '';
+    docs.forEach(d => {
+      const tr = document.createElement('tr');
+      const datum = d.hochgeladen_am ? new Date(d.hochgeladen_am).toLocaleDateString('de-CH') : '—';
+      tr.innerHTML = '<td>' + d.titel + '</td><td>' + d.kategorie + '</td><td>' + datum + '</td><td><a href="#" class="doc-download">Herunterladen</a></td>';
+      tr.querySelector('.doc-download').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const { data: signed, error: signError } = await supabaseClient.storage
+          .from('kunden-dokumente').createSignedUrl(d.pfad, 60);
+        if (signError) { alert('Fehler: ' + signError.message); return; }
+        window.open(signed.signedUrl, '_blank');
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  async function dokumentHochladen() {
+    const status = document.getElementById('doc-status');
+    const fileInput = document.getElementById('doc-datei');
+    const titel = document.getElementById('doc-titel').value.trim();
+    const kategorie = document.getElementById('doc-kategorie').value;
+
+    if (!fileInput.files.length || !titel) {
+      status.textContent = 'Bitte Titel und Datei angeben.';
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Lade hoch…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const file = fileInput.files[0];
+    const pfad = customerId + '/' + Date.now() + '_' + file.name;
+
+    const { error: uploadError } = await supabaseClient.storage
+      .from('kunden-dokumente').upload(pfad, file);
+    if (uploadError) {
+      status.textContent = 'Fehler beim Hochladen: ' + uploadError.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    const { error: insertError } = await supabaseClient.from('documents').insert({
+      customer_id: customerId, titel, kategorie, pfad
+    });
+    if (insertError) {
+      status.textContent = 'Fehler beim Speichern: ' + insertError.message;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = 'Hochgeladen.';
+    status.style.color = 'var(--color-success)';
+    document.getElementById('doc-titel').value = '';
+    fileInput.value = '';
+    ladeDokumente();
+  }
+
+  (async function () {
+    const admin = await sylegroRequireAdmin();
+    if (!admin) return;
+    if (!customerId) {
+      document.getElementById('page-title').textContent = 'Kein Kunde ausgewählt';
+      return;
+    }
+    ladeKunde();
+    ladeDokumente();
+  })();
+</script>
+</body>
+</html>
