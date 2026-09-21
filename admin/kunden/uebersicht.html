@@ -31,18 +31,19 @@
 
     <div class="card">
       <h2>Bexio-Synchronisation</h2>
-      <p class="hint">Firma/Adresse/Logo/Branche, Ansprechpartner und Angebote werden aus Bexio übernommen. Leistungen/Kategorie und Portal-Login bleiben manuelle Schritte im Kundenprofil. Kunden werden ausschliesslich in Bexio hinzugefügt oder entfernt.</p>
+      <p class="hint">Firma/Adresse/Logo/Branche, Ansprechpartner, Angebote und Rechnungen werden aus Bexio übernommen. Leistungen/Kategorie und Portal-Login bleiben manuelle Schritte im Kundenprofil. Kunden werden ausschliesslich in Bexio hinzugefügt oder entfernt.</p>
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <button class="btn" onclick="bexioSyncKunden()">Kunden synchronisieren</button>
         <button class="btn" onclick="bexioSyncAnsprechpartner()">Ansprechpartner synchronisieren</button>
         <button class="btn" onclick="bexioSyncAngebote()">Angebote synchronisieren</button>
+        <button class="btn" onclick="bexioSyncRechnungen()">Rechnungen synchronisieren</button>
       </div>
       <div id="bexio-status" style="margin-top:10px; font-size:0.85rem;"></div>
     </div>
 
     <div class="card">
       <h2>Alle Kunden</h2>
-      <p class="hint">Klicke auf einen Kunden, um Leistungen, Login, Ansprechpartner, Angebote und Dokumente zu bearbeiten.</p>
+      <p class="hint">Klicke auf einen Kunden, um Übersicht, Finanzen, Qualitätsbericht, Liegenschaften, Schlüsselverzeichnis, Login und Dokumente zu bearbeiten.</p>
       <table>
         <thead><tr><th>Firma</th><th>Objekt</th><th>Branche</th><th>Login-E-Mail</th><th>Leistungen</th></tr></thead>
         <tbody id="kunden-body">
@@ -112,6 +113,9 @@
   }
   function bexioSyncAngebote() {
     bexioAufruf('bexio-sync-angebote', d => 'Angebote: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').');
+  }
+  function bexioSyncRechnungen() {
+    bexioAufruf('bexio-sync-rechnungen', d => 'Rechnungen: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').');
   }
 
   (async function () {
