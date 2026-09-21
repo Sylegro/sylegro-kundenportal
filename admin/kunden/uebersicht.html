@@ -27,15 +27,22 @@
   <main class="main">
     <div class="topbar">
       <h1>Kunden verwalten</h1>
-      <div>
-        <button class="btn" onclick="bexioSync()">Von Bexio synchronisieren</button>
-        <span id="bexio-status" style="margin-left:10px; font-size:0.85rem;"></span>
+    </div>
+
+    <div class="card">
+      <h2>Bexio-Synchronisation</h2>
+      <p class="hint">Firma/Adresse, Ansprechpartner und Angebote werden aus Bexio übernommen. Leistungen/Kategorie und Portal-Login bleiben manuelle Schritte im Kundenprofil.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button class="btn" onclick="bexioSyncKunden()">Kunden synchronisieren</button>
+        <button class="btn" onclick="bexioSyncAnsprechpartner()">Ansprechpartner synchronisieren</button>
+        <button class="btn" onclick="bexioSyncAngebote()">Angebote synchronisieren</button>
       </div>
+      <div id="bexio-status" style="margin-top:10px; font-size:0.85rem;"></div>
     </div>
 
     <div class="card">
       <h2>Alle Kunden</h2>
-      <p class="hint">Klicke auf einen Kunden, um Stammdaten, Leistungen, Login und Dokumente zu bearbeiten.</p>
+      <p class="hint">Klicke auf einen Kunden, um Stammdaten, Leistungen, Login, Ansprechpartner, Angebote und Dokumente zu bearbeiten.</p>
       <table>
         <thead><tr><th>Firma</th><th>Objekt</th><th>Branche</th><th>Login-E-Mail</th><th>Leistungen</th></tr></thead>
         <tbody id="kunden-body">
@@ -79,12 +86,12 @@
     });
   }
 
-  async function bexioSync() {
+  async function bexioAufruf(funktionsname, erfolgstext) {
     const status = document.getElementById('bexio-status');
-    status.textContent = 'Synchronisiere mit Bexio…';
+    status.textContent = 'Synchronisiere…';
     status.style.color = 'var(--color-text-muted)';
 
-    const { data, error } = await supabaseClient.functions.invoke('bexio-sync-kunden', {});
+    const { data, error } = await supabaseClient.functions.invoke(funktionsname, {});
 
     if (error || (data && data.error)) {
       status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
@@ -92,9 +99,19 @@
       return;
     }
 
-    status.textContent = 'Fertig: ' + data.neu + ' neu, ' + data.aktualisiert + ' aktualisiert (von ' + data.gesamt + ' Bexio-Kontakten).';
+    status.textContent = erfolgstext(data);
     status.style.color = 'var(--color-success)';
     ladeKunden();
+  }
+
+  function bexioSyncKunden() {
+    bexioAufruf('bexio-sync-kunden', d => 'Kunden: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert (von ' + d.gesamt + ').');
+  }
+  function bexioSyncAnsprechpartner() {
+    bexioAufruf('bexio-sync-ansprechpartner', d => 'Ansprechpartner: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ' Verknüpfungen).');
+  }
+  function bexioSyncAngebote() {
+    bexioAufruf('bexio-sync-angebote', d => 'Angebote: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').');
   }
 
   (async function () {
