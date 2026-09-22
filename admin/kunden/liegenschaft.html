@@ -1,33 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Liegenschaft – Sylegro Admin</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liegenschaft | Sylegro Admin</title>
 <link rel="stylesheet" href="../../assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../assets/supabase-client.js"></script>
-<script src="../../assets/auth.js"></script>
 </head>
 <body>
-<div class="admin-layout">
-  <nav class="sidebar">
-    <div class="sidebar-logo">Sylegro<br><span>Admin</span></div>
-    <div class="nav-gruppe">
-      <div class="nav-titel">Kunden</div>
-      <a href="uebersicht.html" class="nav-link active">Alle Kunden</a>
-    </div>
-    <a href="#" id="logout-link" class="nav-logout">Abmelden</a>
-  </nav>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="uebersicht.html" class="top-cat">Kunden</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
+      <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
+      <a href="#" class="sub-item disabled">Dokumente (bald)</a>
 
-  <main class="content">
-    <div class="page-kopf">
+      <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
       <h1 id="liegenschaft-name-titel">Liegenschaft</h1>
-      <a href="#" id="zurueck-link" class="zurueck-link">← Zurück zum Kundenprofil</a>
+      <a href="#" id="zurueck-link">← Zurück zum Kundenprofil</a>
     </div>
 
     <div class="card">
-      <p class="hinweistext" id="kunde-hinweis"></p>
+      <p class="hint" id="kunde-hinweis"></p>
 
       <div class="tabs" data-scope="liegenschaft">
         <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
@@ -36,46 +40,49 @@
         <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
       </div>
 
-      <div class="tab-panel active" data-tab="uebersicht">
+      <div class="tab-panel" data-tab="uebersicht">
         <div class="info-grid">
           <div>
-            <div class="info-label">Name</div>
+            <div class="label">Name</div>
             <div id="info-name">–</div>
           </div>
           <div>
-            <div class="info-label">Adresse</div>
+            <div class="label">Adresse</div>
             <div id="info-adresse">–</div>
           </div>
           <div>
-            <div class="info-label">Typ</div>
+            <div class="label">Typ</div>
             <div id="info-typ">–</div>
           </div>
         </div>
       </div>
 
-      <div class="tab-panel" data-tab="dokumente">
+      <div class="tab-panel hidden" data-tab="dokumente">
         <table>
           <thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead>
           <tbody id="dokumente-tabelle"></tbody>
         </table>
-        <p class="hinweistext" id="dokumente-leer" style="display:none;">Noch keine Dokumente zu dieser Liegenschaft.</p>
+        <p class="hint" id="dokumente-leer" style="display:none;">Noch keine Dokumente zu dieser Liegenschaft.</p>
       </div>
 
-      <div class="tab-panel" data-tab="schluessel">
+      <div class="tab-panel hidden" data-tab="schluessel">
         <table>
           <thead><tr><th>Bezeichnung</th><th>Aufbewahrungsort</th><th>Inhaber</th><th>Erhalten am</th></tr></thead>
           <tbody id="schluessel-tabelle"></tbody>
         </table>
-        <p class="hinweistext" id="schluessel-leer" style="display:none;">Noch keine Schlüssel zu dieser Liegenschaft.</p>
+        <p class="hint" id="schluessel-leer" style="display:none;">Noch keine Schlüssel zu dieser Liegenschaft.</p>
       </div>
 
-      <div class="tab-panel" data-tab="qualitaet">
-        <p class="hinweistext">Dieser Bereich zeigt künftig die Qualitätskontrollen für genau diese Liegenschaft. Noch nicht gebaut – folgt, sobald die Qualitätskontrolle auf Mitarbeiterseite existiert.</p>
+      <div class="tab-panel hidden" data-tab="qualitaet">
+        <div class="wip-note">Dieser Bereich zeigt künftig die Qualitätskontrollen für genau diese Liegenschaft. Noch nicht gebaut – folgt, sobald die Qualitätskontrolle auf Mitarbeiterseite existiert.</div>
       </div>
     </div>
   </main>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const liegenschaftId = params.get('id');
@@ -88,8 +95,8 @@ function initTabsScoped() {
       btn.addEventListener('click', () => {
         tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        card.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.remove('active'));
-        card.querySelector(':scope > .tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.add('active');
+        card.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.add('hidden'));
+        card.querySelector(':scope > .tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.remove('hidden');
       });
     });
   });
@@ -145,13 +152,9 @@ async function ladeSchluessel() {
   });
 }
 
-document.getElementById('logout-link').addEventListener('click', async (e) => {
-  e.preventDefault();
-  await sylegroLogout();
-});
-
-(async function start() {
-  await sylegroRequireAdmin();
+(async function () {
+  const admin = await sylegroRequireAdmin();
+  if (!admin) return;
   initTabsScoped();
   await ladeLiegenschaft();
   await ladeDokumente();
