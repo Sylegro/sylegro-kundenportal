@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neues Passwort setzen – Sylegro</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-client.js"></script>
+</head>
+<body>
+<div class="login-wrapper">
+  <div class="login-box">
+    <h1>Neues Passwort setzen</h1>
+    <p class="hinweistext" id="hinweis">Bitte gib dein neues Passwort ein.</p>
+    <div id="formular">
+      <label>Neues Passwort</label>
+      <input type="password" id="passwort1">
+      <label>Passwort wiederholen</label>
+      <input type="password" id="passwort2">
+      <button type="button" id="speichern-btn" class="btn-primary" style="margin-top:16px;">Passwort speichern</button>
+    </div>
+    <p id="fehler" style="color:#c0392b;display:none;"></p>
+    <p id="erfolg" style="color:#1f6f5c;display:none;">Passwort erfolgreich gesetzt. Du wirst zum Login weitergeleitet …</p>
+  </div>
+</div>
+
+<script>
+document.getElementById('speichern-btn').addEventListener('click', async () => {
+  const p1 = document.getElementById('passwort1').value;
+  const p2 = document.getElementById('passwort2').value;
+  const fehler = document.getElementById('fehler');
+  fehler.style.display = 'none';
+
+  if (p1.length < 8) {
+    fehler.textContent = 'Das Passwort muss mindestens 8 Zeichen lang sein.';
+    fehler.style.display = 'block';
+    return;
+  }
+  if (p1 !== p2) {
+    fehler.textContent = 'Die Passwörter stimmen nicht überein.';
+    fehler.style.display = 'block';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({ password: p1 });
+  if (error) {
+    fehler.textContent = 'Fehler: ' + error.message;
+    fehler.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('formular').style.display = 'none';
+  document.getElementById('erfolg').style.display = 'block';
+  setTimeout(() => { window.location.href = 'login.html'; }, 2500);
+});
+</script>
+</body>
+</html>
