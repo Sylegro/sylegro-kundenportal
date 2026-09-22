@@ -261,7 +261,23 @@ const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung',
    Vergleich mit der echten Bexio-Anzeige bestätigst. Bisher bestätigt
    (Angebote): 2 = Offen, 3 = Bestätigt, 4 = Abgelehnt. */
 const STATUS_LABEL_ANGEBOTE = { 2: 'Offen', 3: 'Bestätigt', 4: 'Abgelehnt' };
-const STATUS_LABEL_RECHNUNGEN = {};
+const STATUS_LABEL_RECHNUNGEN = { 8: 'Offen', 9: 'Bezahlt' };
+
+// Bexio kennt keinen eigenen Status-Code für "überfällig" -- das berechnen
+// wir selbst: eine offene Rechnung, deren Fälligkeitsdatum in der
+// Vergangenheit liegt, gilt als überfällig.
+function rechnungStatusAnzeige(r) {
+  const code = (r.status || '').replace('code_', '');
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const faelligkeit = r.faellig_am ? new Date(r.faellig_am) : null;
+
+  if (code === '8' && faelligkeit && faelligkeit < heute) {
+    return { text: 'Überfällig', klasse: 'danger' };
+  }
+  if (code === '9') return { text: 'Bezahlt', klasse: 'success' };
+  if (code === '8') return { text: 'Offen', klasse: 'warning' };
+  return { text: STATUS_LABEL_RECHNUNGEN[code] || r.status || '–', klasse: 'neutral' };
+}
 
 function statusText(rohStatus, mapping) {
   if (!rohStatus) return '–';
@@ -468,15 +484,19 @@ async function ladeAngebote() {
 }
 
 async function ladeRechnungen() {
-  const { data: rechnungen } = await supabaseClient.from('invoices').select('*').eq('customer_id', kundeId).order('faellig_am', { ascending: false });
+  // Nach bexio_id sortiert (steigt bei jeder neuen Bexio-Rechnung), nicht nach
+  // faellig_am -- so bleibt die Reihenfolge auch korrekt, wenn kein
+  // Fälligkeitsdatum hinterlegt ist. Neueste Rechnung zuoberst.
+  const { data: rechnungen } = await supabaseClient.from('invoices').select('*').eq('customer_id', kundeId).order('bexio_id', { ascending: false });
   const tbody = document.getElementById('rechnungen-tabelle');
   tbody.innerHTML = '';
   document.getElementById('rechnungen-leer').style.display = (rechnungen && rechnungen.length > 0) ? 'none' : 'block';
   (rechnungen || []).forEach(r => {
+    const statusInfo = rechnungStatusAnzeige(r);
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td><button class="nr-link" data-id="' + r.id + '">' + (r.nr || '–') + '</button></td>' +
-      '<td>' + statusText(r.status, STATUS_LABEL_RECHNUNGEN) + '</td>' +
+      '<td><span class="badge ' + statusInfo.klasse + '">' + statusInfo.text + '</span></td>' +
       '<td>' + (r.faellig_am ? new Date(r.faellig_am).toLocaleDateString('de-CH') : '–') + '</td>' +
       '<td>' + (r.betreff || '–') + '</td>' +
       '<td>' + (r.waehrung || '–') + '</td>' +
