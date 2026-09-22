@@ -1,30 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neues Passwort setzen – Sylegro</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neues Passwort setzen | Sylegro</title>
 <link rel="stylesheet" href="assets/style.css">
+</head>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
+  <div class="card" style="max-width:380px; width:100%;">
+    <h2>Neues Passwort setzen</h2>
+    <p class="hint" id="hinweis">Bitte gib dein neues Passwort ein.</p>
+    <div id="formular">
+      <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Neues Passwort</label>
+      <input type="password" id="passwort1" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px; margin-bottom:14px;">
+      <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Passwort wiederholen</label>
+      <input type="password" id="passwort2" style="width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px; margin-bottom:14px;">
+      <button type="button" id="speichern-btn" class="btn primary">Passwort speichern</button>
+    </div>
+    <p id="fehler" style="color:var(--color-danger); display:none; margin-top:12px;"></p>
+    <p id="erfolg" style="color:var(--color-success); display:none; margin-top:12px;">Passwort erfolgreich gesetzt. Du wirst zum Login weitergeleitet …</p>
+  </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/supabase-client.js"></script>
-</head>
-<body>
-<div class="login-wrapper">
-  <div class="login-box">
-    <h1>Neues Passwort setzen</h1>
-    <p class="hinweistext" id="hinweis">Bitte gib dein neues Passwort ein.</p>
-    <div id="formular">
-      <label>Neues Passwort</label>
-      <input type="password" id="passwort1">
-      <label>Passwort wiederholen</label>
-      <input type="password" id="passwort2">
-      <button type="button" id="speichern-btn" class="btn-primary" style="margin-top:16px;">Passwort speichern</button>
-    </div>
-    <p id="fehler" style="color:#c0392b;display:none;"></p>
-    <p id="erfolg" style="color:#1f6f5c;display:none;">Passwort erfolgreich gesetzt. Du wirst zum Login weitergeleitet …</p>
-  </div>
-</div>
-
 <script>
 document.getElementById('speichern-btn').addEventListener('click', async () => {
   const p1 = document.getElementById('passwort1').value;
