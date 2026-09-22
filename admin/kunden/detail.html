@@ -1,100 +1,117 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kunde bearbeiten | Sylegro Portal</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kundenprofil – Sylegro Admin</title>
 <link rel="stylesheet" href="../../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
 </head>
 <body>
-<div class="app-shell">
-  <aside class="sidebar">
-    <div class="brand">Sylegro <small>Admin</small></div>
-    <nav>
-      <a href="uebersicht.html" class="top-cat">Kunden</a>
-      <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
-      <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
-      <a href="#" class="sub-item disabled">Dokumente (bald)</a>
-
-      <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
-
-      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
-    </nav>
-    <div style="margin-top:auto; padding-top:20px;">
-      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Sylegro<br><span>Admin</span></div>
+    <div class="nav-gruppe">
+      <div class="nav-titel">Kunden</div>
+      <a href="uebersicht.html" class="nav-link active">Alle Kunden</a>
+      <a href="#" class="nav-link disabled">Ansprechpartner (bald)</a>
+      <a href="#" class="nav-link disabled">Dokumente (bald)</a>
     </div>
-  </aside>
-  <main class="main">
-    <div class="topbar">
-      <h1 id="page-title">Kunde bearbeiten</h1>
-      <a href="uebersicht.html" style="font-size:0.9rem;">← Zurück zur Übersicht</a>
+    <div class="nav-gruppe">
+      <div class="nav-titel">Mitarbeiter</div>
+      <a href="../mitarbeiter/uebersicht.html" class="nav-link">Mitarbeiter</a>
+    </div>
+    <div class="nav-gruppe">
+      <div class="nav-titel">Betrieb</div>
+      <a href="../betrieb/uebersicht.html" class="nav-link">Betrieb</a>
+    </div>
+    <a href="#" id="logout-link" class="nav-logout">Abmelden</a>
+  </nav>
+
+  <main class="content">
+    <div class="page-kopf">
+      <h1 id="kunde-name-titel">Kunde</h1>
+      <a href="uebersicht.html" class="zurueck-link">← Zurück zur Übersicht</a>
     </div>
 
     <div class="top-grid">
       <div class="card">
         <div class="firma-header">
-          <img id="ov-logo" src="" alt="Logo" style="display:none;">
+          <div id="firma-logo-platzhalter" class="logo-platzhalter">?</div>
+          <img id="firma-logo-bild" class="versteckt" alt="Logo" style="width:48px;height:48px;border-radius:8px;object-fit:contain;">
           <div>
-            <div class="firma-name" id="ov-firma-name">—</div>
-            <span class="badge success">Kunde</span>
+            <h2 id="firma-name">–</h2>
+            <span class="badge">Kunde</span>
           </div>
         </div>
 
-        <div class="tabs">
+        <div class="tabs" data-scope="top">
           <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
           <button class="tab-btn" data-tab="finanzen">Finanzen</button>
           <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
         </div>
 
-        <div class="tab-panel" data-panel="uebersicht">
+        <div class="tab-panel active" data-tab="uebersicht">
           <div class="info-grid">
-            <div><div class="label">Objekt / Adresse</div><div id="ov-objekt">—</div></div>
-            <div><div class="label">Branche</div><div id="ov-branche">—</div></div>
-            <div><div class="label">Leistungen</div><div id="ov-leistungen">—</div></div>
-            <div><div class="label">Login-E-Mail</div><div id="ov-login">—</div></div>
+            <div>
+              <div class="info-label">Objekt / Adresse</div>
+              <div id="info-objekt">–</div>
+            </div>
+            <div>
+              <div class="info-label">Branche</div>
+              <div id="info-branche">–</div>
+            </div>
+            <div>
+              <div class="info-label">Login-E-Mail</div>
+              <div id="info-login-email">–</div>
+            </div>
           </div>
 
-          <h2>Stammdaten</h2>
-          <div class="form-grid">
-            <div><label>Firma</label><input id="f-firma"></div>
-            <div><label>Objekt / Adresse</label><input id="f-objekt"></div>
-            <div><label>Branche</label><input id="f-branche"></div>
+          <div class="abschnitt-kopf" style="margin-top:24px;">
+            <div class="leistungen-kopf">
+              <h3 style="margin:0;">Leistungen / Kategorie</h3>
+              <button type="button" class="icon-btn" id="leistungen-edit-btn" title="Bearbeiten">✎</button>
+            </div>
           </div>
-          <button class="btn primary" onclick="speichereStammdaten()">Speichern</button>
-          <span id="stamm-status" style="margin-left:12px; font-size:0.9rem;"></span>
 
-          <h2 style="margin-top:24px;">Leistungen / Kategorie</h2>
-          <div style="display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;">
-            <label style="font-size:0.9rem;"><input type="checkbox" value="uhr" class="f-service"> Unterhaltsreinigung</label>
-            <label style="font-size:0.9rem;"><input type="checkbox" value="spezial" class="f-service"> Spezialreinigung</label>
-            <label style="font-size:0.9rem;"><input type="checkbox" value="bau" class="f-service"> Baureinigung</label>
-            <label style="font-size:0.9rem;"><input type="checkbox" value="hauswartung" class="f-service"> Hauswartung</label>
+          <div id="leistungen-anzeige" class="leistungen-chips"></div>
+
+          <div id="leistungen-formular" class="versteckt" style="margin-top:14px;">
+            <label><input type="checkbox" value="unterhaltsreinigung" class="leistung-checkbox"> Unterhaltsreinigung</label><br>
+            <label><input type="checkbox" value="spezialreinigung" class="leistung-checkbox"> Spezialreinigung</label><br>
+            <label><input type="checkbox" value="baureinigung" class="leistung-checkbox"> Baureinigung</label><br>
+            <label><input type="checkbox" value="hauswartung" class="leistung-checkbox"> Hauswartung</label>
+            <div style="margin-top:12px;">
+              <button type="button" class="btn-primary" id="leistungen-speichern-btn">Speichern</button>
+              <button type="button" class="btn-klein" id="leistungen-abbrechen-btn">Abbrechen</button>
+            </div>
           </div>
-          <button class="btn primary" onclick="speichereLeistungen()">Speichern</button>
-          <span id="leistungen-status" style="margin-left:12px; font-size:0.9rem;"></span>
         </div>
 
-        <div class="tab-panel hidden" data-panel="finanzen">
-          <h2>Umsatz (letzte 12 Monate)</h2>
-          <div class="chart-wrap"><canvas id="umsatz-chart"></canvas></div>
+        <div class="tab-panel" data-tab="finanzen">
+          <h3>Umsatz (letzte 12 Monate)</h3>
+          <div class="chart-wrap">
+            <canvas id="umsatz-chart"></canvas>
+          </div>
         </div>
 
-        <div class="tab-panel hidden" data-panel="qualitaet">
-          <div class="wip-note">
-            Dieser Bereich zeigt künftig eine monatliche Auswertung der durchgeführten Qualitätskontrollen (aggregiert über alle Liegenschaften, filterbar nach einzelnen Liegenschaften). Die Datenquelle dafür – die Qualitätskontrolle auf Mitarbeiterseite – ist noch nicht gebaut.
-          </div>
+        <div class="tab-panel" data-tab="qualitaet">
+          <p class="hinweistext">Dieser Bereich zeigt künftig eine monatliche Auswertung der durchgeführten Qualitätskontrollen (aggregiert über alle Liegenschaften, filterbar nach einzelnen Liegenschaften). Die Datenquelle dafür – die Qualitätskontrolle auf Mitarbeiterseite – ist noch nicht gebaut.</p>
         </div>
       </div>
 
       <div class="card">
-        <h2>Kontakte</h2>
-        <p class="hint">Wird aus Bexio übernommen. Rechte pro Ansprechpartner folgen in einem späteren Schritt.</p>
-        <div id="kontakte-liste">Lade…</div>
+        <h3>Kontakte</h3>
+        <p class="hinweistext">Wird aus Bexio übernommen. Rechte pro Ansprechpartner folgen in einem späteren Schritt.</p>
+        <div id="kontakte-liste"></div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="tabs">
+    <div class="card" style="margin-top:24px;">
+      <div class="tabs" data-scope="unten">
         <button class="tab-btn active" data-tab="angebote">Angebote</button>
         <button class="tab-btn" data-tab="rechnungen">Rechnungen</button>
         <button class="tab-btn" data-tab="liegenschaften">Liegenschaften</button>
@@ -103,794 +120,563 @@
         <button class="tab-btn" data-tab="dokumente">Dokumente</button>
       </div>
 
-      <div class="tab-panel" data-panel="angebote">
-        <p class="hint">Wird aus Bexio übernommen. Status zeigt vorerst den rohen Bexio-Code, wird nach Kalibrierung in Klartext übersetzt.</p>
+      <div class="tab-panel active" data-tab="angebote">
         <table>
-          <thead><tr><th>Nr.</th><th>Betreff</th><th>Datum</th><th>Betrag</th><th>Status</th></tr></thead>
-          <tbody id="angebote-body">
-            <tr><td colspan="5" class="hint">Lade…</td></tr>
-          </tbody>
+          <thead>
+            <tr><th>Datum</th><th>Nr.</th><th>Status</th><th>Gültigkeit</th><th>Titel</th><th>Währung</th><th>Netto</th><th>Brutto</th></tr>
+          </thead>
+          <tbody id="angebote-tabelle"></tbody>
         </table>
+        <p class="hinweistext" id="angebote-leer" style="display:none;">Noch keine Angebote synchronisiert.</p>
       </div>
 
-      <div class="tab-panel hidden" data-panel="rechnungen">
-        <p class="hint">"Überfällig" markiert Rechnungen, deren Fälligkeitsdatum in der Vergangenheit liegt. "Als bezahlt markieren" ist eine manuelle Angabe im Portal.</p>
+      <div class="tab-panel" data-tab="rechnungen">
         <table>
-          <thead><tr><th>Nr.</th><th>Betreff</th><th>Fällig am</th><th>Betrag</th><th>Status</th><th></th></tr></thead>
-          <tbody id="rechnungen-body">
-            <tr><td colspan="6" class="hint">Lade…</td></tr>
-          </tbody>
+          <thead>
+            <tr><th>Nr.</th><th>Status</th><th>Fälligkeit</th><th>Titel</th><th>Währung</th><th>Netto</th><th>Brutto</th></tr>
+          </thead>
+          <tbody id="rechnungen-tabelle"></tbody>
         </table>
+        <p class="hinweistext" id="rechnungen-leer" style="display:none;">Noch keine Rechnungen synchronisiert.</p>
       </div>
 
-      <div class="tab-panel hidden" data-panel="liegenschaften">
-        <h2>Liegenschaft hinzufügen</h2>
-        <div class="form-grid">
-          <div><label>Name</label><input id="lg-name" placeholder="z.B. Hauptsitz Zürich"></div>
-          <div><label>Adresse</label><input id="lg-adresse"></div>
+      <div class="tab-panel" data-tab="liegenschaften">
+        <div class="abschnitt-kopf">
+          <h3 style="margin:0;">Liegenschaften</h3>
+          <button type="button" class="fab-add" id="liegenschaft-fab" title="Liegenschaft hinzufügen">+</button>
+        </div>
+
+        <div id="liegenschaft-formular" class="versteckt form-grid" style="margin-bottom:16px;">
+          <div>
+            <label>Name</label>
+            <input type="text" id="liegenschaft-name" placeholder="z.B. Hauptsitz Zürich">
+          </div>
+          <div>
+            <label>Adresse</label>
+            <input type="text" id="liegenschaft-adresse">
+          </div>
           <div>
             <label>Typ</label>
-            <select id="lg-typ">
+            <select id="liegenschaft-typ">
               <option value="reinigung">Reinigung</option>
               <option value="hauswartung">Hauswartung</option>
+              <option value="spezialreinigung">Spezialreinigung</option>
+              <option value="baureinigung">Baureinigung</option>
             </select>
           </div>
-          <div><button class="btn primary" onclick="liegenschaftHinzufuegen()">Hinzufügen</button></div>
+          <div style="align-self:end;">
+            <button type="button" class="btn-primary" id="liegenschaft-hinzufuegen-btn">Hinzufügen</button>
+          </div>
         </div>
-        <span id="lg-status" style="font-size:0.9rem;"></span>
 
-        <h2 style="margin-top:24px;">Liegenschaften</h2>
-        <p class="hint">Klicke auf eine Liegenschaft, um die zugehörigen Dokumente zu sehen.</p>
         <table>
           <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th></tr></thead>
-          <tbody id="liegenschaften-body">
-            <tr><td colspan="3" class="hint">Lade…</td></tr>
-          </tbody>
+          <tbody id="liegenschaften-tabelle"></tbody>
         </table>
+        <p class="hinweistext" id="liegenschaften-leer" style="display:none;">Noch keine Liegenschaften erfasst.</p>
       </div>
 
-      <div class="tab-panel hidden" data-panel="schluessel">
-        <h2>Schlüssel hinzufügen</h2>
-        <div class="form-grid">
-          <div><label>Bezeichnung</label><input id="sk-bezeichnung" placeholder="z.B. Haupteingang, Chip 3"></div>
-          <div><label>Liegenschaft</label><select id="sk-liegenschaft"><option value="">— keine —</option></select></div>
-          <div><label>Aufbewahrungsort</label><input id="sk-ort" placeholder="z.B. Schlüsselschrank Büro"></div>
-          <div><label>Inhaber</label><input id="sk-inhaber" placeholder="Name der Person"></div>
-          <div><label>Erhalten am</label><input id="sk-datum" type="date"></div>
-          <div><label>Quittung (Scan/Foto)</label><input id="sk-datei" type="file"></div>
-          <div><button class="btn primary" onclick="schluesselHinzufuegen()">Hinzufügen</button></div>
+      <div class="tab-panel" data-tab="schluessel">
+        <div class="abschnitt-kopf">
+          <h3 style="margin:0;">Schlüssel</h3>
+          <button type="button" class="fab-add" id="schluessel-fab" title="Schlüssel hinzufügen">+</button>
         </div>
-        <span id="sk-status" style="font-size:0.9rem;"></span>
 
-        <h2 style="margin-top:24px;">Schlüssel</h2>
+        <div id="schluessel-formular" class="versteckt form-grid" style="margin-bottom:16px;">
+          <div>
+            <label>Bezeichnung</label>
+            <input type="text" id="schluessel-bezeichnung" placeholder="z.B. Haupteingang, Chip 3">
+          </div>
+          <div>
+            <label>Liegenschaft</label>
+            <select id="schluessel-liegenschaft"><option value="">— keine —</option></select>
+          </div>
+          <div>
+            <label>Aufbewahrungsort</label>
+            <input type="text" id="schluessel-ort" placeholder="z.B. Schlüsselschrank Büro">
+          </div>
+          <div>
+            <label>Inhaber</label>
+            <input type="text" id="schluessel-inhaber" placeholder="Name der Person">
+          </div>
+          <div>
+            <label>Erhalten am</label>
+            <input type="date" id="schluessel-datum">
+          </div>
+          <div>
+            <label>Quittung (Scan/Foto)</label>
+            <input type="file" id="schluessel-quittung">
+          </div>
+          <div style="align-self:end;">
+            <button type="button" class="btn-primary" id="schluessel-hinzufuegen-btn">Hinzufügen</button>
+          </div>
+        </div>
+
         <table>
           <thead><tr><th>Bezeichnung</th><th>Liegenschaft</th><th>Aufbewahrungsort</th><th>Inhaber</th><th>Erhalten am</th><th>Quittung</th></tr></thead>
-          <tbody id="schluessel-body">
-            <tr><td colspan="6" class="hint">Lade…</td></tr>
-          </tbody>
+          <tbody id="schluessel-tabelle"></tbody>
         </table>
+        <p class="hinweistext" id="schluessel-leer" style="display:none;">Noch keine Schlüssel erfasst.</p>
       </div>
 
-      <div class="tab-panel hidden" data-panel="login">
-        <div id="login-bereich">Lade…</div>
+      <div class="tab-panel" data-tab="login">
+        <h3>Portal-Zugänge</h3>
+        <div id="login-liste"></div>
+        <p class="hinweistext" id="login-leer" style="display:none;">Für diesen Kunden existiert noch kein Portal-Login.</p>
       </div>
 
-      <div class="tab-panel hidden" data-panel="dokumente">
-        <div class="form-grid">
-          <div><label>Titel</label><input id="doc-titel"></div>
+      <div class="tab-panel" data-tab="dokumente">
+        <div class="form-grid" style="margin-bottom:16px;">
+          <div>
+            <label>Titel</label>
+            <input type="text" id="dok-titel">
+          </div>
           <div>
             <label>Kategorie</label>
-            <select id="doc-kategorie">
-              <option value="Vertrag">Vertrag</option>
-              <option value="Rechnung">Rechnung</option>
-              <option value="Offerte">Offerte</option>
-              <option value="Leistungsverzeichnis">Leistungsverzeichnis</option>
-              <option value="Objektplan">Objektplan</option>
-              <option value="Sonstiges">Sonstiges</option>
+            <select id="dok-kategorie">
+              <option value="vertrag">Vertrag</option>
+              <option value="rapport">Rapport</option>
+              <option value="sonstiges">Sonstiges</option>
             </select>
           </div>
-          <div><label>Datei</label><input id="doc-datei" type="file"></div>
-          <div><button class="btn primary" onclick="dokumentHochladen()">Hochladen</button></div>
+          <div>
+            <label>Datei</label>
+            <input type="file" id="dok-datei">
+          </div>
+          <div style="align-self:end;">
+            <button type="button" class="btn-primary" id="dok-hochladen-btn">Hochladen</button>
+          </div>
         </div>
-        <span id="doc-status" style="font-size:0.9rem;"></span>
-
-        <table style="margin-top:10px;">
+        <table>
           <thead><tr><th>Titel</th><th>Kategorie</th><th>Liegenschaft</th><th>Hochgeladen am</th><th></th></tr></thead>
-          <tbody id="doc-body">
-            <tr><td colspan="5" class="hint">Lade Dokumente…</td></tr>
-          </tbody>
+          <tbody id="dokumente-tabelle"></tbody>
         </table>
       </div>
     </div>
   </main>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="../../assets/supabase-client.js"></script>
-<script src="../../assets/auth.js"></script>
 <script>
-  const customerId = new URLSearchParams(window.location.search).get('id');
-  const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
-  let umsatzChart = null;
+const params = new URLSearchParams(window.location.search);
+const kundeId = params.get('id');
+let umsatzChart = null;
 
+function initTabsScoped() {
   document.querySelectorAll('.tabs').forEach(tabBar => {
-    const container = tabBar.closest('.card');
+    const card = tabBar.closest('.card');
     tabBar.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        container.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.add('hidden'));
         btn.classList.add('active');
-        container.querySelector(':scope > .tab-panel[data-panel="' + btn.dataset.tab + '"]').classList.remove('hidden');
+        card.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.remove('active'));
+        card.querySelector(':scope > .tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.add('active');
       });
     });
   });
+}
 
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.kontakt-menu-btn')) {
-      document.querySelectorAll('.kontakt-menu-dropdown').forEach(d => d.classList.add('hidden'));
+function logoDataUrl(base64) {
+  if (!base64) return null;
+  if (base64.startsWith('iVBOR')) return 'data:image/png;base64,' + base64;
+  if (base64.startsWith('/9j/')) return 'data:image/jpeg;base64,' + base64;
+  if (base64.startsWith('R0lGOD')) return 'data:image/gif;base64,' + base64;
+  return 'data:image/png;base64,' + base64;
+}
+
+async function pdfOeffnen(funktionsname, id) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const basisUrl = 'https://amnaydttfuenhgevqptp.supabase.co/functions/v1/' + funktionsname;
+  const res = await fetch(basisUrl + '?id=' + encodeURIComponent(id), {
+    headers: { Authorization: 'Bearer ' + session.access_token }
+  });
+  if (!res.ok) { alert('Dokument konnte nicht geladen werden.'); return; }
+  const blob = await res.blob();
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+async function ladeKunde() {
+  const { data: kunde } = await supabaseClient.from('customers').select('*').eq('id', kundeId).single();
+  if (!kunde) return;
+
+  document.getElementById('kunde-name-titel').textContent = kunde.firma;
+  document.getElementById('firma-name').textContent = kunde.firma;
+  document.getElementById('info-objekt').textContent = kunde.objekt || '–';
+  document.getElementById('info-branche').textContent = kunde.branche || '–';
+
+  const logoUrl = logoDataUrl(kunde.logo);
+  if (logoUrl) {
+    document.getElementById('firma-logo-bild').src = logoUrl;
+    document.getElementById('firma-logo-bild').classList.remove('versteckt');
+    document.getElementById('firma-logo-platzhalter').classList.add('versteckt');
+  } else {
+    document.getElementById('firma-logo-platzhalter').textContent = (kunde.firma || '?').charAt(0).toUpperCase();
+  }
+
+  const { data: profile } = await supabaseClient.from('profiles').select('id').eq('customer_id', kundeId).maybeSingle();
+  if (profile) {
+    const { data: authUser } = await supabaseClient.auth.admin ? null : { data: null };
+  }
+  document.getElementById('info-login-email').textContent = kunde.login_email || '–';
+
+  ladeLeistungen();
+  ladeUmsatzChart();
+}
+
+async function ladeLeistungen() {
+  const { data: services } = await supabaseClient.from('customer_services').select('leistung').eq('customer_id', kundeId);
+  const aktiv = (services || []).map(s => s.leistung);
+  const anzeige = document.getElementById('leistungen-anzeige');
+  const label = { unterhaltsreinigung: 'Unterhaltsreinigung', spezialreinigung: 'Spezialreinigung', baureinigung: 'Baureinigung', hauswartung: 'Hauswartung' };
+  anzeige.innerHTML = '';
+  if (aktiv.length === 0) {
+    anzeige.innerHTML = '<span class="leistung-chip leer">Keine Leistung zugewiesen</span>';
+  } else {
+    aktiv.forEach(l => {
+      const chip = document.createElement('span');
+      chip.className = 'leistung-chip';
+      chip.textContent = label[l] || l;
+      anzeige.appendChild(chip);
+    });
+  }
+  document.querySelectorAll('.leistung-checkbox').forEach(cb => {
+    cb.checked = aktiv.includes(cb.value);
+  });
+}
+
+document.getElementById('leistungen-edit-btn').addEventListener('click', () => {
+  document.getElementById('leistungen-formular').classList.toggle('versteckt');
+});
+document.getElementById('leistungen-abbrechen-btn').addEventListener('click', () => {
+  document.getElementById('leistungen-formular').classList.add('versteckt');
+  ladeLeistungen();
+});
+document.getElementById('leistungen-speichern-btn').addEventListener('click', async () => {
+  const ausgewaehlt = Array.from(document.querySelectorAll('.leistung-checkbox:checked')).map(cb => cb.value);
+  await supabaseClient.from('customer_services').delete().eq('customer_id', kundeId);
+  if (ausgewaehlt.length > 0) {
+    await supabaseClient.from('customer_services').insert(ausgewaehlt.map(l => ({ customer_id: kundeId, leistung: l })));
+  }
+  document.getElementById('leistungen-formular').classList.add('versteckt');
+  ladeLeistungen();
+});
+
+async function ladeUmsatzChart() {
+  const ctx = document.getElementById('umsatz-chart');
+  const monate = [];
+  const heute = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
+    monate.push(d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }));
+  }
+  const { data: rechnungen } = await supabaseClient.from('invoices').select('betrag_brutto, datum').eq('customer_id', kundeId);
+  const werte = new Array(12).fill(0);
+  (rechnungen || []).forEach(r => {
+    if (!r.datum) return;
+    const d = new Date(r.datum);
+    const diffMonate = (heute.getFullYear() - d.getFullYear()) * 12 + (heute.getMonth() - d.getMonth());
+    if (diffMonate >= 0 && diffMonate < 12) {
+      werte[11 - diffMonate] += Number(r.betrag_brutto || 0);
     }
   });
+  if (umsatzChart) umsatzChart.destroy();
+  umsatzChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: monate, datasets: [{ label: 'Umsatz CHF', data: werte, backgroundColor: '#1f6f5c' }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
 
-  async function ladeKunde() {
-    const { data: customer, error } = await supabaseClient
-      .from('customers')
-      .select('id, firma, objekt, branche, login_email, logo, customer_services(service)')
-      .eq('id', customerId)
-      .single();
+async function ladeKontakte() {
+  const { data: kontakte } = await supabaseClient.from('contact_persons').select('*').eq('customer_id', kundeId);
+  const liste = document.getElementById('kontakte-liste');
+  liste.innerHTML = '';
+  (kontakte || []).forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'kontakt-card';
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:start;">' +
+      '<strong>' + k.name + '</strong>' +
+      '<div class="kontakt-menu">' +
+      '<button class="icon-btn kontakt-menu-btn">⋮</button>' +
+      '<div class="kontakt-menu-liste versteckt">' +
+      '<button disabled>Rechte verwalten (bald)</button>' +
+      '<button disabled>Eigenes Login erstellen (bald)</button>' +
+      '</div></div></div>' +
+      '<div>' + (k.rolle || '—') + '</div>' +
+      '<div>' + (k.email || '—') + '</div>' +
+      '<div>' + (k.telefon || '—') + '</div>';
+    liste.appendChild(div);
+  });
+  liste.querySelectorAll('.kontakt-menu-btn').forEach(btn => {
+    btn.addEventListener('click', () => btn.nextElementSibling.classList.toggle('versteckt'));
+  });
+}
 
-    if (error || !customer) {
-      document.getElementById('page-title').textContent = 'Kunde nicht gefunden';
-      return;
+async function ladeAngebote() {
+  const { data: angebote } = await supabaseClient.from('quotes').select('*').eq('customer_id', kundeId).order('datum', { ascending: false });
+  const tbody = document.getElementById('angebote-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('angebote-leer').style.display = (angebote && angebote.length > 0) ? 'none' : 'block';
+  (angebote || []).forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + (a.datum ? new Date(a.datum).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td><button class="nr-link" data-id="' + a.id + '">' + (a.nr || '–') + '</button></td>' +
+      '<td>' + (a.status || '–') + '</td>' +
+      '<td>' + (a.gueltig_bis ? new Date(a.gueltig_bis).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td>' + (a.betreff || '–') + '</td>' +
+      '<td>' + (a.waehrung || '–') + '</td>' +
+      '<td>' + (a.betrag_netto != null ? Number(a.betrag_netto).toFixed(2) : '–') + '</td>' +
+      '<td>' + (a.betrag_brutto != null ? Number(a.betrag_brutto).toFixed(2) : '–') + '</td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.nr-link').forEach(btn => {
+    btn.addEventListener('click', () => pdfOeffnen('bexio-angebot-pdf', btn.dataset.id));
+  });
+}
+
+async function ladeRechnungen() {
+  const { data: rechnungen } = await supabaseClient.from('invoices').select('*').eq('customer_id', kundeId).order('faellig_am', { ascending: false });
+  const tbody = document.getElementById('rechnungen-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('rechnungen-leer').style.display = (rechnungen && rechnungen.length > 0) ? 'none' : 'block';
+  (rechnungen || []).forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><button class="nr-link" data-id="' + r.id + '">' + (r.nr || '–') + '</button></td>' +
+      '<td>' + (r.status || '–') + '</td>' +
+      '<td>' + (r.faellig_am ? new Date(r.faellig_am).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td>' + (r.betreff || '–') + '</td>' +
+      '<td>' + (r.waehrung || '–') + '</td>' +
+      '<td>' + (r.betrag_netto != null ? Number(r.betrag_netto).toFixed(2) : '–') + '</td>' +
+      '<td>' + (r.betrag_brutto != null ? Number(r.betrag_brutto).toFixed(2) : '–') + '</td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.nr-link').forEach(btn => {
+    btn.addEventListener('click', () => pdfOeffnen('bexio-rechnung-pdf', btn.dataset.id));
+  });
+}
+
+async function ladeLiegenschaften() {
+  const { data: liegenschaften } = await supabaseClient.from('properties').select('*').eq('customer_id', kundeId).order('name');
+  const tbody = document.getElementById('liegenschaften-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('liegenschaften-leer').style.display = (liegenschaften && liegenschaften.length > 0) ? 'none' : 'block';
+  (liegenschaften || []).forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><a class="liegenschaft-link" href="liegenschaft.html?id=' + l.id + '&kunde=' + kundeId + '">' + l.name + '</a></td>' +
+      '<td>' + (l.adresse || '–') + '</td>' +
+      '<td>' + l.typ + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  const select = document.getElementById('schluessel-liegenschaft');
+  select.innerHTML = '<option value="">— keine —</option>';
+  (liegenschaften || []).forEach(l => {
+    const opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = l.name;
+    select.appendChild(opt);
+  });
+}
+
+document.getElementById('liegenschaft-fab').addEventListener('click', () => {
+  document.getElementById('liegenschaft-formular').classList.toggle('versteckt');
+});
+document.getElementById('liegenschaft-hinzufuegen-btn').addEventListener('click', async () => {
+  const name = document.getElementById('liegenschaft-name').value.trim();
+  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  await supabaseClient.from('properties').insert({
+    customer_id: kundeId,
+    name,
+    adresse: document.getElementById('liegenschaft-adresse').value.trim() || null,
+    typ: document.getElementById('liegenschaft-typ').value
+  });
+  document.getElementById('liegenschaft-name').value = '';
+  document.getElementById('liegenschaft-adresse').value = '';
+  document.getElementById('liegenschaft-formular').classList.add('versteckt');
+  ladeLiegenschaften();
+});
+
+async function ladeSchluessel() {
+  const { data: schluessel } = await supabaseClient.from('keys').select('*, properties(name)').eq('customer_id', kundeId).order('bezeichnung');
+  const tbody = document.getElementById('schluessel-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('schluessel-leer').style.display = (schluessel && schluessel.length > 0) ? 'none' : 'block';
+  (schluessel || []).forEach(k => {
+    let quittungZelle = '–';
+    if (k.quittung_pfad) {
+      quittungZelle = '<a href="#" class="quittung-link" data-pfad="' + k.quittung_pfad + '">Herunterladen</a>';
     }
-
-    document.getElementById('page-title').textContent = customer.firma;
-    document.getElementById('ov-firma-name').textContent = customer.firma;
-    document.getElementById('f-firma').value = customer.firma || '';
-    document.getElementById('f-objekt').value = customer.objekt || '';
-    document.getElementById('f-branche').value = customer.branche || '';
-
-    const logoImg = document.getElementById('ov-logo');
-    if (customer.logo) {
-      logoImg.src = 'data:image/png;base64,' + customer.logo;
-      logoImg.style.display = 'block';
-    } else {
-      logoImg.style.display = 'none';
-    }
-
-    const aktiv = (customer.customer_services || []).map(s => s.service);
-    document.querySelectorAll('.f-service').forEach(cb => {
-      cb.checked = aktiv.includes(cb.value);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + k.bezeichnung + '</td>' +
+      '<td>' + (k.properties ? k.properties.name : '–') + '</td>' +
+      '<td>' + (k.aufbewahrungsort || '–') + '</td>' +
+      '<td>' + (k.inhaber || '–') + '</td>' +
+      '<td>' + (k.erhalten_am ? new Date(k.erhalten_am).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td>' + quittungZelle + '</td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.quittung-link').forEach(a => {
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const { data } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(a.dataset.pfad, 300);
+      if (data) window.open(data.signedUrl, '_blank');
     });
+  });
+}
 
-    const leistungenText = aktiv.map(s => SERVICE_LABEL[s] || s).join(', ') || '—';
-    document.getElementById('ov-objekt').textContent = customer.objekt || '—';
-    document.getElementById('ov-branche').textContent = customer.branche || '—';
-    document.getElementById('ov-leistungen').textContent = leistungenText;
-    document.getElementById('ov-login').textContent = customer.login_email || '—';
+document.getElementById('schluessel-fab').addEventListener('click', () => {
+  document.getElementById('schluessel-formular').classList.toggle('versteckt');
+});
+document.getElementById('schluessel-hinzufuegen-btn').addEventListener('click', async () => {
+  const bezeichnung = document.getElementById('schluessel-bezeichnung').value.trim();
+  if (!bezeichnung) { alert('Bitte eine Bezeichnung eingeben.'); return; }
 
-    renderLoginBereich(customer.login_email);
+  let quittungPfad = null;
+  const datei = document.getElementById('schluessel-quittung').files[0];
+  if (datei) {
+    quittungPfad = kundeId + '/schluessel/' + Date.now() + '-' + datei.name;
+    await supabaseClient.storage.from('kunden-dokumente').upload(quittungPfad, datei);
   }
 
-  async function speichereStammdaten() {
-    const status = document.getElementById('stamm-status');
-    status.textContent = 'Speichere…';
-    status.style.color = 'var(--color-text-muted)';
+  await supabaseClient.from('keys').insert({
+    customer_id: kundeId,
+    property_id: document.getElementById('schluessel-liegenschaft').value || null,
+    bezeichnung,
+    aufbewahrungsort: document.getElementById('schluessel-ort').value.trim() || null,
+    inhaber: document.getElementById('schluessel-inhaber').value.trim() || null,
+    erhalten_am: document.getElementById('schluessel-datum').value || null,
+    quittung_pfad: quittungPfad
+  });
 
-    const { error } = await supabaseClient.from('customers').update({
-      firma: document.getElementById('f-firma').value.trim(),
-      objekt: document.getElementById('f-objekt').value.trim(),
-      branche: document.getElementById('f-branche').value.trim()
-    }).eq('id', customerId);
+  document.getElementById('schluessel-bezeichnung').value = '';
+  document.getElementById('schluessel-ort').value = '';
+  document.getElementById('schluessel-inhaber').value = '';
+  document.getElementById('schluessel-datum').value = '';
+  document.getElementById('schluessel-quittung').value = '';
+  document.getElementById('schluessel-formular').classList.add('versteckt');
+  ladeSchluessel();
+});
 
-    if (error) {
-      status.textContent = 'Fehler: ' + error.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-    status.textContent = 'Gespeichert.';
-    status.style.color = 'var(--color-success)';
-    ladeKunde();
-  }
+async function ladeLogins() {
+  const { data: profile } = await supabaseClient.from('profiles').select('id, customer_id').eq('customer_id', kundeId);
+  const liste = document.getElementById('login-liste');
+  liste.innerHTML = '';
+  document.getElementById('login-leer').style.display = (profile && profile.length > 0) ? 'none' : 'block';
+  if (!profile || profile.length === 0) return;
 
-  async function speichereLeistungen() {
-    const status = document.getElementById('leistungen-status');
-    status.textContent = 'Speichere…';
-    status.style.color = 'var(--color-text-muted)';
+  const { data: kontakte } = await supabaseClient.from('contact_persons').select('name, email').eq('customer_id', kundeId);
+  const { data: kunde } = await supabaseClient.from('customers').select('login_email').eq('id', kundeId).single();
 
-    const gewaehlt = Array.from(document.querySelectorAll('.f-service:checked')).map(el => el.value);
-
-    const { error: delError } = await supabaseClient.from('customer_services').delete().eq('customer_id', customerId);
-    if (delError) {
-      status.textContent = 'Fehler: ' + delError.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    if (gewaehlt.length) {
-      const rows = gewaehlt.map(s => ({ customer_id: customerId, service: s }));
-      const { error: insError } = await supabaseClient.from('customer_services').insert(rows);
-      if (insError) {
-        status.textContent = 'Fehler: ' + insError.message;
-        status.style.color = 'var(--color-danger)';
-        return;
-      }
-    }
-
-    status.textContent = 'Gespeichert.';
-    status.style.color = 'var(--color-success)';
-    ladeKunde();
-  }
-
-  function renderLoginBereich(loginEmail) {
-    const el = document.getElementById('login-bereich');
-    if (loginEmail) {
-      el.innerHTML =
-        '<p class="hint">Login vorhanden: <strong>' + loginEmail + '</strong></p>' +
-        '<div class="form-grid" style="max-width:500px;">' +
-        '<div><label>Neues Passwort setzen</label>' +
-        '<input id="reset-password" type="text" minlength="8"></div>' +
-        '<div><button class="btn" onclick="passwortZuruecksetzen()">Setzen</button></div>' +
-        '</div><span id="reset-status" style="font-size:0.9rem; display:block; margin-top:10px;"></span>';
-      return;
-    }
-    el.innerHTML =
-      '<div class="form-grid">' +
-      '<div><label>Login-E-Mail</label>' +
-      '<input id="login-email" type="email"></div>' +
-      '<div><label>Passwort</label>' +
-      '<input id="login-password" type="text" minlength="8"></div>' +
-      '<div><button class="btn primary" onclick="loginErstellen()">Login erstellen</button></div>' +
-      '</div><span id="login-status" style="font-size:0.9rem; display:block; margin-top:10px;"></span>';
-  }
-
-  async function loginErstellen() {
-    const status = document.getElementById('login-status');
-    status.textContent = 'Erstelle Login…';
-    status.style.color = 'var(--color-text-muted)';
-
-    const { data, error } = await supabaseClient.functions.invoke('admin-create-kunde-login', {
-      body: {
-        customer_id: customerId,
-        email: document.getElementById('login-email').value.trim(),
-        password: document.getElementById('login-password').value
-      }
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  let statusListe = [];
+  try {
+    const res = await fetch('https://amnaydttfuenhgevqptp.supabase.co/functions/v1/admin-login-status', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: profile.map(p => p.id) })
     });
+    const json = await res.json();
+    statusListe = json.benutzer || [];
+  } catch (e) { /* Status optional, Fehler ignorieren */ }
 
-    if (error || (data && data.error)) {
-      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
-      status.style.color = 'var(--color-danger)';
-      return;
+  profile.forEach(p => {
+    const email = kunde ? kunde.login_email : null;
+    const passendeKontakt = (kontakte || []).find(k => k.email && email && k.email.toLowerCase() === email.toLowerCase());
+    const name = passendeKontakt ? passendeKontakt.name : '–';
+    const status = statusListe.find(s => s.id === p.id);
+    let online = false;
+    if (status && status.last_sign_in_at) {
+      online = (Date.now() - new Date(status.last_sign_in_at).getTime()) < 15 * 60 * 1000;
     }
 
-    ladeKunde();
-  }
+    const div = document.createElement('div');
+    div.className = 'login-zeile';
+    div.innerHTML =
+      '<div><span class="online-dot' + (online ? ' online' : '') + '"></span>' +
+      '<span class="login-name">' + name + '</span><br>' +
+      '<span class="login-email">' + (email || '–') + '</span></div>' +
+      '<button type="button" class="btn-klein" data-email="' + (email || '') + '">Passwort zurücksetzen</button>';
+    liste.appendChild(div);
+  });
 
-  async function passwortZuruecksetzen() {
-    const status = document.getElementById('reset-status');
-    status.textContent = 'Setze neues Passwort…';
-    status.style.color = 'var(--color-text-muted)';
-
-    const { data, error } = await supabaseClient.functions.invoke('admin-reset-kunde-password', {
-      body: {
-        customer_id: customerId,
-        password: document.getElementById('reset-password').value
-      }
-    });
-
-    if (error || (data && data.error)) {
-      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Neues Passwort gesetzt.';
-    status.style.color = 'var(--color-success)';
-    document.getElementById('reset-password').value = '';
-  }
-
-  async function ladeKontakte() {
-    const el = document.getElementById('kontakte-liste');
-    const { data: personen, error } = await supabaseClient
-      .from('contact_persons')
-      .select('id, name, rolle, email, telefon')
-      .eq('customer_id', customerId)
-      .order('name');
-
-    if (error) {
-      el.innerHTML = '<p class="hint">Fehler beim Laden: ' + error.message + '</p>';
-      return;
-    }
-    if (!personen || personen.length === 0) {
-      el.innerHTML = '<p class="hint">Noch keine Ansprechpartner synchronisiert.</p>';
-      return;
-    }
-
-    el.innerHTML = '';
-    personen.forEach(p => {
-      const card = document.createElement('div');
-      card.className = 'kontakt-card';
-      card.innerHTML =
-        '<button class="kontakt-menu-btn" type="button">⋮</button>' +
-        '<div class="kontakt-menu-dropdown hidden">' +
-          '<button type="button" disabled>Rechte verwalten (bald)</button>' +
-          '<button type="button" disabled>Eigenes Login erstellen (bald)</button>' +
-        '</div>' +
-        '<div class="kontakt-name">' + (p.name || '—') + '</div>' +
-        '<div class="kontakt-rolle">' + (p.rolle || '—') + '</div>' +
-        '<div class="kontakt-zeile">' + (p.email || '—') + '</div>' +
-        '<div class="kontakt-zeile">' + (p.telefon || '—') + '</div>';
-
-      const menuBtn = card.querySelector('.kontakt-menu-btn');
-      const dropdown = card.querySelector('.kontakt-menu-dropdown');
-      menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('.kontakt-menu-dropdown').forEach(d => { if (d !== dropdown) d.classList.add('hidden'); });
-        dropdown.classList.toggle('hidden');
+  liste.querySelectorAll('button[data-email]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const email = btn.dataset.email;
+      if (!email) return;
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://sylegro.github.io/sylegro-kundenportal/reset-passwort.html'
       });
-
-      el.appendChild(card);
-    });
-  }
-
-  async function ladeAngebote() {
-    const body = document.getElementById('angebote-body');
-    const { data: angebote, error } = await supabaseClient
-      .from('quotes')
-      .select('nr, betreff, datum, betrag, status')
-      .eq('customer_id', customerId)
-      .order('datum', { ascending: false });
-
-    if (error) {
-      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
-      return;
-    }
-    if (!angebote || angebote.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Angebote synchronisiert.</td></tr>';
-      return;
-    }
-
-    body.innerHTML = '';
-    angebote.forEach(a => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + (a.nr || '—') + '</td><td>' + (a.betreff || '—') + '</td><td>' + (a.datum || '—') + '</td><td>' + (a.betrag != null ? a.betrag : '—') + '</td><td>' + (a.status || '—') + '</td>';
-      body.appendChild(tr);
-    });
-  }
-
-  async function ladeFinanzen() {
-    const { data: rechnungen, error } = await supabaseClient
-      .from('invoices')
-      .select('id, nr, betreff, datum, faellig_am, betrag, status, bezahlt')
-      .eq('customer_id', customerId)
-      .order('datum', { ascending: false });
-
-    if (error) {
-      document.getElementById('rechnungen-body').innerHTML = '<tr><td colspan="6" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
-      return;
-    }
-
-    const heute = new Date();
-    const monate = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
-      monate.push({ jahr: d.getFullYear(), monat: d.getMonth(), label: d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }), summe: 0 });
-    }
-    (rechnungen || []).forEach(r => {
-      if (!r.datum || r.betrag == null) return;
-      const d = new Date(r.datum);
-      const treffer = monate.find(m => m.jahr === d.getFullYear() && m.monat === d.getMonth());
-      if (treffer) treffer.summe += Number(r.betrag);
-    });
-
-    const ctx = document.getElementById('umsatz-chart');
-    if (umsatzChart) umsatzChart.destroy();
-    umsatzChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: monate.map(m => m.label),
-        datasets: [{ label: 'Umsatz (CHF)', data: monate.map(m => m.summe), backgroundColor: '#1f6f5c' }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
+      if (error) {
+        alert('Fehler: ' + error.message);
+      } else {
+        alert('E-Mail zum Zurücksetzen wurde an ' + email + ' gesendet.');
       }
     });
+  });
+}
 
-    const body = document.getElementById('rechnungen-body');
-    const offen = (rechnungen || []).filter(r => !r.bezahlt);
-    if (offen.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="hint">Keine offenen Rechnungen.</td></tr>';
-      return;
-    }
-
-    body.innerHTML = '';
-    const heuteStr = new Date().toISOString().slice(0, 10);
-    offen.forEach(r => {
-      const ueberfaellig = r.faellig_am && r.faellig_am < heuteStr;
-      const tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td>' + (r.nr || '—') + '</td>' +
-        '<td>' + (r.betreff || '—') + '</td>' +
-        '<td>' + (r.faellig_am || '—') + '</td>' +
-        '<td>' + (r.betrag != null ? r.betrag : '—') + '</td>' +
-        '<td>' + (ueberfaellig ? '<span class="badge danger">Überfällig</span>' : '<span class="badge neutral">Ausstehend</span>') + '</td>' +
-        '<td><button class="btn small">Als bezahlt markieren</button></td>';
-      tr.querySelector('button').addEventListener('click', async () => {
-        await supabaseClient.from('invoices').update({ bezahlt: true }).eq('id', r.id);
-        ladeFinanzen();
-      });
-      body.appendChild(tr);
+async function ladeDokumente() {
+  const { data: dokumente } = await supabaseClient.from('documents').select('*, properties(name)').eq('customer_id', kundeId).order('hochgeladen_am', { ascending: false });
+  const tbody = document.getElementById('dokumente-tabelle');
+  tbody.innerHTML = '';
+  (dokumente || []).forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + d.titel + '</td>' +
+      '<td>' + d.kategorie + '</td>' +
+      '<td>' + (d.properties ? d.properties.name : '–') + '</td>' +
+      '<td>' + new Date(d.hochgeladen_am).toLocaleDateString('de-CH') + '</td>' +
+      '<td><a href="#" class="dok-link" data-pfad="' + d.datei_pfad + '">Herunterladen</a></td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.dok-link').forEach(a => {
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const { data } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(a.dataset.pfad, 300);
+      if (data) window.open(data.signedUrl, '_blank');
     });
-  }
+  });
+}
 
-  async function ladeLiegenschaften() {
-    const body = document.getElementById('liegenschaften-body');
-    const select = document.getElementById('sk-liegenschaft');
+document.getElementById('dok-hochladen-btn').addEventListener('click', async () => {
+  const titel = document.getElementById('dok-titel').value.trim();
+  const datei = document.getElementById('dok-datei').files[0];
+  if (!titel || !datei) { alert('Bitte Titel und Datei angeben.'); return; }
+  const pfad = kundeId + '/' + Date.now() + '-' + datei.name;
+  await supabaseClient.storage.from('kunden-dokumente').upload(pfad, datei);
+  await supabaseClient.from('documents').insert({
+    customer_id: kundeId,
+    titel,
+    kategorie: document.getElementById('dok-kategorie').value,
+    datei_pfad: pfad,
+    hochgeladen_am: new Date().toISOString()
+  });
+  document.getElementById('dok-titel').value = '';
+  document.getElementById('dok-datei').value = '';
+  ladeDokumente();
+});
 
-    const { data: liegenschaften, error } = await supabaseClient
-      .from('properties')
-      .select('id, name, adresse, typ')
-      .eq('customer_id', customerId)
-      .order('name');
+document.getElementById('logout-link').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await sylegroLogout();
+});
 
-    if (error) {
-      body.innerHTML = '<tr><td colspan="3" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
-      return;
-    }
-
-    select.innerHTML = '<option value="">— keine —</option>';
-    (liegenschaften || []).forEach(l => {
-      const opt = document.createElement('option');
-      opt.value = l.id;
-      opt.textContent = l.name;
-      select.appendChild(opt);
-    });
-
-    if (!liegenschaften || liegenschaften.length === 0) {
-      body.innerHTML = '<tr><td colspan="3" class="hint">Noch keine Liegenschaften erfasst.</td></tr>';
-      return;
-    }
-
-    const TYP_LABEL = { reinigung: 'Reinigung', hauswartung: 'Hauswartung' };
-    body.innerHTML = '';
-    liegenschaften.forEach(l => {
-      const tr = document.createElement('tr');
-      tr.className = 'liegenschaft-row';
-      tr.innerHTML = '<td>' + l.name + '</td><td>' + (l.adresse || '—') + '</td><td>' + (TYP_LABEL[l.typ] || l.typ) + '</td>';
-
-      const detailTr = document.createElement('tr');
-      detailTr.className = 'liegenschaft-detail hidden';
-      const detailTd = document.createElement('td');
-      detailTd.colSpan = 3;
-      detailTd.innerHTML =
-        '<div class="form-grid">' +
-        '<div><label>Titel</label><input class="lg-doc-titel"></div>' +
-        '<div><label>Kategorie</label><select class="lg-doc-kategorie">' +
-          '<option value="Leistungsverzeichnis">Leistungsverzeichnis</option>' +
-          '<option value="Objektplan">Objektplan</option>' +
-          '<option value="Sonstiges">Sonstiges</option>' +
-        '</select></div>' +
-        '<div><label>Datei</label><input type="file" class="lg-doc-datei"></div>' +
-        '<div><button class="btn primary lg-doc-upload">Hochladen</button></div>' +
-        '</div>' +
-        '<span class="lg-doc-status" style="font-size:0.9rem;"></span>' +
-        '<table style="margin-top:10px;"><thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead><tbody class="lg-doc-body"><tr><td colspan="4" class="hint">Lade…</td></tr></tbody></table>';
-      detailTr.appendChild(detailTd);
-
-      tr.addEventListener('click', () => {
-        const wurdeGeoeffnet = !detailTr.classList.contains('hidden');
-        document.querySelectorAll('.liegenschaft-detail').forEach(d => d.classList.add('hidden'));
-        if (!wurdeGeoeffnet) {
-          detailTr.classList.remove('hidden');
-          ladeLiegenschaftDokumente(l.id, detailTd);
-        }
-      });
-
-      detailTd.querySelector('.lg-doc-upload').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        await liegenschaftDokumentHochladen(l.id, detailTd);
-      });
-
-      body.appendChild(tr);
-      body.appendChild(detailTr);
-    });
-  }
-
-  async function ladeLiegenschaftDokumente(propertyId, container) {
-    const body = container.querySelector('.lg-doc-body');
-    const { data: docs, error } = await supabaseClient
-      .from('documents')
-      .select('id, titel, kategorie, pfad, hochgeladen_am')
-      .eq('property_id', propertyId)
-      .order('hochgeladen_am', { ascending: false });
-
-    if (error) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler: ' + error.message + '</td></tr>';
-      return;
-    }
-    if (!docs || docs.length === 0) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Noch keine Dokumente für diese Liegenschaft.</td></tr>';
-      return;
-    }
-
-    body.innerHTML = '';
-    docs.forEach(d => {
-      const datum = d.hochgeladen_am ? new Date(d.hochgeladen_am).toLocaleDateString('de-CH') : '—';
-      const tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + d.titel + '</td><td>' + d.kategorie + '</td><td>' + datum + '</td><td><a href="#" class="doc-download">Herunterladen</a></td>';
-      tr.querySelector('.doc-download').addEventListener('click', async (e) => {
-        e.preventDefault();
-        const { data: signed, error: signError } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(d.pfad, 60);
-        if (signError) { alert('Fehler: ' + signError.message); return; }
-        window.open(signed.signedUrl, '_blank');
-      });
-      body.appendChild(tr);
-    });
-  }
-
-  async function liegenschaftDokumentHochladen(propertyId, container) {
-    const status = container.querySelector('.lg-doc-status');
-    const fileInput = container.querySelector('.lg-doc-datei');
-    const titel = container.querySelector('.lg-doc-titel').value.trim();
-    const kategorie = container.querySelector('.lg-doc-kategorie').value;
-
-    if (!fileInput.files.length || !titel) {
-      status.textContent = 'Bitte Titel und Datei angeben.';
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Lade hoch…';
-    status.style.color = 'var(--color-text-muted)';
-
-    const file = fileInput.files[0];
-    const pfad = customerId + '/liegenschaft_' + propertyId + '/' + Date.now() + '_' + file.name;
-
-    const { error: uploadError } = await supabaseClient.storage.from('kunden-dokumente').upload(pfad, file);
-    if (uploadError) {
-      status.textContent = 'Fehler beim Hochladen: ' + uploadError.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    const { error: insertError } = await supabaseClient.from('documents').insert({
-      customer_id: customerId, property_id: propertyId, titel, kategorie, pfad
-    });
-    if (insertError) {
-      status.textContent = 'Fehler beim Speichern: ' + insertError.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Hochgeladen.';
-    status.style.color = 'var(--color-success)';
-    container.querySelector('.lg-doc-titel').value = '';
-    fileInput.value = '';
-    ladeLiegenschaftDokumente(propertyId, container);
-  }
-
-  async function liegenschaftHinzufuegen() {
-    const status = document.getElementById('lg-status');
-    const name = document.getElementById('lg-name').value.trim();
-    const adresse = document.getElementById('lg-adresse').value.trim();
-    const typ = document.getElementById('lg-typ').value;
-
-    if (!name) {
-      status.textContent = 'Bitte einen Namen angeben.';
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Speichere…';
-    status.style.color = 'var(--color-text-muted)';
-
-    const { error } = await supabaseClient.from('properties').insert({ customer_id: customerId, name, adresse, typ });
-    if (error) {
-      status.textContent = 'Fehler: ' + error.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Hinzugefügt.';
-    status.style.color = 'var(--color-success)';
-    document.getElementById('lg-name').value = '';
-    document.getElementById('lg-adresse').value = '';
-    ladeLiegenschaften();
-  }
-
-  async function ladeSchluessel() {
-    const body = document.getElementById('schluessel-body');
-    const { data: schluessel, error } = await supabaseClient
-      .from('keys')
-      .select('id, bezeichnung, aufbewahrungsort, inhaber, erhalten_am, quittung_pfad, properties(name)')
-      .eq('customer_id', customerId)
-      .order('bezeichnung');
-
-    if (error) {
-      body.innerHTML = '<tr><td colspan="6" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
-      return;
-    }
-    if (!schluessel || schluessel.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="hint">Noch keine Schlüssel erfasst.</td></tr>';
-      return;
-    }
-
-    body.innerHTML = '';
-    schluessel.forEach(k => {
-      const tr = document.createElement('tr');
-      const liegenschaftName = k.properties && k.properties.name ? k.properties.name : '—';
-      const quittungZelle = k.quittung_pfad ? '<a href="#" class="quittung-download">Ansehen</a>' : '—';
-      tr.innerHTML =
-        '<td>' + k.bezeichnung + '</td>' +
-        '<td>' + liegenschaftName + '</td>' +
-        '<td>' + (k.aufbewahrungsort || '—') + '</td>' +
-        '<td>' + (k.inhaber || '—') + '</td>' +
-        '<td>' + (k.erhalten_am || '—') + '</td>' +
-        '<td>' + quittungZelle + '</td>';
-
-      const link = tr.querySelector('.quittung-download');
-      if (link) {
-        link.addEventListener('click', async (e) => {
-          e.preventDefault();
-          const { data: signed, error: signError } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(k.quittung_pfad, 60);
-          if (signError) { alert('Fehler: ' + signError.message); return; }
-          window.open(signed.signedUrl, '_blank');
-        });
-      }
-      body.appendChild(tr);
-    });
-  }
-
-  async function schluesselHinzufuegen() {
-    const status = document.getElementById('sk-status');
-    const bezeichnung = document.getElementById('sk-bezeichnung').value.trim();
-    const propertyId = document.getElementById('sk-liegenschaft').value || null;
-    const ort = document.getElementById('sk-ort').value.trim();
-    const inhaber = document.getElementById('sk-inhaber').value.trim();
-    const datum = document.getElementById('sk-datum').value || null;
-    const fileInput = document.getElementById('sk-datei');
-
-    if (!bezeichnung) {
-      status.textContent = 'Bitte eine Bezeichnung angeben.';
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Speichere…';
-    status.style.color = 'var(--color-text-muted)';
-
-    let quittungPfad = null;
-    if (fileInput.files.length) {
-      const file = fileInput.files[0];
-      quittungPfad = customerId + '/schluessel/' + Date.now() + '_' + file.name;
-      const { error: uploadError } = await supabaseClient.storage.from('kunden-dokumente').upload(quittungPfad, file);
-      if (uploadError) {
-        status.textContent = 'Fehler beim Hochladen der Quittung: ' + uploadError.message;
-        status.style.color = 'var(--color-danger)';
-        return;
-      }
-    }
-
-    const { error } = await supabaseClient.from('keys').insert({
-      customer_id: customerId,
-      property_id: propertyId,
-      bezeichnung,
-      aufbewahrungsort: ort,
-      inhaber,
-      erhalten_am: datum,
-      quittung_pfad: quittungPfad
-    });
-
-    if (error) {
-      status.textContent = 'Fehler: ' + error.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Hinzugefügt.';
-    status.style.color = 'var(--color-success)';
-    document.getElementById('sk-bezeichnung').value = '';
-    document.getElementById('sk-ort').value = '';
-    document.getElementById('sk-inhaber').value = '';
-    document.getElementById('sk-datum').value = '';
-    fileInput.value = '';
-    ladeSchluessel();
-  }
-
-  async function ladeDokumente() {
-    const body = document.getElementById('doc-body');
-    const { data: docs, error } = await supabaseClient
-      .from('documents')
-      .select('id, titel, kategorie, pfad, hochgeladen_am, property_id, properties(name)')
-      .eq('customer_id', customerId)
-      .order('hochgeladen_am', { ascending: false });
-
-    if (error) {
-      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
-      return;
-    }
-    if (!docs || docs.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Dokumente hochgeladen.</td></tr>';
-      return;
-    }
-
-    body.innerHTML = '';
-    docs.forEach(d => {
-      const tr = document.createElement('tr');
-      const datum = d.hochgeladen_am ? new Date(d.hochgeladen_am).toLocaleDateString('de-CH') : '—';
-      const liegenschaftName = d.properties && d.properties.name ? d.properties.name : '—';
-      tr.innerHTML = '<td>' + d.titel + '</td><td>' + d.kategorie + '</td><td>' + liegenschaftName + '</td><td>' + datum + '</td><td><a href="#" class="doc-download">Herunterladen</a></td>';
-      tr.querySelector('.doc-download').addEventListener('click', async (e) => {
-        e.preventDefault();
-        const { data: signed, error: signError } = await supabaseClient.storage
-          .from('kunden-dokumente').createSignedUrl(d.pfad, 60);
-        if (signError) { alert('Fehler: ' + signError.message); return; }
-        window.open(signed.signedUrl, '_blank');
-      });
-      body.appendChild(tr);
-    });
-  }
-
-  async function dokumentHochladen() {
-    const status = document.getElementById('doc-status');
-    const fileInput = document.getElementById('doc-datei');
-    const titel = document.getElementById('doc-titel').value.trim();
-    const kategorie = document.getElementById('doc-kategorie').value;
-
-    if (!fileInput.files.length || !titel) {
-      status.textContent = 'Bitte Titel und Datei angeben.';
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Lade hoch…';
-    status.style.color = 'var(--color-text-muted)';
-
-    const file = fileInput.files[0];
-    const pfad = customerId + '/' + Date.now() + '_' + file.name;
-
-    const { error: uploadError } = await supabaseClient.storage
-      .from('kunden-dokumente').upload(pfad, file);
-    if (uploadError) {
-      status.textContent = 'Fehler beim Hochladen: ' + uploadError.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    const { error: insertError } = await supabaseClient.from('documents').insert({
-      customer_id: customerId, titel, kategorie, pfad
-    });
-    if (insertError) {
-      status.textContent = 'Fehler beim Speichern: ' + insertError.message;
-      status.style.color = 'var(--color-danger)';
-      return;
-    }
-
-    status.textContent = 'Hochgeladen.';
-    status.style.color = 'var(--color-success)';
-    document.getElementById('doc-titel').value = '';
-    fileInput.value = '';
-    ladeDokumente();
-  }
-
-  (async function () {
-    const admin = await sylegroRequireAdmin();
-    if (!admin) return;
-    if (!customerId) {
-      document.getElementById('page-title').textContent = 'Kein Kunde ausgewählt';
-      return;
-    }
-    ladeKunde();
-    ladeKontakte();
-    ladeAngebote();
-    ladeFinanzen();
-    ladeLiegenschaften();
-    ladeSchluessel();
-    ladeDokumente();
-  })();
+(async function start() {
+  await sylegroRequireAdmin();
+  initTabsScoped();
+  await ladeKunde();
+  await ladeKontakte();
+  await ladeAngebote();
+  await ladeRechnungen();
+  await ladeLiegenschaften();
+  await ladeSchluessel();
+  await ladeLogins();
+  await ladeDokumente();
+})();
 </script>
 </body>
 </html>
