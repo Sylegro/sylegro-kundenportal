@@ -496,3 +496,161 @@ tr:last-child td { border-bottom: none; }
 .liegenschaft-detail td {
   padding: 16px 20px;
 }
+/* --- Ergänzung 22.09.2026: Leistungen-Anzeige, Liegenschaften/Schlüssel, Login-Liste --- */
+
+.abschnitt-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.leistungen-kopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.icon-btn:hover {
+  background: #f0f0f0;
+  color: #1f6f5c;
+}
+
+.leistungen-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.leistung-chip {
+  background: #eaf4f1;
+  color: #1f6f5c;
+  border: 1px solid #c6e2da;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.leistung-chip.leer {
+  background: transparent;
+  border-style: dashed;
+  color: #9ca3af;
+}
+
+.fab-add {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #1f6f5c;
+  color: #fff;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fab-add:hover {
+  background: #17594a;
+}
+
+.versteckt {
+  display: none !important;
+}
+
+.online-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.online-dot.online {
+  background: #22c55e;
+}
+
+.login-zeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.login-zeile:last-child {
+  border-bottom: none;
+}
+
+.login-zeile .login-name {
+  font-weight: 600;
+}
+
+.login-zeile .login-email {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.btn-klein {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+}
+
+.btn-klein:hover {
+  border-color: #1f6f5c;
+  color: #1f6f5c;
+}
+
+.nr-link {
+  color: #1f6f5c;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+.logo-platzhalter {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: #eaf4f1;
+  color: #1f6f5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.liegenschaft-link {
+  color: #1f6f5c;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.liegenschaft-link:hover {
+  text-decoration: underline;
+}
