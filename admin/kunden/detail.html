@@ -378,8 +378,9 @@ async function ladeUmsatzChart() {
   function proMonat(zeilen) {
     const werte = new Array(12).fill(0);
     (zeilen || []).forEach(z => {
-      if (!z.datum) return;
-      const d = new Date(z.datum);
+      const rohDatum = z.faellig_am;
+      if (!rohDatum) return;
+      const d = new Date(rohDatum);
       const diffMonate = (heute.getFullYear() - d.getFullYear()) * 12 + (heute.getMonth() - d.getMonth());
       if (diffMonate >= 0 && diffMonate < 12) {
         werte[11 - diffMonate] += Number(z.betrag_brutto || 0);
@@ -388,8 +389,8 @@ async function ladeUmsatzChart() {
     return werte;
   }
 
-  const { data: angebote } = await supabaseClient.from('quotes').select('betrag_brutto, datum').eq('customer_id', kundeId);
-  const { data: rechnungen } = await supabaseClient.from('invoices').select('betrag_brutto, datum').eq('customer_id', kundeId);
+  // Nur echte, tatsächlich verbuchte Rechnungen aus Bexio – keine Angebote/Offerten.
+  const { data: rechnungen } = await supabaseClient.from('invoices').select('betrag_brutto, faellig_am').eq('customer_id', kundeId);
 
   if (umsatzChart) umsatzChart.destroy();
   umsatzChart = new Chart(ctx, {
@@ -397,11 +398,10 @@ async function ladeUmsatzChart() {
     data: {
       labels: monate,
       datasets: [
-        { label: 'Angebote', data: proMonat(angebote), backgroundColor: '#f5a623' },
-        { label: 'Rechnungen', data: proMonat(rechnungen), backgroundColor: '#1f6f5c' }
+        { label: 'Umsatz', data: proMonat(rechnungen), backgroundColor: '#1f6f5c' }
       ]
     },
-    options: { responsive: true, plugins: { legend: { display: true, position: 'bottom' } } }
+    options: { responsive: true, plugins: { legend: { display: false } } }
   });
 }
 
