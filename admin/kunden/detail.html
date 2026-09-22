@@ -269,6 +269,13 @@ function statusText(rohStatus, mapping) {
   return mapping[code] || rohStatus;
 }
 
+// Schweizer Zahlenformat: Tausender mit Apostroph, immer 2 Nachkommastellen.
+// z.B. 2372.3 -> "2'372.30", 230234.87 -> "230'234.87"
+function chf(betrag) {
+  if (betrag == null || betrag === '') return '–';
+  return Number(betrag).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 const params = new URLSearchParams(window.location.search);
 const kundeId = params.get('id');
 let umsatzChart = null;
@@ -401,7 +408,16 @@ async function ladeUmsatzChart() {
         { label: 'Umsatz', data: proMonat(rechnungen), backgroundColor: '#1f6f5c' }
       ]
     },
-    options: { responsive: true, plugins: { legend: { display: false } } }
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => ' Umsatz: CHF ' + chf(ctx.parsed.y) } }
+      },
+      scales: {
+        y: { ticks: { callback: (wert) => chf(wert) } }
+      }
+    }
   });
 }
 
@@ -442,8 +458,8 @@ async function ladeAngebote() {
       '<td>' + statusText(a.status, STATUS_LABEL_ANGEBOTE) + '</td>' +
       '<td>' + (a.betreff || '–') + '</td>' +
       '<td>' + (a.waehrung || '–') + '</td>' +
-      '<td>' + (a.betrag_netto != null ? Number(a.betrag_netto).toFixed(2) : '–') + '</td>' +
-      '<td>' + (a.betrag_brutto != null ? Number(a.betrag_brutto).toFixed(2) : '–') + '</td>';
+      '<td>' + chf(a.betrag_netto) + '</td>' +
+      '<td>' + chf(a.betrag_brutto) + '</td>';
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('.nr-link').forEach(btn => {
@@ -464,8 +480,8 @@ async function ladeRechnungen() {
       '<td>' + (r.faellig_am ? new Date(r.faellig_am).toLocaleDateString('de-CH') : '–') + '</td>' +
       '<td>' + (r.betreff || '–') + '</td>' +
       '<td>' + (r.waehrung || '–') + '</td>' +
-      '<td>' + (r.betrag_netto != null ? Number(r.betrag_netto).toFixed(2) : '–') + '</td>' +
-      '<td>' + (r.betrag_brutto != null ? Number(r.betrag_brutto).toFixed(2) : '–') + '</td>';
+      '<td>' + chf(r.betrag_netto) + '</td>' +
+      '<td>' + chf(r.betrag_brutto) + '</td>';
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('.nr-link').forEach(btn => {
