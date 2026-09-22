@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liegenschaft – Sylegro Admin</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+</head>
+<body>
+<div class="admin-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Sylegro<br><span>Admin</span></div>
+    <div class="nav-gruppe">
+      <div class="nav-titel">Kunden</div>
+      <a href="uebersicht.html" class="nav-link active">Alle Kunden</a>
+    </div>
+    <a href="#" id="logout-link" class="nav-logout">Abmelden</a>
+  </nav>
+
+  <main class="content">
+    <div class="page-kopf">
+      <h1 id="liegenschaft-name-titel">Liegenschaft</h1>
+      <a href="#" id="zurueck-link" class="zurueck-link">← Zurück zum Kundenprofil</a>
+    </div>
+
+    <div class="card">
+      <p class="hinweistext" id="kunde-hinweis"></p>
+
+      <div class="tabs" data-scope="liegenschaft">
+        <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
+        <button class="tab-btn" data-tab="dokumente">Dokumente</button>
+        <button class="tab-btn" data-tab="schluessel">Schlüssel</button>
+        <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
+      </div>
+
+      <div class="tab-panel active" data-tab="uebersicht">
+        <div class="info-grid">
+          <div>
+            <div class="info-label">Name</div>
+            <div id="info-name">–</div>
+          </div>
+          <div>
+            <div class="info-label">Adresse</div>
+            <div id="info-adresse">–</div>
+          </div>
+          <div>
+            <div class="info-label">Typ</div>
+            <div id="info-typ">–</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab="dokumente">
+        <table>
+          <thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead>
+          <tbody id="dokumente-tabelle"></tbody>
+        </table>
+        <p class="hinweistext" id="dokumente-leer" style="display:none;">Noch keine Dokumente zu dieser Liegenschaft.</p>
+      </div>
+
+      <div class="tab-panel" data-tab="schluessel">
+        <table>
+          <thead><tr><th>Bezeichnung</th><th>Aufbewahrungsort</th><th>Inhaber</th><th>Erhalten am</th></tr></thead>
+          <tbody id="schluessel-tabelle"></tbody>
+        </table>
+        <p class="hinweistext" id="schluessel-leer" style="display:none;">Noch keine Schlüssel zu dieser Liegenschaft.</p>
+      </div>
+
+      <div class="tab-panel" data-tab="qualitaet">
+        <p class="hinweistext">Dieser Bereich zeigt künftig die Qualitätskontrollen für genau diese Liegenschaft. Noch nicht gebaut – folgt, sobald die Qualitätskontrolle auf Mitarbeiterseite existiert.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const liegenschaftId = params.get('id');
+const kundeId = params.get('kunde');
+
+function initTabsScoped() {
+  document.querySelectorAll('.tabs').forEach(tabBar => {
+    const card = tabBar.closest('.card');
+    tabBar.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        card.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.remove('active'));
+        card.querySelector(':scope > .tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.add('active');
+      });
+    });
+  });
+}
+
+async function ladeLiegenschaft() {
+  const { data: liegenschaft } = await supabaseClient.from('properties').select('*, customers(firma)').eq('id', liegenschaftId).single();
+  if (!liegenschaft) return;
+  document.getElementById('liegenschaft-name-titel').textContent = liegenschaft.name;
+  document.getElementById('info-name').textContent = liegenschaft.name;
+  document.getElementById('info-adresse').textContent = liegenschaft.adresse || '–';
+  document.getElementById('info-typ').textContent = liegenschaft.typ;
+  document.getElementById('kunde-hinweis').textContent = 'Gehört zu: ' + (liegenschaft.customers ? liegenschaft.customers.firma : '–');
+  document.getElementById('zurueck-link').href = 'detail.html?id=' + kundeId;
+}
+
+async function ladeDokumente() {
+  const { data: dokumente } = await supabaseClient.from('documents').select('*').eq('property_id', liegenschaftId).order('hochgeladen_am', { ascending: false });
+  const tbody = document.getElementById('dokumente-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('dokumente-leer').style.display = (dokumente && dokumente.length > 0) ? 'none' : 'block';
+  (dokumente || []).forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + d.titel + '</td>' +
+      '<td>' + d.kategorie + '</td>' +
+      '<td>' + new Date(d.hochgeladen_am).toLocaleDateString('de-CH') + '</td>' +
+      '<td><a href="#" class="dok-link" data-pfad="' + d.datei_pfad + '">Herunterladen</a></td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.dok-link').forEach(a => {
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const { data } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(a.dataset.pfad, 300);
+      if (data) window.open(data.signedUrl, '_blank');
+    });
+  });
+}
+
+async function ladeSchluessel() {
+  const { data: schluessel } = await supabaseClient.from('keys').select('*').eq('property_id', liegenschaftId).order('bezeichnung');
+  const tbody = document.getElementById('schluessel-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('schluessel-leer').style.display = (schluessel && schluessel.length > 0) ? 'none' : 'block';
+  (schluessel || []).forEach(k => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + k.bezeichnung + '</td>' +
+      '<td>' + (k.aufbewahrungsort || '–') + '</td>' +
+      '<td>' + (k.inhaber || '–') + '</td>' +
+      '<td>' + (k.erhalten_am ? new Date(k.erhalten_am).toLocaleDateString('de-CH') : '–') + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('logout-link').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await sylegroLogout();
+});
+
+(async function start() {
+  await sylegroRequireAdmin();
+  initTabsScoped();
+  await ladeLiegenschaft();
+  await ladeDokumente();
+  await ladeSchluessel();
+})();
+</script>
+</body>
+</html>
