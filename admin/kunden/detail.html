@@ -116,7 +116,7 @@
       <div class="tab-panel" data-tab="angebote">
         <table>
           <thead>
-            <tr><th>Datum</th><th>Nr.</th><th>Status</th><th>Gültigkeit</th><th>Titel</th><th>Währung</th><th>Netto</th><th>Brutto</th></tr>
+            <tr><th>Datum</th><th>Nr.</th><th>Status</th><th>Titel</th><th>Währung</th><th>Netto</th><th>Brutto</th></tr>
           </thead>
           <tbody id="angebote-tabelle"></tbody>
         </table>
@@ -255,6 +255,20 @@
 <script src="../../assets/auth.js"></script>
 <script>
 const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
+
+/* Bexio veröffentlicht die Bedeutung von kb_item_status_id nirgends offiziell.
+   Diese Zuordnung wird empirisch ergänzt, sobald du einen neuen Code im
+   Vergleich mit der echten Bexio-Anzeige bestätigst. Bisher bestätigt
+   (Angebote): 2 = Offen, 3 = Bestätigt, 4 = Abgelehnt. */
+const STATUS_LABEL_ANGEBOTE = { 2: 'Offen', 3: 'Bestätigt', 4: 'Abgelehnt' };
+const STATUS_LABEL_RECHNUNGEN = {};
+
+function statusText(rohStatus, mapping) {
+  if (!rohStatus) return '–';
+  const code = rohStatus.replace('code_', '');
+  return mapping[code] || rohStatus;
+}
+
 const params = new URLSearchParams(window.location.search);
 const kundeId = params.get('id');
 let umsatzChart = null;
@@ -360,21 +374,34 @@ async function ladeUmsatzChart() {
     const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
     monate.push(d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }));
   }
+
+  function proMonat(zeilen) {
+    const werte = new Array(12).fill(0);
+    (zeilen || []).forEach(z => {
+      if (!z.datum) return;
+      const d = new Date(z.datum);
+      const diffMonate = (heute.getFullYear() - d.getFullYear()) * 12 + (heute.getMonth() - d.getMonth());
+      if (diffMonate >= 0 && diffMonate < 12) {
+        werte[11 - diffMonate] += Number(z.betrag_brutto || 0);
+      }
+    });
+    return werte;
+  }
+
+  const { data: angebote } = await supabaseClient.from('quotes').select('betrag_brutto, datum').eq('customer_id', kundeId);
   const { data: rechnungen } = await supabaseClient.from('invoices').select('betrag_brutto, datum').eq('customer_id', kundeId);
-  const werte = new Array(12).fill(0);
-  (rechnungen || []).forEach(r => {
-    if (!r.datum) return;
-    const d = new Date(r.datum);
-    const diffMonate = (heute.getFullYear() - d.getFullYear()) * 12 + (heute.getMonth() - d.getMonth());
-    if (diffMonate >= 0 && diffMonate < 12) {
-      werte[11 - diffMonate] += Number(r.betrag_brutto || 0);
-    }
-  });
+
   if (umsatzChart) umsatzChart.destroy();
   umsatzChart = new Chart(ctx, {
     type: 'bar',
-    data: { labels: monate, datasets: [{ label: 'Umsatz CHF', data: werte, backgroundColor: '#1f6f5c' }] },
-    options: { responsive: true, plugins: { legend: { display: false } } }
+    data: {
+      labels: monate,
+      datasets: [
+        { label: 'Angebote', data: proMonat(angebote), backgroundColor: '#f5a623' },
+        { label: 'Rechnungen', data: proMonat(rechnungen), backgroundColor: '#1f6f5c' }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { display: true, position: 'bottom' } } }
   });
 }
 
@@ -412,8 +439,7 @@ async function ladeAngebote() {
     tr.innerHTML =
       '<td>' + (a.datum ? new Date(a.datum).toLocaleDateString('de-CH') : '–') + '</td>' +
       '<td><button class="nr-link" data-id="' + a.id + '">' + (a.nr || '–') + '</button></td>' +
-      '<td>' + (a.status || '–') + '</td>' +
-      '<td>' + (a.gueltig_bis ? new Date(a.gueltig_bis).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td>' + statusText(a.status, STATUS_LABEL_ANGEBOTE) + '</td>' +
       '<td>' + (a.betreff || '–') + '</td>' +
       '<td>' + (a.waehrung || '–') + '</td>' +
       '<td>' + (a.betrag_netto != null ? Number(a.betrag_netto).toFixed(2) : '–') + '</td>' +
@@ -434,7 +460,7 @@ async function ladeRechnungen() {
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td><button class="nr-link" data-id="' + r.id + '">' + (r.nr || '–') + '</button></td>' +
-      '<td>' + (r.status || '–') + '</td>' +
+      '<td>' + statusText(r.status, STATUS_LABEL_RECHNUNGEN) + '</td>' +
       '<td>' + (r.faellig_am ? new Date(r.faellig_am).toLocaleDateString('de-CH') : '–') + '</td>' +
       '<td>' + (r.betreff || '–') + '</td>' +
       '<td>' + (r.waehrung || '–') + '</td>' +
