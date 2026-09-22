@@ -285,6 +285,15 @@ function statusText(rohStatus, mapping) {
   return mapping[code] || rohStatus;
 }
 
+// Gleiche Idee wie bei Rechnungen: Status als farbiges Badge statt reinem Text.
+function angebotStatusAnzeige(a) {
+  const code = (a.status || '').replace('code_', '');
+  if (code === '3') return { text: 'Bestätigt', klasse: 'success' };
+  if (code === '2') return { text: 'Offen', klasse: 'warning' };
+  if (code === '4') return { text: 'Abgelehnt', klasse: 'danger' };
+  return { text: STATUS_LABEL_ANGEBOTE[code] || a.status || '–', klasse: 'neutral' };
+}
+
 // Schweizer Zahlenformat: Tausender mit Apostroph, immer 2 Nachkommastellen.
 // z.B. 2372.3 -> "2'372.30", 230234.87 -> "230'234.87"
 function chf(betrag) {
@@ -467,11 +476,12 @@ async function ladeAngebote() {
   tbody.innerHTML = '';
   document.getElementById('angebote-leer').style.display = (angebote && angebote.length > 0) ? 'none' : 'block';
   (angebote || []).forEach(a => {
+    const statusInfo = angebotStatusAnzeige(a);
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td>' + (a.datum ? new Date(a.datum).toLocaleDateString('de-CH') : '–') + '</td>' +
       '<td><button class="nr-link" data-id="' + a.id + '">' + (a.nr || '–') + '</button></td>' +
-      '<td>' + statusText(a.status, STATUS_LABEL_ANGEBOTE) + '</td>' +
+      '<td><span class="badge ' + statusInfo.klasse + '">' + statusInfo.text + '</span></td>' +
       '<td>' + (a.betreff || '–') + '</td>' +
       '<td>' + (a.waehrung || '–') + '</td>' +
       '<td>' + chf(a.betrag_netto) + '</td>' +
