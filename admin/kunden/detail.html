@@ -105,10 +105,6 @@
               <div class="label">Durchschnittliche Zahlungsdauer</div>
               <div id="finanzen-zahlungsdauer" style="font-size:1.1rem; font-weight:600;">–</div>
             </div>
-            <div>
-              <div class="label">Überfällig im gewählten Zeitraum</div>
-              <div id="finanzen-ueberfaellig-anzahl" style="font-size:1.1rem; font-weight:600;">–</div>
-            </div>
           </div>
 
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
@@ -197,7 +193,7 @@
         </div>
 
         <table>
-          <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th></tr></thead>
+          <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th><th>Pflichtenheft</th></tr></thead>
           <tbody id="liegenschaften-tabelle"></tbody>
         </table>
         <p class="hint" id="liegenschaften-leer" style="display:none;">Noch keine Liegenschaften erfasst.</p>
@@ -482,25 +478,19 @@ async function ladeFinanzen() {
   const periodenStart = new Date(heute.getFullYear(), heute.getMonth() - finanzenMonate + 1, 1);
   const imZeitraum = alle.filter(r => r.datum && new Date(r.datum) >= periodenStart);
 
-  let zahlungstageSumme = 0, zahlungstageAnzahl = 0, ueberfaelligAnzahl = 0;
+  let zahlungstageSumme = 0, zahlungstageAnzahl = 0;
   imZeitraum.forEach(r => {
     const code = (r.status || '').replace('code_', '');
-    const faellig = r.faellig_am ? new Date(r.faellig_am) : null;
     if (code === '9' && r.bexio_raw && r.bexio_raw.updated_at && r.datum) {
       const bezahltAm = new Date(r.bexio_raw.updated_at);
       const rechnungsdatum = new Date(r.datum);
       const tage = Math.round((bezahltAm - rechnungsdatum) / (1000 * 60 * 60 * 24));
       if (tage >= 0) { zahlungstageSumme += tage; zahlungstageAnzahl++; }
-      if (faellig && bezahltAm > faellig) ueberfaelligAnzahl++;
-    } else if (code === '8' && faellig && faellig < heute) {
-      ueberfaelligAnzahl++;
     }
   });
 
   document.getElementById('finanzen-zahlungsdauer').textContent =
     zahlungstageAnzahl > 0 ? Math.round(zahlungstageSumme / zahlungstageAnzahl) + ' Tage im Schnitt' : 'Keine Daten';
-  document.getElementById('finanzen-ueberfaellig-anzahl').textContent =
-    ueberfaelligAnzahl + 'x in den letzten ' + finanzenMonate + ' Monaten';
 
   // -- Umsatz-Chart: gewählter Zeitraum, plus Vorjahresvergleich (gleiche
   // Kalendermonate, ein Jahr zuvor) --
@@ -635,7 +625,8 @@ async function ladeLiegenschaften() {
     tr.innerHTML =
       '<td><a class="liegenschaft-link" href="liegenschaft.html?id=' + l.id + '&kunde=' + kundeId + '">' + l.name + '</a></td>' +
       '<td>' + (l.adresse || '–') + '</td>' +
-      '<td>' + l.typ + '</td>';
+      '<td>' + l.typ + '</td>' +
+      '<td><a class="btn small" href="pflichtenheft.html?id=' + l.id + '&kunde=' + kundeId + '">Pflichtenheft</a></td>';
     tbody.appendChild(tr);
   });
 
