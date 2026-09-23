@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin – Betrieb | Sylegro Portal</title>
+<title>Kundenprofil | Sylegro Admin</title>
 <link rel="stylesheet" href="../../assets/style.css">
 </head>
 <body>
@@ -11,15 +11,14 @@
   <aside class="sidebar">
     <div class="brand">Sylegro <small>Admin</small></div>
     <nav>
-      <a href="../kunden/uebersicht.html" class="top-cat">Kunden</a>
+      <a href="uebersicht.html" class="top-cat">Kunden</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
+      <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
+      <a href="#" class="sub-item disabled">Dokumente (bald)</a>
 
       <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
 
-      <a href="uebersicht.html" class="top-cat">Betrieb</a>
-      <a href="uebersicht.html" class="sub-item active">Übersicht</a>
-      <a href="#" class="sub-item disabled">Berufsunfälle (bald)</a>
-      <a href="#" class="sub-item disabled">Weiterbildungen/Zertifikate (bald)</a>
-      <a href="#" class="sub-item disabled">Lagerbestand (bald)</a>
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
     </nav>
     <div style="margin-top:auto; padding-top:20px;">
       <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
@@ -27,23 +26,812 @@
   </aside>
   <main class="main">
     <div class="topbar">
-      <h1>Betrieb – Übersicht</h1>
+      <h1 id="kunde-name-titel">Kunde</h1>
+      <a href="uebersicht.html">← Zurück zur Übersicht</a>
     </div>
 
-    <div class="wip-note">
-      Dieser Bereich kommt zuletzt dran: Gesamtübersicht der Stunden pro Abteilung, Berufsunfälle, Weiterbildungen/Kurse/Zertifikate der Mitarbeiter, und Lagerbestand.
+    <div class="top-grid">
+      <div class="card">
+        <div class="firma-header">
+          <div id="firma-logo-platzhalter" class="logo-platzhalter">?</div>
+          <img id="firma-logo-bild" class="versteckt" alt="Logo">
+          <div>
+            <div class="firma-name" id="firma-name">–</div>
+            <span class="badge neutral">Kunde</span>
+          </div>
+        </div>
+
+        <div class="tabs" data-scope="top">
+          <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
+          <button class="tab-btn" data-tab="finanzen">Finanzen</button>
+          <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
+        </div>
+
+        <div class="tab-panel" data-tab="uebersicht">
+          <div class="info-grid">
+            <div>
+              <div class="label">Objekt / Adresse</div>
+              <div id="info-objekt">–</div>
+            </div>
+            <div>
+              <div class="label">Branche</div>
+              <div id="info-branche">–</div>
+            </div>
+            <div>
+              <div class="label">Login-E-Mail</div>
+              <div id="info-login-email">–</div>
+            </div>
+          </div>
+
+          <div class="abschnitt-kopf" style="margin-top:20px;">
+            <div class="leistungen-kopf">
+              <h3 style="margin:0;">Leistungen / Kategorie</h3>
+              <button type="button" class="icon-btn" id="leistungen-edit-btn" title="Bearbeiten">✎</button>
+            </div>
+          </div>
+
+          <div id="leistungen-anzeige" class="leistungen-chips"></div>
+
+          <div id="leistungen-formular" class="versteckt" style="margin-top:14px;">
+            <label><input type="checkbox" value="uhr" class="leistung-checkbox"> Unterhaltsreinigung</label><br>
+            <label><input type="checkbox" value="spezial" class="leistung-checkbox"> Spezialreinigung</label><br>
+            <label><input type="checkbox" value="bau" class="leistung-checkbox"> Baureinigung</label><br>
+            <label><input type="checkbox" value="hauswartung" class="leistung-checkbox"> Hauswartung</label>
+            <div style="margin-top:12px;">
+              <button type="button" class="btn primary" id="leistungen-speichern-btn">Speichern</button>
+              <button type="button" class="btn small" id="leistungen-abbrechen-btn">Abbrechen</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel hidden" data-tab="finanzen">
+          <div class="info-grid" style="margin-bottom:20px;">
+            <div>
+              <div class="label">Ausstehend</div>
+              <div id="finanzen-ausstehend" style="font-size:1.4rem; font-weight:600;">–</div>
+            </div>
+            <div>
+              <div class="label">Überfällig</div>
+              <div id="finanzen-ueberfaellig" style="font-size:1.4rem; font-weight:600; color:var(--color-danger);">–</div>
+            </div>
+            <div>
+              <div class="label">Gesamtumsatz seit Kundenbeginn</div>
+              <div id="finanzen-lifetime" style="font-size:1.4rem; font-weight:600;">–</div>
+            </div>
+          </div>
+
+          <div class="info-grid" style="margin-bottom:24px;">
+            <div>
+              <div class="label">Durchschnittliche Zahlungsdauer</div>
+              <div id="finanzen-zahlungsdauer" style="font-size:1.1rem; font-weight:600;">–</div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <h3 style="margin:0;">Umsatz</h3>
+            <div id="zeitraum-schalter">
+              <button type="button" class="btn small zeitraum-btn" data-monate="6">6 Monate</button>
+              <button type="button" class="btn small primary zeitraum-btn" data-monate="12">12 Monate</button>
+              <button type="button" class="btn small zeitraum-btn" data-monate="24">24 Monate</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="umsatz-chart"></canvas>
+          </div>
+          <p class="hint" style="margin-top:10px;">Die "Zahlungsdauer" ist eine Annäherung: Bexio liefert uns kein eigenes Zahlungsdatum, darum nehmen wir den Zeitpunkt, an dem eine Rechnung zuletzt als "Bezahlt" aktualisiert wurde.</p>
+        </div>
+
+        <div class="tab-panel hidden" data-tab="qualitaet">
+          <div class="wip-note">Dieser Bereich zeigt künftig eine monatliche Auswertung der durchgeführten Qualitätskontrollen (aggregiert über alle Liegenschaften, filterbar nach einzelnen Liegenschaften). Die Datenquelle dafür – die Qualitätskontrolle auf Mitarbeiterseite – ist noch nicht gebaut.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Kontakte</h2>
+        <p class="hint">Wird aus Bexio übernommen. Rechte pro Ansprechpartner folgen in einem späteren Schritt.</p>
+        <div id="kontakte-liste"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tabs" data-scope="unten">
+        <button class="tab-btn active" data-tab="angebote">Angebote</button>
+        <button class="tab-btn" data-tab="rechnungen">Rechnungen</button>
+        <button class="tab-btn" data-tab="liegenschaften">Liegenschaften</button>
+        <button class="tab-btn" data-tab="schluessel">Schlüsselverzeichnis</button>
+        <button class="tab-btn" data-tab="login">Portal-Login</button>
+        <button class="tab-btn" data-tab="dokumente">Dokumente</button>
+      </div>
+
+      <div class="tab-panel" data-tab="angebote">
+        <table>
+          <thead>
+            <tr><th>Datum</th><th>Nr.</th><th>Status</th><th>Titel</th><th>Währung</th><th>Netto</th><th>Brutto</th></tr>
+          </thead>
+          <tbody id="angebote-tabelle"></tbody>
+        </table>
+        <p class="hint" id="angebote-leer" style="display:none;">Noch keine Angebote synchronisiert.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="rechnungen">
+        <table>
+          <thead>
+            <tr><th>Nr.</th><th>Status</th><th>Fälligkeit</th><th>Titel</th><th>Währung</th><th>Netto</th><th>Brutto</th></tr>
+          </thead>
+          <tbody id="rechnungen-tabelle"></tbody>
+        </table>
+        <p class="hint" id="rechnungen-leer" style="display:none;">Noch keine Rechnungen synchronisiert.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="liegenschaften">
+        <div class="abschnitt-kopf">
+          <h2 style="margin:0;">Liegenschaften</h2>
+          <button type="button" class="fab-add" id="liegenschaft-fab" title="Liegenschaft hinzufügen">+</button>
+        </div>
+
+        <div id="liegenschaft-formular" class="versteckt form-grid">
+          <div>
+            <label>Name</label>
+            <input type="text" id="liegenschaft-name" placeholder="z.B. Hauptsitz Zürich">
+          </div>
+          <div>
+            <label>Adresse</label>
+            <input type="text" id="liegenschaft-adresse">
+          </div>
+          <div>
+            <label>Typ</label>
+            <select id="liegenschaft-typ">
+              <option value="reinigung">Reinigung</option>
+              <option value="hauswartung">Hauswartung</option>
+              <option value="spezialreinigung">Spezialreinigung</option>
+              <option value="baureinigung">Baureinigung</option>
+            </select>
+          </div>
+          <div>
+            <button type="button" class="btn primary" id="liegenschaft-hinzufuegen-btn">Hinzufügen</button>
+          </div>
+        </div>
+
+        <table>
+          <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th></tr></thead>
+          <tbody id="liegenschaften-tabelle"></tbody>
+        </table>
+        <p class="hint" id="liegenschaften-leer" style="display:none;">Noch keine Liegenschaften erfasst.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="schluessel">
+        <div class="abschnitt-kopf">
+          <h2 style="margin:0;">Schlüssel</h2>
+          <button type="button" class="fab-add" id="schluessel-fab" title="Schlüssel hinzufügen">+</button>
+        </div>
+
+        <div id="schluessel-formular" class="versteckt form-grid">
+          <div>
+            <label>Bezeichnung</label>
+            <input type="text" id="schluessel-bezeichnung" placeholder="z.B. Haupteingang, Chip 3">
+          </div>
+          <div>
+            <label>Liegenschaft</label>
+            <select id="schluessel-liegenschaft"><option value="">— keine —</option></select>
+          </div>
+          <div>
+            <label>Aufbewahrungsort</label>
+            <input type="text" id="schluessel-ort" placeholder="z.B. Schlüsselschrank Büro">
+          </div>
+          <div>
+            <label>Inhaber</label>
+            <input type="text" id="schluessel-inhaber" placeholder="Name der Person">
+          </div>
+          <div>
+            <label>Erhalten am</label>
+            <input type="date" id="schluessel-datum">
+          </div>
+          <div>
+            <label>Quittung (Scan/Foto)</label>
+            <input type="file" id="schluessel-quittung">
+          </div>
+          <div>
+            <button type="button" class="btn primary" id="schluessel-hinzufuegen-btn">Hinzufügen</button>
+          </div>
+        </div>
+
+        <table>
+          <thead><tr><th>Bezeichnung</th><th>Liegenschaft</th><th>Aufbewahrungsort</th><th>Inhaber</th><th>Erhalten am</th><th>Quittung</th></tr></thead>
+          <tbody id="schluessel-tabelle"></tbody>
+        </table>
+        <p class="hint" id="schluessel-leer" style="display:none;">Noch keine Schlüssel erfasst.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="login">
+        <h2>Portal-Zugänge</h2>
+        <div id="login-liste"></div>
+        <p class="hint" id="login-leer" style="display:none;">Für diesen Kunden existiert noch kein Portal-Login.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="dokumente">
+        <div class="form-grid">
+          <div>
+            <label>Titel</label>
+            <input type="text" id="dok-titel">
+          </div>
+          <div>
+            <label>Kategorie</label>
+            <select id="dok-kategorie">
+              <option value="vertrag">Vertrag</option>
+              <option value="rapport">Rapport</option>
+              <option value="sonstiges">Sonstiges</option>
+            </select>
+          </div>
+          <div>
+            <label>Datei</label>
+            <input type="file" id="dok-datei">
+          </div>
+          <div>
+            <button type="button" class="btn primary" id="dok-hochladen-btn">Hochladen</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Titel</th><th>Kategorie</th><th>Liegenschaft</th><th>Hochgeladen am</th><th></th></tr></thead>
+          <tbody id="dokumente-tabelle"></tbody>
+        </table>
+      </div>
     </div>
   </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="../../assets/supabase-client.js"></script>
 <script src="../../assets/auth.js"></script>
 <script>
-  (async function () {
-    const admin = await sylegroRequireAdmin();
-    if (!admin) return;
-  })();
+const SERVICE_LABEL = { uhr: 'Unterhaltsreinigung', spezial: 'Spezialreinigung', bau: 'Baureinigung', hauswartung: 'Hauswartung' };
+
+/* Bexio veröffentlicht die Bedeutung von kb_item_status_id nirgends offiziell.
+   Diese Zuordnung wird empirisch ergänzt, sobald du einen neuen Code im
+   Vergleich mit der echten Bexio-Anzeige bestätigst. Bisher bestätigt
+   (Angebote): 2 = Offen, 3 = Bestätigt, 4 = Abgelehnt. */
+const STATUS_LABEL_ANGEBOTE = { 2: 'Offen', 3: 'Bestätigt', 4: 'Abgelehnt' };
+const STATUS_LABEL_RECHNUNGEN = { 8: 'Offen', 9: 'Bezahlt' };
+
+// Bexio kennt keinen eigenen Status-Code für "überfällig" -- das berechnen
+// wir selbst: eine offene Rechnung, deren Fälligkeitsdatum in der
+// Vergangenheit liegt, gilt als überfällig.
+function rechnungStatusAnzeige(r) {
+  const code = (r.status || '').replace('code_', '');
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const faelligkeit = r.faellig_am ? new Date(r.faellig_am) : null;
+
+  if (code === '8' && faelligkeit && faelligkeit < heute) {
+    return { text: 'Überfällig', klasse: 'danger' };
+  }
+  if (code === '9') return { text: 'Bezahlt', klasse: 'success' };
+  if (code === '8') return { text: 'Offen', klasse: 'warning' };
+  return { text: STATUS_LABEL_RECHNUNGEN[code] || r.status || '–', klasse: 'neutral' };
+}
+
+function statusText(rohStatus, mapping) {
+  if (!rohStatus) return '–';
+  const code = rohStatus.replace('code_', '');
+  return mapping[code] || rohStatus;
+}
+
+// Gleiche Idee wie bei Rechnungen: Status als farbiges Badge statt reinem Text.
+function angebotStatusAnzeige(a) {
+  const code = (a.status || '').replace('code_', '');
+  if (code === '3') return { text: 'Bestätigt', klasse: 'success' };
+  if (code === '2') return { text: 'Offen', klasse: 'warning' };
+  if (code === '4') return { text: 'Abgelehnt', klasse: 'danger' };
+  return { text: STATUS_LABEL_ANGEBOTE[code] || a.status || '–', klasse: 'neutral' };
+}
+
+// Schweizer Zahlenformat: Tausender mit Apostroph, immer 2 Nachkommastellen.
+// z.B. 2372.3 -> "2'372.30", 230234.87 -> "230'234.87"
+function chf(betrag) {
+  if (betrag == null || betrag === '') return '–';
+  return Number(betrag).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+const params = new URLSearchParams(window.location.search);
+const kundeId = params.get('id');
+let umsatzChart = null;
+
+function initTabsScoped() {
+  document.querySelectorAll('.tabs').forEach(tabBar => {
+    const card = tabBar.closest('.card');
+    tabBar.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        card.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.add('hidden'));
+        card.querySelector(':scope > .tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.remove('hidden');
+      });
+    });
+  });
+}
+
+function logoDataUrl(base64) {
+  if (!base64) return null;
+  if (base64.startsWith('iVBOR')) return 'data:image/png;base64,' + base64;
+  if (base64.startsWith('/9j/')) return 'data:image/jpeg;base64,' + base64;
+  if (base64.startsWith('R0lGOD')) return 'data:image/gif;base64,' + base64;
+  return 'data:image/png;base64,' + base64;
+}
+
+async function pdfOeffnen(funktionsname, id) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const basisUrl = 'https://amnaydttfuenhgevqptp.supabase.co/functions/v1/' + funktionsname;
+  const res = await fetch(basisUrl + '?id=' + encodeURIComponent(id), {
+    headers: { Authorization: 'Bearer ' + session.access_token }
+  });
+  if (!res.ok) { alert('Dokument konnte nicht geladen werden.'); return; }
+  const blob = await res.blob();
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+async function ladeKunde() {
+  const { data: kunde } = await supabaseClient.from('customers').select('*').eq('id', kundeId).single();
+  if (!kunde) return;
+
+  document.getElementById('kunde-name-titel').textContent = kunde.firma;
+  document.getElementById('firma-name').textContent = kunde.firma;
+  document.getElementById('info-objekt').textContent = kunde.objekt || '–';
+  document.getElementById('info-branche').textContent = kunde.branche || '–';
+  document.getElementById('info-login-email').textContent = kunde.login_email || '–';
+
+  const logoUrl = logoDataUrl(kunde.logo);
+  if (logoUrl) {
+    document.getElementById('firma-logo-bild').src = logoUrl;
+    document.getElementById('firma-logo-bild').classList.remove('versteckt');
+    document.getElementById('firma-logo-platzhalter').classList.add('versteckt');
+  } else {
+    document.getElementById('firma-logo-platzhalter').textContent = (kunde.firma || '?').charAt(0).toUpperCase();
+  }
+
+  ladeLeistungen();
+  ladeFinanzen();
+}
+
+async function ladeLeistungen() {
+  const { data: services } = await supabaseClient.from('customer_services').select('service').eq('customer_id', kundeId);
+  const aktiv = (services || []).map(s => s.service);
+  const anzeige = document.getElementById('leistungen-anzeige');
+  anzeige.innerHTML = '';
+  if (aktiv.length === 0) {
+    anzeige.innerHTML = '<span class="leistung-chip leer">Keine Leistung zugewiesen</span>';
+  } else {
+    aktiv.forEach(s => {
+      const chip = document.createElement('span');
+      chip.className = 'leistung-chip';
+      chip.textContent = SERVICE_LABEL[s] || s;
+      anzeige.appendChild(chip);
+    });
+  }
+  document.querySelectorAll('.leistung-checkbox').forEach(cb => {
+    cb.checked = aktiv.includes(cb.value);
+  });
+}
+
+document.getElementById('leistungen-edit-btn').addEventListener('click', () => {
+  document.getElementById('leistungen-formular').classList.toggle('versteckt');
+});
+document.getElementById('leistungen-abbrechen-btn').addEventListener('click', () => {
+  document.getElementById('leistungen-formular').classList.add('versteckt');
+  ladeLeistungen();
+});
+document.getElementById('leistungen-speichern-btn').addEventListener('click', async () => {
+  const ausgewaehlt = Array.from(document.querySelectorAll('.leistung-checkbox:checked')).map(cb => cb.value);
+  await supabaseClient.from('customer_services').delete().eq('customer_id', kundeId);
+  if (ausgewaehlt.length > 0) {
+    await supabaseClient.from('customer_services').insert(ausgewaehlt.map(s => ({ customer_id: kundeId, service: s })));
+  }
+  document.getElementById('leistungen-formular').classList.add('versteckt');
+  ladeLeistungen();
+});
+
+let finanzenMonate = 12;
+
+function initZeitraumSchalter() {
+  document.querySelectorAll('.zeitraum-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.zeitraum-btn').forEach(b => b.classList.remove('primary'));
+      btn.classList.add('primary');
+      finanzenMonate = Number(btn.dataset.monate);
+      ladeFinanzen();
+    });
+  });
+}
+
+async function ladeFinanzen() {
+  // Alles hier bezieht sich ausschliesslich auf den gerade geöffneten Kunden
+  // (customer_id = kundeId) -- nicht auf den Gesamtumsatz der Firma.
+  // bexio_raw wird zusätzlich geladen, um daraus eine Näherung des
+  // Zahlungsdatums abzuleiten (siehe Kommentar weiter unten).
+  const { data: rechnungenRoh } = await supabaseClient
+    .from('invoices')
+    .select('betrag_brutto, datum, faellig_am, status, bexio_raw')
+    .eq('customer_id', kundeId);
+
+  const alle = rechnungenRoh || [];
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+
+  // -- Kennzahlen, die immer über die komplette Kundenhistorie gelten,
+  // unabhängig vom Zeitraum-Schalter unten --
+  let ausstehend = 0, ueberfaellig = 0, lifetimeUmsatz = 0;
+  alle.forEach(r => {
+    const code = (r.status || '').replace('code_', '');
+    lifetimeUmsatz += Number(r.betrag_brutto || 0);
+    if (code === '8') {
+      ausstehend += Number(r.betrag_brutto || 0);
+      if (r.faellig_am && new Date(r.faellig_am) < heute) {
+        ueberfaellig += Number(r.betrag_brutto || 0);
+      }
+    }
+  });
+  document.getElementById('finanzen-ausstehend').textContent = 'CHF ' + chf(ausstehend);
+  document.getElementById('finanzen-ueberfaellig').textContent = 'CHF ' + chf(ueberfaellig);
+  document.getElementById('finanzen-lifetime').textContent = 'CHF ' + chf(lifetimeUmsatz);
+
+  // -- Zahlungsverhalten, nur für Rechnungen mit Rechnungsdatum im gewählten
+  // Zeitraum. Bexio liefert kein eigenes "bezahlt am"-Datum -- als Näherung
+  // nehmen wir den Zeitpunkt der letzten Aktualisierung (bexio_raw.updated_at)
+  // bei Rechnungen, die aktuell als "Bezahlt" markiert sind. --
+  const periodenStart = new Date(heute.getFullYear(), heute.getMonth() - finanzenMonate + 1, 1);
+  const imZeitraum = alle.filter(r => r.datum && new Date(r.datum) >= periodenStart);
+
+  let zahlungstageSumme = 0, zahlungstageAnzahl = 0;
+  imZeitraum.forEach(r => {
+    const code = (r.status || '').replace('code_', '');
+    if (code === '9' && r.bexio_raw && r.bexio_raw.updated_at && r.datum) {
+      const bezahltAm = new Date(r.bexio_raw.updated_at);
+      const rechnungsdatum = new Date(r.datum);
+      const tage = Math.round((bezahltAm - rechnungsdatum) / (1000 * 60 * 60 * 24));
+      if (tage >= 0) { zahlungstageSumme += tage; zahlungstageAnzahl++; }
+    }
+  });
+
+  document.getElementById('finanzen-zahlungsdauer').textContent =
+    zahlungstageAnzahl > 0 ? Math.round(zahlungstageSumme / zahlungstageAnzahl) + ' Tage im Schnitt' : 'Keine Daten';
+
+  // -- Umsatz-Chart: gewählter Zeitraum, plus Vorjahresvergleich (gleiche
+  // Kalendermonate, ein Jahr zuvor) --
+  const ctx = document.getElementById('umsatz-chart');
+  const monatsListe = [];
+  for (let i = finanzenMonate - 1; i >= 0; i--) {
+    const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
+    monatsListe.push({ jahr: d.getFullYear(), monat: d.getMonth(), label: d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }) });
+  }
+
+  function summeFuerMonatsListe(liste) {
+    return liste.map(m => {
+      return alle.reduce((summe, r) => {
+        if (!r.datum) return summe;
+        const d = new Date(r.datum);
+        if (d.getFullYear() === m.jahr && d.getMonth() === m.monat) {
+          return summe + Number(r.betrag_brutto || 0);
+        }
+        return summe;
+      }, 0);
+    });
+  }
+
+  const labels = monatsListe.map(m => m.label);
+  const werteAktuell = summeFuerMonatsListe(monatsListe);
+  const vorjahrListe = monatsListe.map(m => ({ jahr: m.jahr - 1, monat: m.monat }));
+  const werteVorjahr = summeFuerMonatsListe(vorjahrListe);
+
+  if (umsatzChart) umsatzChart.destroy();
+  umsatzChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Umsatz', data: werteAktuell, backgroundColor: '#1f6f5c' },
+        { label: 'Vorjahr (gleicher Monat)', data: werteVorjahr, backgroundColor: 'rgba(31, 111, 92, 0.35)' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: true, position: 'bottom' },
+        tooltip: { callbacks: { label: (ctx) => ' ' + ctx.dataset.label + ': CHF ' + chf(ctx.parsed.y) } }
+      },
+      scales: {
+        y: { ticks: { callback: (wert) => chf(wert) } }
+      }
+    }
+  });
+}
+
+async function ladeKontakte() {
+  const { data: kontakte } = await supabaseClient.from('contact_persons').select('*').eq('customer_id', kundeId);
+  const liste = document.getElementById('kontakte-liste');
+  liste.innerHTML = '';
+  (kontakte || []).forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'kontakt-card';
+    div.innerHTML =
+      '<div class="kontakt-name">' + k.name + '</div>' +
+      '<div class="kontakt-rolle">' + (k.rolle || '—') + '</div>' +
+      '<div class="kontakt-zeile">' + (k.email || '—') + '</div>' +
+      '<div class="kontakt-zeile">' + (k.telefon || '—') + '</div>' +
+      '<button class="kontakt-menu-btn">⋮</button>' +
+      '<div class="kontakt-menu-dropdown hidden">' +
+      '<button disabled>Rechte verwalten (bald)</button>' +
+      '<button disabled>Eigenes Login erstellen (bald)</button>' +
+      '</div>';
+    liste.appendChild(div);
+  });
+  liste.querySelectorAll('.kontakt-menu-btn').forEach(btn => {
+    btn.addEventListener('click', () => btn.nextElementSibling.classList.toggle('hidden'));
+  });
+}
+
+async function ladeAngebote() {
+  const { data: angebote } = await supabaseClient.from('quotes').select('*').eq('customer_id', kundeId).order('datum', { ascending: false });
+  const tbody = document.getElementById('angebote-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('angebote-leer').style.display = (angebote && angebote.length > 0) ? 'none' : 'block';
+  (angebote || []).forEach(a => {
+    const statusInfo = angebotStatusAnzeige(a);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + (a.datum ? new Date(a.datum).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td><button class="nr-link" data-id="' + a.id + '">' + (a.nr || '–') + '</button></td>' +
+      '<td><span class="badge ' + statusInfo.klasse + '">' + statusInfo.text + '</span></td>' +
+      '<td>' + (a.betreff || '–') + '</td>' +
+      '<td>' + (a.waehrung || '–') + '</td>' +
+      '<td>' + chf(a.betrag_netto) + '</td>' +
+      '<td>' + chf(a.betrag_brutto) + '</td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.nr-link').forEach(btn => {
+    btn.addEventListener('click', () => pdfOeffnen('bexio-angebot-pdf', btn.dataset.id));
+  });
+}
+
+async function ladeRechnungen() {
+  // Nach bexio_id sortiert (steigt bei jeder neuen Bexio-Rechnung), nicht nach
+  // faellig_am -- so bleibt die Reihenfolge auch korrekt, wenn kein
+  // Fälligkeitsdatum hinterlegt ist. Neueste Rechnung zuoberst.
+  const { data: rechnungen } = await supabaseClient.from('invoices').select('*').eq('customer_id', kundeId).order('bexio_id', { ascending: false });
+  const tbody = document.getElementById('rechnungen-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('rechnungen-leer').style.display = (rechnungen && rechnungen.length > 0) ? 'none' : 'block';
+  (rechnungen || []).forEach(r => {
+    const statusInfo = rechnungStatusAnzeige(r);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><button class="nr-link" data-id="' + r.id + '">' + (r.nr || '–') + '</button></td>' +
+      '<td><span class="badge ' + statusInfo.klasse + '">' + statusInfo.text + '</span></td>' +
+      '<td>' + (r.faellig_am ? new Date(r.faellig_am).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td>' + (r.betreff || '–') + '</td>' +
+      '<td>' + (r.waehrung || '–') + '</td>' +
+      '<td>' + chf(r.betrag_netto) + '</td>' +
+      '<td>' + chf(r.betrag_brutto) + '</td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.nr-link').forEach(btn => {
+    btn.addEventListener('click', () => pdfOeffnen('bexio-rechnung-pdf', btn.dataset.id));
+  });
+}
+
+async function ladeLiegenschaften() {
+  const { data: liegenschaften } = await supabaseClient.from('properties').select('*').eq('customer_id', kundeId).order('name');
+  const tbody = document.getElementById('liegenschaften-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('liegenschaften-leer').style.display = (liegenschaften && liegenschaften.length > 0) ? 'none' : 'block';
+  (liegenschaften || []).forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><a class="liegenschaft-link" href="liegenschaft.html?id=' + l.id + '&kunde=' + kundeId + '">' + l.name + '</a></td>' +
+      '<td>' + (l.adresse || '–') + '</td>' +
+      '<td>' + l.typ + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  const select = document.getElementById('schluessel-liegenschaft');
+  select.innerHTML = '<option value="">— keine —</option>';
+  (liegenschaften || []).forEach(l => {
+    const opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = l.name;
+    select.appendChild(opt);
+  });
+}
+
+document.getElementById('liegenschaft-fab').addEventListener('click', () => {
+  document.getElementById('liegenschaft-formular').classList.toggle('versteckt');
+});
+document.getElementById('liegenschaft-hinzufuegen-btn').addEventListener('click', async () => {
+  const name = document.getElementById('liegenschaft-name').value.trim();
+  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  await supabaseClient.from('properties').insert({
+    customer_id: kundeId,
+    name,
+    adresse: document.getElementById('liegenschaft-adresse').value.trim() || null,
+    typ: document.getElementById('liegenschaft-typ').value
+  });
+  document.getElementById('liegenschaft-name').value = '';
+  document.getElementById('liegenschaft-adresse').value = '';
+  document.getElementById('liegenschaft-formular').classList.add('versteckt');
+  ladeLiegenschaften();
+});
+
+async function ladeSchluessel() {
+  const { data: schluessel } = await supabaseClient.from('keys').select('*, properties(name)').eq('customer_id', kundeId).order('bezeichnung');
+  const tbody = document.getElementById('schluessel-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('schluessel-leer').style.display = (schluessel && schluessel.length > 0) ? 'none' : 'block';
+  (schluessel || []).forEach(k => {
+    let quittungZelle = '–';
+    if (k.quittung_pfad) {
+      quittungZelle = '<a href="#" class="quittung-link" data-pfad="' + k.quittung_pfad + '">Herunterladen</a>';
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + k.bezeichnung + '</td>' +
+      '<td>' + (k.properties ? k.properties.name : '–') + '</td>' +
+      '<td>' + (k.aufbewahrungsort || '–') + '</td>' +
+      '<td>' + (k.inhaber || '–') + '</td>' +
+      '<td>' + (k.erhalten_am ? new Date(k.erhalten_am).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td>' + quittungZelle + '</td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.quittung-link').forEach(a => {
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const { data } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(a.dataset.pfad, 300);
+      if (data) window.open(data.signedUrl, '_blank');
+    });
+  });
+}
+
+document.getElementById('schluessel-fab').addEventListener('click', () => {
+  document.getElementById('schluessel-formular').classList.toggle('versteckt');
+});
+document.getElementById('schluessel-hinzufuegen-btn').addEventListener('click', async () => {
+  const bezeichnung = document.getElementById('schluessel-bezeichnung').value.trim();
+  if (!bezeichnung) { alert('Bitte eine Bezeichnung eingeben.'); return; }
+
+  let quittungPfad = null;
+  const datei = document.getElementById('schluessel-quittung').files[0];
+  if (datei) {
+    quittungPfad = kundeId + '/schluessel/' + Date.now() + '-' + datei.name;
+    await supabaseClient.storage.from('kunden-dokumente').upload(quittungPfad, datei);
+  }
+
+  await supabaseClient.from('keys').insert({
+    customer_id: kundeId,
+    property_id: document.getElementById('schluessel-liegenschaft').value || null,
+    bezeichnung,
+    aufbewahrungsort: document.getElementById('schluessel-ort').value.trim() || null,
+    inhaber: document.getElementById('schluessel-inhaber').value.trim() || null,
+    erhalten_am: document.getElementById('schluessel-datum').value || null,
+    quittung_pfad: quittungPfad
+  });
+
+  document.getElementById('schluessel-bezeichnung').value = '';
+  document.getElementById('schluessel-ort').value = '';
+  document.getElementById('schluessel-inhaber').value = '';
+  document.getElementById('schluessel-datum').value = '';
+  document.getElementById('schluessel-quittung').value = '';
+  document.getElementById('schluessel-formular').classList.add('versteckt');
+  ladeSchluessel();
+});
+
+async function ladeLogins() {
+  const { data: profile } = await supabaseClient.from('profiles').select('*').eq('customer_id', kundeId);
+  const liste = document.getElementById('login-liste');
+  liste.innerHTML = '';
+  document.getElementById('login-leer').style.display = (profile && profile.length > 0) ? 'none' : 'block';
+  if (!profile || profile.length === 0) return;
+
+  const { data: kontakte } = await supabaseClient.from('contact_persons').select('name, email').eq('customer_id', kundeId);
+  const { data: kunde } = await supabaseClient.from('customers').select('login_email').eq('id', kundeId).single();
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  let statusListe = [];
+  try {
+    const res = await fetch('https://amnaydttfuenhgevqptp.supabase.co/functions/v1/admin-login-status', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: profile.map(p => p.id) })
+    });
+    const json = await res.json();
+    statusListe = json.benutzer || [];
+  } catch (e) { /* Status optional */ }
+
+  profile.forEach(p => {
+    const email = p.email || (kunde ? kunde.login_email : null);
+    const passendeKontakt = (kontakte || []).find(k => k.email && email && k.email.toLowerCase() === email.toLowerCase());
+    const name = passendeKontakt ? passendeKontakt.name : '–';
+    const status = statusListe.find(s => s.id === p.id);
+    let online = false;
+    if (status && status.last_sign_in_at) {
+      online = (Date.now() - new Date(status.last_sign_in_at).getTime()) < 15 * 60 * 1000;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'login-zeile';
+    div.innerHTML =
+      '<div><span class="online-dot' + (online ? ' online' : '') + '"></span>' +
+      '<span class="login-name">' + name + '</span><br>' +
+      '<span class="login-email">' + (email || '–') + '</span></div>' +
+      '<button type="button" class="btn-klein" data-email="' + (email || '') + '">Passwort zurücksetzen</button>';
+    liste.appendChild(div);
+  });
+
+  liste.querySelectorAll('button[data-email]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const email = btn.dataset.email;
+      if (!email) return;
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://sylegro.github.io/sylegro-kundenportal/reset-passwort.html'
+      });
+      if (error) {
+        alert('Fehler: ' + error.message);
+      } else {
+        alert('E-Mail zum Zurücksetzen wurde an ' + email + ' gesendet.');
+      }
+    });
+  });
+}
+
+async function ladeDokumente() {
+  const { data: dokumente } = await supabaseClient.from('documents').select('*, properties(name)').eq('customer_id', kundeId).order('hochgeladen_am', { ascending: false });
+  const tbody = document.getElementById('dokumente-tabelle');
+  tbody.innerHTML = '';
+  (dokumente || []).forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + d.titel + '</td>' +
+      '<td>' + d.kategorie + '</td>' +
+      '<td>' + (d.properties ? d.properties.name : '–') + '</td>' +
+      '<td>' + new Date(d.hochgeladen_am).toLocaleDateString('de-CH') + '</td>' +
+      '<td><a href="#" class="dok-link" data-pfad="' + d.datei_pfad + '">Herunterladen</a></td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.dok-link').forEach(a => {
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const { data } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(a.dataset.pfad, 300);
+      if (data) window.open(data.signedUrl, '_blank');
+    });
+  });
+}
+
+document.getElementById('dok-hochladen-btn').addEventListener('click', async () => {
+  const titel = document.getElementById('dok-titel').value.trim();
+  const datei = document.getElementById('dok-datei').files[0];
+  if (!titel || !datei) { alert('Bitte Titel und Datei angeben.'); return; }
+  const pfad = kundeId + '/' + Date.now() + '-' + datei.name;
+  await supabaseClient.storage.from('kunden-dokumente').upload(pfad, datei);
+  await supabaseClient.from('documents').insert({
+    customer_id: kundeId,
+    titel,
+    kategorie: document.getElementById('dok-kategorie').value,
+    datei_pfad: pfad,
+    hochgeladen_am: new Date().toISOString()
+  });
+  document.getElementById('dok-titel').value = '';
+  document.getElementById('dok-datei').value = '';
+  ladeDokumente();
+});
+
+(async function () {
+  const admin = await sylegroRequireAdmin();
+  if (!admin) return;
+  initTabsScoped();
+  initZeitraumSchalter();
+  await ladeKunde();
+  await ladeKontakte();
+  await ladeAngebote();
+  await ladeRechnungen();
+  await ladeLiegenschaften();
+  await ladeSchluessel();
+  await ladeLogins();
+  await ladeDokumente();
+})();
 </script>
 </body>
 </html>
