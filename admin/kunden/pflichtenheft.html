@@ -45,51 +45,65 @@
           <div id="info-version">–</div>
         </div>
       </div>
-      <p class="hint" style="margin-top:10px;">Beim Speichern wird eine neue Version dieses Pflichtenhefts angelegt. Die vorherige Version bleibt im Hintergrund erhalten, damit alte Qualitätskontrollen weiterhin nachvollziehbar sind.</p>
+      <p class="hint" style="margin-top:10px;">Neu erstellte Raumgruppen werden zuoberst angezeigt, damit du beim Erfassen nicht scrollen musst. Im fertigen Pflichtenheft erscheinen sie dann in der Reihenfolge, in der du sie zuerst erfasst hast. Beim "Jetzt endgültig speichern" wird — falls schon ein aktives Pflichtenheft besteht — eine neue Version angelegt; die vorherige bleibt im Hintergrund erhalten. Über "Pflichtenheft anpassen" kannst du Fehler direkt vor dem endgültigen Speichern noch korrigieren, ohne dass dafür schon eine Version angelegt wird.</p>
     </div>
 
-    <div class="card">
-      <div class="abschnitt-kopf">
-        <h2 style="margin:0;">Raumgruppen</h2>
-        <button type="button" class="btn primary" id="raumgruppe-hinzufuegen-btn">+ Raumgruppe hinzufügen</button>
-      </div>
-      <p class="hint">Wähle eine Raumgruppe aus der Bibliothek — die üblichen Leistungen und Häufigkeiten sind dann schon vorausgewählt und du musst nur noch anpassen. Oder trage einen komplett neuen Namen ein, falls diese Raumgruppe noch nicht existiert.</p>
+    <div id="baukasten-bereich">
+      <div class="card">
+        <div class="abschnitt-kopf">
+          <h2 style="margin:0;">Raumgruppen</h2>
+          <button type="button" class="btn primary" id="raumgruppe-hinzufuegen-btn">+ Raumgruppe hinzufügen</button>
+        </div>
+        <p class="hint">Wähle eine Raumgruppe aus der Bibliothek oder trage einen komplett neuen Namen ein. Die Leistungen darin sind zu Beginn alle leer — du wählst pro Raumgruppe selbst aus, was zutrifft, und trägst die passende Häufigkeit ein.</p>
 
-      <div id="raumgruppe-auswahl" class="versteckt form-grid" style="margin-bottom:20px;">
-        <div>
-          <label>Aus Bibliothek wählen</label>
-          <select id="raumgruppe-vorlage-select"><option value="">— auswählen —</option></select>
+        <div id="raumgruppe-auswahl" class="versteckt form-grid" style="margin-bottom:20px;">
+          <div>
+            <label>Aus Bibliothek wählen</label>
+            <select id="raumgruppe-vorlage-select"><option value="">— auswählen —</option></select>
+          </div>
+          <div>
+            <label>oder neuer Name</label>
+            <input type="text" id="raumgruppe-neuer-name" placeholder="z.B. Serverraum">
+          </div>
+          <div>
+            <button type="button" class="btn primary" id="raumgruppe-bestaetigen-btn">Hinzufügen</button>
+            <button type="button" class="btn small" id="raumgruppe-abbrechen-btn">Abbrechen</button>
+          </div>
         </div>
-        <div>
-          <label>oder neuer Name</label>
-          <input type="text" id="raumgruppe-neuer-name" placeholder="z.B. Serverraum">
-        </div>
-        <div>
-          <button type="button" class="btn primary" id="raumgruppe-bestaetigen-btn">Hinzufügen</button>
-          <button type="button" class="btn small" id="raumgruppe-abbrechen-btn">Abbrechen</button>
-        </div>
+
+        <div id="raumgruppen-liste"></div>
+        <p class="hint" id="raumgruppen-leer">Noch keine Raumgruppe hinzugefügt.</p>
       </div>
 
-      <div id="raumgruppen-liste"></div>
-      <p class="hint" id="raumgruppen-leer">Noch keine Raumgruppe hinzugefügt.</p>
+      <div style="margin:20px 0; display:flex; align-items:center; gap:14px;">
+        <button type="button" class="btn primary" id="pflichtenheft-vorschau-btn">Pflichtenheft speichern</button>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="abschnitt-kopf">
+          <h2 style="margin:0;">Bibliothek verwalten</h2>
+          <button type="button" class="btn small" id="bibliothek-toggle-btn">Anzeigen</button>
+        </div>
+        <p class="hint">Hier kannst du Raumgruppen, ganze Kategorien oder einzelne Leistungen dauerhaft aus der Bibliothek entfernen (z.B. Testeinträge) — sie werden dann künftig nirgends mehr vorgeschlagen. Bereits gespeicherte Pflichtenhefte sind davon nicht betroffen, da sie ihre Daten unabhängig speichern. Hinweis: Ist eine Leistung gerade oben in einer noch ungespeicherten Raumgruppe angehakt und du löschst sie hier, verschwindet sie sofort auch aus der Ansicht oben — speichere vorher, falls du sie behalten willst.</p>
+        <div id="bibliothek-panel" class="versteckt">
+          <h3>Raumgruppen</h3>
+          <div id="bibliothek-raumgruppen-liste"></div>
+          <h3 style="margin-top:20px;">Leistungen nach Kategorie</h3>
+          <div id="bibliothek-leistungen-liste"></div>
+        </div>
+      </div>
     </div>
 
-    <div style="margin:20px 0; display:flex; align-items:center; gap:14px;">
-      <button type="button" class="btn primary" id="pflichtenheft-speichern-btn">Pflichtenheft speichern</button>
-      <span id="speicher-status" class="hint"></span>
-    </div>
-
-    <div class="card" style="margin-top:16px;">
-      <div class="abschnitt-kopf">
-        <h2 style="margin:0;">Bibliothek verwalten</h2>
-        <button type="button" class="btn small" id="bibliothek-toggle-btn">Anzeigen</button>
+    <div id="vorschau-bereich" class="versteckt">
+      <div class="card">
+        <h2 id="vorschau-titel" style="margin:0 0 6px 0;">Vorschau</h2>
+        <p class="hint" id="vorschau-hinweis">So sieht das Pflichtenheft aus. Prüfe alles in Ruhe. Mit "Pflichtenheft anpassen" kommst du zurück zur Bearbeitung — dabei wird noch nichts gespeichert. Erst mit "Jetzt endgültig speichern" wird es wirklich abgelegt.</p>
+        <div id="vorschau-inhalt"></div>
       </div>
-      <p class="hint">Hier kannst du Raumgruppen, ganze Kategorien oder einzelne Leistungen dauerhaft aus der Bibliothek entfernen (z.B. Testeinträge) — sie werden dann künftig nirgends mehr vorgeschlagen. Bereits gespeicherte Pflichtenhefte sind davon nicht betroffen, da sie ihre Daten unabhängig speichern. Hinweis: Ist eine Leistung gerade oben in einer noch ungespeicherten Raumgruppe angehakt und du löschst sie hier, verschwindet sie sofort auch aus der Ansicht oben — speichere vorher, falls du sie behalten willst.</p>
-      <div id="bibliothek-panel" class="versteckt">
-        <h3>Raumgruppen</h3>
-        <div id="bibliothek-raumgruppen-liste"></div>
-        <h3 style="margin-top:20px;">Leistungen nach Kategorie</h3>
-        <div id="bibliothek-leistungen-liste"></div>
+      <div style="margin:20px 0; display:flex; align-items:center; gap:14px;">
+        <button type="button" class="btn small" id="vorschau-anpassen-btn">Pflichtenheft anpassen</button>
+        <button type="button" class="btn primary" id="pflichtenheft-speichern-btn">Jetzt endgültig speichern</button>
+        <span id="speicher-status" class="hint"></span>
       </div>
     </div>
   </main>
@@ -179,7 +193,17 @@ function befuelleKategorienListe() {
 function renderRaumgruppeCard(rg, rgIndex) {
   let html = '<div class="card" style="margin-bottom:16px;">';
   html += '<div class="abschnitt-kopf"><h3 style="margin:0;">' + escapeHtml(rg.name) + '</h3>';
-  html += '<button type="button" class="icon-btn raumgruppe-entfernen-btn" data-rg="' + rgIndex + '" title="Raumgruppe entfernen">✕</button></div>';
+  html += '<div style="display:flex; gap:8px;">';
+  html += '<button type="button" class="btn small raumgruppe-einklappen-btn" data-rg="' + rgIndex + '">' + (rg.eingeklappt ? 'Bearbeiten' : 'Fertig') + '</button>';
+  html += '<button type="button" class="icon-btn raumgruppe-entfernen-btn" data-rg="' + rgIndex + '" title="Raumgruppe entfernen">✕</button>';
+  html += '</div></div>';
+
+  if (rg.eingeklappt) {
+    const anzahlLeistungen = rg.leistungen.length;
+    html += '<p class="hint" style="margin:6px 0 0 0;">' + anzahlLeistungen + (anzahlLeistungen === 1 ? ' Leistung ausgewählt' : ' Leistungen ausgewählt') + '</p>';
+    html += '</div>';
+    return html;
+  }
 
   kategorienReihenfolge().forEach(kategorie => {
     const leistungenInKategorie = leistungenBibliothek.filter(l => l.kategorie === kategorie);
@@ -188,8 +212,7 @@ function renderRaumgruppeCard(rg, rgIndex) {
     leistungenInKategorie.forEach(l => {
       const vorhanden = rg.leistungen.find(x => x.vorlage_id === l.id);
       const checked = !!vorhanden;
-      const standard = matrixWert(rg.vorlage_id, l.id);
-      const haeufigkeit = vorhanden ? vorhanden.haeufigkeit : (standard || '1W');
+      const haeufigkeit = vorhanden ? vorhanden.haeufigkeit : '1W';
       html += '<div class="leistung-zeile" style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">';
       html += '<label style="flex:1;"><input type="checkbox" class="leistung-checkbox" data-rg="' + rgIndex + '" data-leistung-id="' + l.id + '"' + (checked ? ' checked' : '') + '> ' + escapeHtml(l.name) + '</label>';
       html += haeufigkeitWidget('leistung-haeufigkeit', haeufigkeit, 'data-rg="' + rgIndex + '" data-leistung-id="' + l.id + '"', !checked);
@@ -213,10 +236,22 @@ function renderRaumgruppen() {
   befuelleKategorienListe();
   const container = document.getElementById('raumgruppen-liste');
   document.getElementById('raumgruppen-leer').style.display = raumgruppen.length === 0 ? 'block' : 'none';
-  container.innerHTML = raumgruppen.map((rg, i) => renderRaumgruppeCard(rg, i)).join('');
+  // Zur Bearbeitung wird die zuletzt hinzugefügte Raumgruppe zuoberst angezeigt (kein Scrollen nötig).
+  // Die zugrunde liegende Reihenfolge im Array (= spätere Speicherreihenfolge) bleibt dabei unverändert;
+  // es werden nur die tatsächlichen (unveränderten) Indizes in umgekehrter Reihenfolge gerendert.
+  const anzeigeReihenfolge = raumgruppen.map((rg, i) => i).reverse();
+  container.innerHTML = anzeigeReihenfolge.map(i => renderRaumgruppeCard(raumgruppen[i], i)).join('');
 }
 
 document.getElementById('raumgruppen-liste').addEventListener('click', (e) => {
+  const einklappenBtn = e.target.closest('.raumgruppe-einklappen-btn');
+  if (einklappenBtn) {
+    const idx = Number(einklappenBtn.dataset.rg);
+    raumgruppen[idx].eingeklappt = !raumgruppen[idx].eingeklappt;
+    renderRaumgruppen();
+    return;
+  }
+
   const entfernenBtn = e.target.closest('.raumgruppe-entfernen-btn');
   if (entfernenBtn) {
     const idx = Number(entfernenBtn.dataset.rg);
@@ -316,19 +351,76 @@ document.getElementById('raumgruppe-bestaetigen-btn').addEventListener('click', 
     return;
   }
 
-  const leistungen = [];
-  if (vorlage_id) {
-    matrixVorlagen.filter(m => m.raumgruppe_vorlage_id === vorlage_id).forEach(m => {
-      const l = leistungenBibliothek.find(x => x.id === m.leistung_vorlage_id);
-      if (l) leistungen.push({ vorlage_id: l.id, kategorie: l.kategorie, name: l.name, haeufigkeit: m.standard_haeufigkeit });
-    });
-  }
-
-  raumgruppen.push({ vorlage_id, name, leistungen });
+  // Bewusst leer: die Leistungen einer neuen Raumgruppe werden nie vorbelegt.
+  // Was bei einem anderen Kunden gilt, muss nicht für diesen gelten -- die Auswahl
+  // erfolgt jedes Mal aktiv durch den Admin.
+  raumgruppen.push({ vorlage_id, name, leistungen: [], eingeklappt: false });
   document.getElementById('raumgruppe-neuer-name').value = '';
   document.getElementById('raumgruppe-vorlage-select').value = '';
   document.getElementById('raumgruppe-auswahl').classList.add('versteckt');
   renderRaumgruppen();
+});
+
+function renderVorschau() {
+  const container = document.getElementById('vorschau-inhalt');
+  if (raumgruppen.length === 0) {
+    container.innerHTML = '<p class="hint">Noch keine Raumgruppe hinzugefügt.</p>';
+    return;
+  }
+  // Die Vorschau zeigt die echte Speicherreihenfolge (zuerst erfasste Raumgruppe zuoberst),
+  // nicht die zum Bearbeiten umgekehrte Anzeigereihenfolge.
+  container.innerHTML = raumgruppen.map(rg => {
+    let html = '<div style="margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid #eee;">';
+    html += '<h3 style="margin:0 0 8px 0;">' + escapeHtml(rg.name) + '</h3>';
+    if (rg.leistungen.length === 0) {
+      html += '<p class="hint" style="margin:0;">Keine Leistungen ausgewählt.</p>';
+      html += '</div>';
+      return html;
+    }
+    const nachKategorie = {};
+    rg.leistungen.forEach(le => {
+      if (!nachKategorie[le.kategorie]) nachKategorie[le.kategorie] = [];
+      nachKategorie[le.kategorie].push(le);
+    });
+    Object.keys(nachKategorie).forEach(kategorie => {
+      html += '<div style="margin-top:8px;"><strong>' + escapeHtml(kategorie) + '</strong>';
+      html += '<ul style="margin:4px 0 0 20px;">';
+      nachKategorie[kategorie].forEach(le => {
+        html += '<li>' + escapeHtml(le.name) + ' — ' + haeufigkeitAnzeige(le.haeufigkeit) + '</li>';
+      });
+      html += '</ul></div>';
+    });
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+function zeigeVorschauBereich(nurAnsicht) {
+  renderVorschau();
+  document.getElementById('vorschau-titel').textContent = nurAnsicht ? 'Pflichtenheft' : 'Vorschau';
+  document.getElementById('vorschau-hinweis').textContent = nurAnsicht
+    ? 'Dies ist die aktuell gültige Version dieses Pflichtenhefts. Um etwas zu ändern, klicke auf "Pflichtenheft anpassen".'
+    : 'So sieht das Pflichtenheft aus. Prüfe alles in Ruhe. Mit "Pflichtenheft anpassen" kommst du zurück zur Bearbeitung — dabei wird noch nichts gespeichert. Erst mit "Jetzt endgültig speichern" wird es wirklich abgelegt.';
+  document.getElementById('pflichtenheft-speichern-btn').style.display = nurAnsicht ? 'none' : '';
+  document.getElementById('speicher-status').textContent = '';
+  document.getElementById('baukasten-bereich').classList.add('versteckt');
+  document.getElementById('vorschau-bereich').classList.remove('versteckt');
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('pflichtenheft-vorschau-btn').addEventListener('click', () => {
+  const gesamtzahlLeistungen = raumgruppen.reduce((summe, r) => summe + r.leistungen.length, 0);
+  if (raumgruppen.length === 0 || gesamtzahlLeistungen === 0) {
+    alert('Bitte mindestens eine Raumgruppe mit mindestens einer Leistung hinzufügen, bevor du fortfährst.');
+    return;
+  }
+  zeigeVorschauBereich(false);
+});
+
+document.getElementById('vorschau-anpassen-btn').addEventListener('click', () => {
+  document.getElementById('vorschau-bereich').classList.add('versteckt');
+  document.getElementById('baukasten-bereich').classList.remove('versteckt');
+  window.scrollTo(0, 0);
 });
 
 document.getElementById('pflichtenheft-speichern-btn').addEventListener('click', async () => {
@@ -556,6 +648,7 @@ async function ladeDaten() {
       return {
         vorlage_id: vorlage ? vorlage.id : null,
         name: rg.name,
+        eingeklappt: false,
         leistungen: gespeicherteLeistungen
           .filter(le => le.pflichtenheft_raumgruppe_id === rg.id)
           .map(le => {
@@ -575,6 +668,13 @@ async function ladeDaten() {
   }
 
   renderRaumgruppen();
+
+  // Existiert bereits ein aktives Pflichtenheft, wird es zuerst nur in der reinen Ansicht
+  // gezeigt (nichts kann versehentlich verändert werden) -- erst "Pflichtenheft anpassen"
+  // führt in den Bearbeitungsmodus.
+  if (bestehendesPflichtenheft) {
+    zeigeVorschauBereich(true);
+  }
 }
 
 (async function () {
