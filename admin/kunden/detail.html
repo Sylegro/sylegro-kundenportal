@@ -85,6 +85,16 @@
         </div>
 
         <div class="tab-panel hidden" data-tab="finanzen">
+          <div class="info-grid" style="margin-bottom:20px;">
+            <div>
+              <div class="label">Ausstehend</div>
+              <div id="finanzen-ausstehend" style="font-size:1.4rem; font-weight:600;">–</div>
+            </div>
+            <div>
+              <div class="label">Überfällig</div>
+              <div id="finanzen-ueberfaellig" style="font-size:1.4rem; font-weight:600; color:var(--color-danger);">–</div>
+            </div>
+          </div>
           <h3>Umsatz (letzte 12 Monate)</h3>
           <div class="chart-wrap">
             <canvas id="umsatz-chart"></canvas>
@@ -358,7 +368,7 @@ async function ladeKunde() {
   }
 
   ladeLeistungen();
-  ladeUmsatzChart();
+  ladeFinanzen();
 }
 
 async function ladeLeistungen() {
@@ -398,31 +408,48 @@ document.getElementById('leistungen-speichern-btn').addEventListener('click', as
   ladeLeistungen();
 });
 
-async function ladeUmsatzChart() {
+async function ladeFinanzen() {
+  // Alles hier bezieht sich ausschliesslich auf den gerade geöffneten Kunden
+  // (customer_id = kundeId) -- nicht auf den Gesamtumsatz der Firma.
+  const { data: rechnungen } = await supabaseClient
+    .from('invoices')
+    .select('betrag_brutto, datum, faellig_am, status')
+    .eq('customer_id', kundeId);
+
+  // -- Kennzahlen: Ausstehend (alle offenen Rechnungen dieses Kunden) und
+  // Überfällig (davon jene, deren Fälligkeitsdatum schon vorbei ist) --
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  let ausstehend = 0;
+  let ueberfaellig = 0;
+  (rechnungen || []).forEach(r => {
+    const code = (r.status || '').replace('code_', '');
+    if (code === '8') {
+      ausstehend += Number(r.betrag_brutto || 0);
+      if (r.faellig_am && new Date(r.faellig_am) < heute) {
+        ueberfaellig += Number(r.betrag_brutto || 0);
+      }
+    }
+  });
+  document.getElementById('finanzen-ausstehend').textContent = 'CHF ' + chf(ausstehend);
+  document.getElementById('finanzen-ueberfaellig').textContent = 'CHF ' + chf(ueberfaellig);
+
+  // -- Umsatz-Chart: Betrag pro Monat, nach Rechnungsdatum (nicht Fälligkeit) --
   const ctx = document.getElementById('umsatz-chart');
   const monate = [];
-  const heute = new Date();
   for (let i = 11; i >= 0; i--) {
     const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
     monate.push(d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }));
   }
 
-  function proMonat(zeilen) {
-    const werte = new Array(12).fill(0);
-    (zeilen || []).forEach(z => {
-      const rohDatum = z.faellig_am;
-      if (!rohDatum) return;
-      const d = new Date(rohDatum);
-      const diffMonate = (heute.getFullYear() - d.getFullYear()) * 12 + (heute.getMonth() - d.getMonth());
-      if (diffMonate >= 0 && diffMonate < 12) {
-        werte[11 - diffMonate] += Number(z.betrag_brutto || 0);
-      }
-    });
-    return werte;
-  }
-
-  // Nur echte, tatsächlich verbuchte Rechnungen aus Bexio – keine Angebote/Offerten.
-  const { data: rechnungen } = await supabaseClient.from('invoices').select('betrag_brutto, faellig_am').eq('customer_id', kundeId);
+  const werte = new Array(12).fill(0);
+  (rechnungen || []).forEach(r => {
+    if (!r.datum) return;
+    const d = new Date(r.datum);
+    const diffMonate = (heute.getFullYear() - d.getFullYear()) * 12 + (heute.getMonth() - d.getMonth());
+    if (diffMonate >= 0 && diffMonate < 12) {
+      werte[11 - diffMonate] += Number(r.betrag_brutto || 0);
+    }
+  });
 
   if (umsatzChart) umsatzChart.destroy();
   umsatzChart = new Chart(ctx, {
@@ -430,7 +457,7 @@ async function ladeUmsatzChart() {
     data: {
       labels: monate,
       datasets: [
-        { label: 'Umsatz', data: proMonat(rechnungen), backgroundColor: '#1f6f5c' }
+        { label: 'Umsatz', data: werte, backgroundColor: '#1f6f5c' }
       ]
     },
     options: {
