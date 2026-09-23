@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pflichtenheft | Sylegro Admin</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="uebersicht.html" class="top-cat">Kunden</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
+      <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
+      <a href="#" class="sub-item disabled">Dokumente (bald)</a>
+
+      <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1 id="titel">Pflichtenheft</h1>
+      <a id="zurueck-link" href="detail.html">← Zurück zum Kundenprofil</a>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="info-grid">
+        <div>
+          <div class="label">Kunde</div>
+          <div id="info-kunde">–</div>
+        </div>
+        <div>
+          <div class="label">Liegenschaft</div>
+          <div id="info-liegenschaft">–</div>
+        </div>
+        <div>
+          <div class="label">Aktuelle Version</div>
+          <div id="info-version">–</div>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:10px;">Beim Speichern wird eine neue Version dieses Pflichtenhefts angelegt. Die vorherige Version bleibt im Hintergrund erhalten, damit alte Qualitätskontrollen weiterhin nachvollziehbar sind.</p>
+    </div>
+
+    <div class="card">
+      <div class="abschnitt-kopf">
+        <h2 style="margin:0;">Raumgruppen</h2>
+        <button type="button" class="btn primary" id="raumgruppe-hinzufuegen-btn">+ Raumgruppe hinzufügen</button>
+      </div>
+      <p class="hint">Wähle eine Raumgruppe aus der Bibliothek — die üblichen Leistungen und Häufigkeiten sind dann schon vorausgewählt und du musst nur noch anpassen. Oder trage einen komplett neuen Namen ein, falls diese Raumgruppe noch nicht existiert.</p>
+
+      <div id="raumgruppe-auswahl" class="versteckt form-grid" style="margin-bottom:20px;">
+        <div>
+          <label>Aus Bibliothek wählen</label>
+          <select id="raumgruppe-vorlage-select"><option value="">— auswählen —</option></select>
+        </div>
+        <div>
+          <label>oder neuer Name</label>
+          <input type="text" id="raumgruppe-neuer-name" placeholder="z.B. Serverraum">
+        </div>
+        <div>
+          <button type="button" class="btn primary" id="raumgruppe-bestaetigen-btn">Hinzufügen</button>
+          <button type="button" class="btn small" id="raumgruppe-abbrechen-btn">Abbrechen</button>
+        </div>
+      </div>
+
+      <div id="raumgruppen-liste"></div>
+      <p class="hint" id="raumgruppen-leer">Noch keine Raumgruppe hinzugefügt.</p>
+    </div>
+
+    <div style="margin:20px 0; display:flex; align-items:center; gap:14px;">
+      <button type="button" class="btn primary" id="pflichtenheft-speichern-btn">Pflichtenheft speichern</button>
+      <span id="speicher-status" class="hint"></span>
+    </div>
+  </main>
+</div>
+
+<datalist id="kategorien-liste"></datalist>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+const HAEUFIGKEIT_LABEL = {
+  '1W': 'Wöchentlich',
+  '1M': 'Monatlich',
+  '1J': 'Jährlich',
+  'EL': 'Eigenleistung (Kunde)',
+  'NB': 'Nach Bedarf',
+  'BE': 'Bestellung (separate Abrechnung)'
+};
+
+function haeufigkeitOptionen(ausgewaehlt) {
+  return Object.keys(HAEUFIGKEIT_LABEL).map(code =>
+    '<option value="' + code + '"' + (code === ausgewaehlt ? ' selected' : '') + '>' + HAEUFIGKEIT_LABEL[code] + '</option>'
+  ).join('');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text == null ? '' : String(text);
+  return div.innerHTML;
+}
+
+const params = new URLSearchParams(window.location.search);
+const propertyId = params.get('id');
+const kundeId = params.get('kunde');
+
+let raumgruppenBibliothek = [];   // [{id, name, reihenfolge}]
+let leistungenBibliothek = [];    // [{id, kategorie, name, reihenfolge, istNeu?}]
+let matrixVorlagen = [];          // [{raumgruppe_vorlage_id, leistung_vorlage_id, standard_haeufigkeit}]
+let raumgruppen = [];             // aktueller Bauzustand: [{vorlage_id, name, leistungen:[{vorlage_id, kategorie, name, haeufigkeit}]}]
+let localKeyZaehler = 0;
+
+function kategorienReihenfolge() {
+  const gesehen = [];
+  leistungenBibliothek.forEach(l => { if (!gesehen.includes(l.kategorie)) gesehen.push(l.kategorie); });
+  return gesehen;
+}
+
+function matrixWert(raumgruppeVorlageId, leistungVorlageId) {
+  if (!raumgruppeVorlageId) return null;
+  const eintrag = matrixVorlagen.find(m => m.raumgruppe_vorlage_id === raumgruppeVorlageId && m.leistung_vorlage_id === leistungVorlageId);
+  return eintrag ? eintrag.standard_haeufigkeit : null;
+}
+
+function befuelleKategorienListe() {
+  const dl = document.getElementById('kategorien-liste');
+  dl.innerHTML = kategorienReihenfolge().map(k => '<option value="' + escapeHtml(k) + '">').join('');
+}
+
+function renderRaumgruppeCard(rg, rgIndex) {
+  let html = '<div class="card" style="margin-bottom:16px;">';
+  html += '<div class="abschnitt-kopf"><h3 style="margin:0;">' + escapeHtml(rg.name) + '</h3>';
+  html += '<button type="button" class="icon-btn raumgruppe-entfernen-btn" data-rg="' + rgIndex + '" title="Raumgruppe entfernen">✕</button></div>';
+
+  kategorienReihenfolge().forEach(kategorie => {
+    const leistungenInKategorie = leistungenBibliothek.filter(l => l.kategorie === kategorie);
+    if (leistungenInKategorie.length === 0) return;
+    html += '<div class="leistungen-kategorie" style="margin-top:14px;"><h4 style="margin:0 0 6px 0;">' + escapeHtml(kategorie) + '</h4>';
+    leistungenInKategorie.forEach(l => {
+      const vorhanden = rg.leistungen.find(x => x.vorlage_id === l.id);
+      const checked = !!vorhanden;
+      const standard = matrixWert(rg.vorlage_id, l.id);
+      const haeufigkeit = vorhanden ? vorhanden.haeufigkeit : (standard || '1W');
+      html += '<div class="leistung-zeile" style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">';
+      html += '<label style="flex:1;"><input type="checkbox" class="leistung-checkbox" data-rg="' + rgIndex + '" data-leistung-id="' + l.id + '"' + (checked ? ' checked' : '') + '> ' + escapeHtml(l.name) + '</label>';
+      html += '<select class="leistung-haeufigkeit" data-rg="' + rgIndex + '" data-leistung-id="' + l.id + '"' + (checked ? '' : ' disabled') + '>' + haeufigkeitOptionen(haeufigkeit) + '</select>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  html += '<div class="leistung-zeile leistung-neu" style="margin-top:14px; border-top:1px dashed #ccc; padding-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">';
+  html += '<input type="text" class="neue-leistung-kategorie" list="kategorien-liste" placeholder="Kategorie (z.B. Boden)" style="flex:1; min-width:160px;">';
+  html += '<input type="text" class="neue-leistung-name" placeholder="Neue Leistung" style="flex:1; min-width:160px;">';
+  html += '<select class="neue-leistung-haeufigkeit">' + haeufigkeitOptionen('1W') + '</select>';
+  html += '<button type="button" class="btn small neue-leistung-hinzufuegen-btn" data-rg="' + rgIndex + '">+ Hinzufügen</button>';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
+}
+
+function renderRaumgruppen() {
+  befuelleKategorienListe();
+  const container = document.getElementById('raumgruppen-liste');
+  document.getElementById('raumgruppen-leer').style.display = raumgruppen.length === 0 ? 'block' : 'none';
+  container.innerHTML = raumgruppen.map((rg, i) => renderRaumgruppeCard(rg, i)).join('');
+}
+
+document.getElementById('raumgruppen-liste').addEventListener('click', (e) => {
+  const entfernenBtn = e.target.closest('.raumgruppe-entfernen-btn');
+  if (entfernenBtn) {
+    const idx = Number(entfernenBtn.dataset.rg);
+    if (confirm('Diese Raumgruppe aus dem Pflichtenheft entfernen?')) {
+      raumgruppen.splice(idx, 1);
+      renderRaumgruppen();
+    }
+    return;
+  }
+
+  const hinzufuegenBtn = e.target.closest('.neue-leistung-hinzufuegen-btn');
+  if (hinzufuegenBtn) {
+    const idx = Number(hinzufuegenBtn.dataset.rg);
+    const card = hinzufuegenBtn.closest('.card');
+    const kategorie = card.querySelector('.neue-leistung-kategorie').value.trim();
+    const name = card.querySelector('.neue-leistung-name').value.trim();
+    const haeufigkeit = card.querySelector('.neue-leistung-haeufigkeit').value;
+    if (!kategorie || !name) { alert('Bitte Kategorie und Name der neuen Leistung angeben.'); return; }
+
+    let l = leistungenBibliothek.find(x => x.name.toLowerCase() === name.toLowerCase() && x.kategorie.toLowerCase() === kategorie.toLowerCase());
+    if (!l) {
+      l = { id: 'neu-' + (localKeyZaehler++), kategorie, name, reihenfolge: leistungenBibliothek.length + 1, istNeu: true };
+      leistungenBibliothek.push(l);
+    }
+    raumgruppen[idx].leistungen = raumgruppen[idx].leistungen.filter(x => x.vorlage_id !== l.id);
+    raumgruppen[idx].leistungen.push({ vorlage_id: l.id, kategorie: l.kategorie, name: l.name, haeufigkeit });
+    renderRaumgruppen();
+  }
+});
+
+document.getElementById('raumgruppen-liste').addEventListener('change', (e) => {
+  if (e.target.classList.contains('leistung-checkbox')) {
+    const rgIndex = Number(e.target.dataset.rg);
+    const leistungId = e.target.dataset.leistungId;
+    const l = leistungenBibliothek.find(x => String(x.id) === String(leistungId));
+    const select = e.target.closest('.leistung-zeile').querySelector('.leistung-haeufigkeit');
+    if (e.target.checked) {
+      select.disabled = false;
+      if (!raumgruppen[rgIndex].leistungen.find(x => x.vorlage_id === l.id)) {
+        raumgruppen[rgIndex].leistungen.push({ vorlage_id: l.id, kategorie: l.kategorie, name: l.name, haeufigkeit: select.value });
+      }
+    } else {
+      select.disabled = true;
+      raumgruppen[rgIndex].leistungen = raumgruppen[rgIndex].leistungen.filter(x => x.vorlage_id !== l.id);
+    }
+    return;
+  }
+  if (e.target.classList.contains('leistung-haeufigkeit')) {
+    const rgIndex = Number(e.target.dataset.rg);
+    const leistungId = e.target.dataset.leistungId;
+    const eintrag = raumgruppen[rgIndex].leistungen.find(x => x.vorlage_id === leistungId);
+    if (eintrag) eintrag.haeufigkeit = e.target.value;
+  }
+});
+
+function befuelleRaumgruppenSelect() {
+  const select = document.getElementById('raumgruppe-vorlage-select');
+  const vorhandeneNamen = raumgruppen.map(r => r.name.toLowerCase());
+  select.innerHTML = '<option value="">— auswählen —</option>' +
+    raumgruppenBibliothek
+      .filter(rg => !vorhandeneNamen.includes(rg.name.toLowerCase()))
+      .map(rg => '<option value="' + rg.id + '">' + escapeHtml(rg.name) + '</option>')
+      .join('');
+}
+
+document.getElementById('raumgruppe-hinzufuegen-btn').addEventListener('click', () => {
+  befuelleRaumgruppenSelect();
+  document.getElementById('raumgruppe-auswahl').classList.remove('versteckt');
+});
+document.getElementById('raumgruppe-abbrechen-btn').addEventListener('click', () => {
+  document.getElementById('raumgruppe-auswahl').classList.add('versteckt');
+  document.getElementById('raumgruppe-neuer-name').value = '';
+});
+document.getElementById('raumgruppe-bestaetigen-btn').addEventListener('click', () => {
+  const vorlageId = document.getElementById('raumgruppe-vorlage-select').value;
+  const neuerName = document.getElementById('raumgruppe-neuer-name').value.trim();
+
+  let name, vorlage_id;
+  if (vorlageId) {
+    const vorlage = raumgruppenBibliothek.find(r => r.id === vorlageId);
+    name = vorlage.name; vorlage_id = vorlage.id;
+  } else if (neuerName) {
+    name = neuerName; vorlage_id = null;
+  } else {
+    alert('Bitte eine Raumgruppe aus der Bibliothek wählen oder einen neuen Namen eingeben.');
+    return;
+  }
+  if (raumgruppen.some(r => r.name.toLowerCase() === name.toLowerCase())) {
+    alert('Diese Raumgruppe ist schon im Pflichtenheft vorhanden.');
+    return;
+  }
+
+  const leistungen = [];
+  if (vorlage_id) {
+    matrixVorlagen.filter(m => m.raumgruppe_vorlage_id === vorlage_id).forEach(m => {
+      const l = leistungenBibliothek.find(x => x.id === m.leistung_vorlage_id);
+      if (l) leistungen.push({ vorlage_id: l.id, kategorie: l.kategorie, name: l.name, haeufigkeit: m.standard_haeufigkeit });
+    });
+  }
+
+  raumgruppen.push({ vorlage_id, name, leistungen });
+  document.getElementById('raumgruppe-neuer-name').value = '';
+  document.getElementById('raumgruppe-vorlage-select').value = '';
+  document.getElementById('raumgruppe-auswahl').classList.add('versteckt');
+  renderRaumgruppen();
+});
+
+document.getElementById('pflichtenheft-speichern-btn').addEventListener('click', async () => {
+  const status = document.getElementById('speicher-status');
+  const gesamtzahlLeistungen = raumgruppen.reduce((summe, r) => summe + r.leistungen.length, 0);
+  if (raumgruppen.length === 0 || gesamtzahlLeistungen === 0) {
+    alert('Bitte mindestens eine Raumgruppe mit mindestens einer Leistung hinzufügen, bevor du speicherst.');
+    return;
+  }
+
+  status.textContent = 'Wird gespeichert…';
+
+  // 1. Neue, noch nicht in der Bibliothek vorhandene Leistungen zuerst anlegen
+  const neueLeistungen = leistungenBibliothek.filter(l => l.istNeu);
+  if (neueLeistungen.length > 0) {
+    const { data: eingefuegt, error } = await supabaseClient
+      .from('leistungen_vorlagen')
+      .insert(neueLeistungen.map(l => ({ kategorie: l.kategorie, name: l.name, reihenfolge: l.reihenfolge })))
+      .select();
+    if (error) { status.textContent = 'Fehler beim Speichern der neuen Leistungen: ' + error.message; return; }
+    neueLeistungen.forEach((alt, i) => {
+      const neu = eingefuegt[i];
+      raumgruppen.forEach(rg => { rg.leistungen.forEach(le => { if (le.vorlage_id === alt.id) le.vorlage_id = neu.id; }); });
+      alt.id = neu.id;
+      alt.istNeu = false;
+    });
+  }
+
+  // 2. Neue, eigene Raumgruppen (kein Bibliothekseintrag) ebenfalls dauerhaft anlegen
+  for (const rg of raumgruppen.filter(r => !r.vorlage_id)) {
+    let vorhandene = raumgruppenBibliothek.find(x => x.name.toLowerCase() === rg.name.toLowerCase());
+    if (!vorhandene) {
+      const { data, error } = await supabaseClient
+        .from('raumgruppen_vorlagen')
+        .insert({ name: rg.name, reihenfolge: raumgruppenBibliothek.length + 1 })
+        .select()
+        .single();
+      if (error) { status.textContent = 'Fehler beim Speichern der neuen Raumgruppe: ' + error.message; return; }
+      vorhandene = data;
+      raumgruppenBibliothek.push(vorhandene);
+    }
+    rg.vorlage_id = vorhandene.id;
+  }
+
+  // 3. Bestehendes aktives Pflichtenheft dieser Liegenschaft archivieren
+  const { data: bestehend } = await supabaseClient
+    .from('pflichtenhefte')
+    .select('id, version')
+    .eq('property_id', propertyId)
+    .eq('status', 'aktiv')
+    .maybeSingle();
+
+  const naechsteVersion = bestehend ? bestehend.version + 1 : 1;
+  if (bestehend) {
+    const { error } = await supabaseClient.from('pflichtenhefte').update({ status: 'archiviert' }).eq('id', bestehend.id);
+    if (error) { status.textContent = 'Fehler beim Archivieren der alten Version: ' + error.message; return; }
+  }
+
+  // 4. Neues Pflichtenheft anlegen
+  const { data: neuesPflichtenheft, error: fehlerPflichtenheft } = await supabaseClient
+    .from('pflichtenhefte')
+    .insert({ property_id: propertyId, version: naechsteVersion, status: 'aktiv' })
+    .select()
+    .single();
+  if (fehlerPflichtenheft) { status.textContent = 'Fehler beim Anlegen: ' + fehlerPflichtenheft.message; return; }
+
+  // 5. Raumgruppen dieses Pflichtenhefts speichern
+  const { data: eingefuegteRaumgruppen, error: fehlerRaumgruppen } = await supabaseClient
+    .from('pflichtenheft_raumgruppen')
+    .insert(raumgruppen.map((rg, i) => ({ pflichtenheft_id: neuesPflichtenheft.id, name: rg.name, reihenfolge: i + 1 })))
+    .select();
+  if (fehlerRaumgruppen) { status.textContent = 'Fehler beim Speichern der Raumgruppen: ' + fehlerRaumgruppen.message; return; }
+
+  // 6. Alle Leistungen aller Raumgruppen speichern
+  const leistungenZeilen = [];
+  raumgruppen.forEach((rg, i) => {
+    const raumgruppeId = eingefuegteRaumgruppen[i].id;
+    rg.leistungen.forEach((le, j) => {
+      leistungenZeilen.push({
+        pflichtenheft_id: neuesPflichtenheft.id,
+        pflichtenheft_raumgruppe_id: raumgruppeId,
+        kategorie: le.kategorie,
+        name: le.name,
+        haeufigkeit: le.haeufigkeit,
+        reihenfolge: j + 1
+      });
+    });
+  });
+  const { error: fehlerLeistungen } = await supabaseClient.from('pflichtenheft_leistungen').insert(leistungenZeilen);
+  if (fehlerLeistungen) { status.textContent = 'Fehler beim Speichern der Leistungen: ' + fehlerLeistungen.message; return; }
+
+  status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ')';
+  setTimeout(() => { window.location.href = 'detail.html?id=' + kundeId; }, 1200);
+});
+
+async function ladeDaten() {
+  document.getElementById('zurueck-link').href = 'detail.html?id=' + kundeId;
+
+  const [{ data: kunde }, { data: liegenschaft }] = await Promise.all([
+    supabaseClient.from('customers').select('firma').eq('id', kundeId).single(),
+    supabaseClient.from('properties').select('name').eq('id', propertyId).single()
+  ]);
+  document.getElementById('info-kunde').textContent = kunde ? kunde.firma : '–';
+  document.getElementById('info-liegenschaft').textContent = liegenschaft ? liegenschaft.name : '–';
+  document.getElementById('titel').textContent = 'Pflichtenheft – ' + (liegenschaft ? liegenschaft.name : '');
+
+  const [{ data: rgVorlagen }, { data: lgVorlagen }, { data: matrix }] = await Promise.all([
+    supabaseClient.from('raumgruppen_vorlagen').select('*').order('reihenfolge'),
+    supabaseClient.from('leistungen_vorlagen').select('*').order('reihenfolge'),
+    supabaseClient.from('raumgruppe_leistung_vorlagen').select('*')
+  ]);
+  raumgruppenBibliothek = rgVorlagen || [];
+  leistungenBibliothek = lgVorlagen || [];
+  matrixVorlagen = matrix || [];
+
+  const { data: bestehendesPflichtenheft } = await supabaseClient
+    .from('pflichtenhefte')
+    .select('id, version')
+    .eq('property_id', propertyId)
+    .eq('status', 'aktiv')
+    .maybeSingle();
+
+  if (bestehendesPflichtenheft) {
+    document.getElementById('info-version').textContent = 'Version ' + bestehendesPflichtenheft.version;
+    const { data: gespeicherteRaumgruppen } = await supabaseClient
+      .from('pflichtenheft_raumgruppen')
+      .select('*')
+      .eq('pflichtenheft_id', bestehendesPflichtenheft.id)
+      .order('reihenfolge');
+
+    const raumgruppeIds = (gespeicherteRaumgruppen || []).map(r => r.id);
+    let gespeicherteLeistungen = [];
+    if (raumgruppeIds.length > 0) {
+      const { data } = await supabaseClient
+        .from('pflichtenheft_leistungen')
+        .select('*')
+        .in('pflichtenheft_raumgruppe_id', raumgruppeIds)
+        .order('reihenfolge');
+      gespeicherteLeistungen = data || [];
+    }
+
+    raumgruppen = (gespeicherteRaumgruppen || []).map(rg => {
+      const vorlage = raumgruppenBibliothek.find(v => v.name.toLowerCase() === rg.name.toLowerCase());
+      return {
+        vorlage_id: vorlage ? vorlage.id : null,
+        name: rg.name,
+        leistungen: gespeicherteLeistungen
+          .filter(le => le.pflichtenheft_raumgruppe_id === rg.id)
+          .map(le => {
+            const vorlageLeistung = leistungenBibliothek.find(v => v.name.toLowerCase() === le.name.toLowerCase() && v.kategorie.toLowerCase() === le.kategorie.toLowerCase());
+            return {
+              vorlage_id: vorlageLeistung ? vorlageLeistung.id : null,
+              kategorie: le.kategorie,
+              name: le.name,
+              haeufigkeit: le.haeufigkeit
+            };
+          })
+      };
+    });
+  } else {
+    document.getElementById('info-version').textContent = 'Noch keines – dies wird Version 1';
+    raumgruppen = [];
+  }
+
+  renderRaumgruppen();
+}
+
+(async function () {
+  if (!propertyId || !kundeId) {
+    document.body.innerHTML = '<div style="padding:40px; font-family:sans-serif;">Fehlender Link-Parameter. Bitte über den "Pflichtenheft"-Knopf in der Liegenschaften-Liste des Kunden öffnen.</div>';
+    return;
+  }
+  const admin = await sylegroRequireAdmin();
+  if (!admin) return;
+  await ladeDaten();
+})();
+</script>
+</body>
+</html>
