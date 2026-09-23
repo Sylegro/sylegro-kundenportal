@@ -94,11 +94,35 @@
               <div class="label">Überfällig</div>
               <div id="finanzen-ueberfaellig" style="font-size:1.4rem; font-weight:600; color:var(--color-danger);">–</div>
             </div>
+            <div>
+              <div class="label">Gesamtumsatz seit Kundenbeginn</div>
+              <div id="finanzen-lifetime" style="font-size:1.4rem; font-weight:600;">–</div>
+            </div>
           </div>
-          <h3>Umsatz (letzte 12 Monate)</h3>
+
+          <div class="info-grid" style="margin-bottom:24px;">
+            <div>
+              <div class="label">Durchschnittliche Zahlungsdauer</div>
+              <div id="finanzen-zahlungsdauer" style="font-size:1.1rem; font-weight:600;">–</div>
+            </div>
+            <div>
+              <div class="label">Überfällig im gewählten Zeitraum</div>
+              <div id="finanzen-ueberfaellig-anzahl" style="font-size:1.1rem; font-weight:600;">–</div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+            <h3 style="margin:0;">Umsatz</h3>
+            <div id="zeitraum-schalter">
+              <button type="button" class="btn small zeitraum-btn" data-monate="6">6 Monate</button>
+              <button type="button" class="btn small primary zeitraum-btn" data-monate="12">12 Monate</button>
+              <button type="button" class="btn small zeitraum-btn" data-monate="24">24 Monate</button>
+            </div>
+          </div>
           <div class="chart-wrap">
             <canvas id="umsatz-chart"></canvas>
           </div>
+          <p class="hint" style="margin-top:10px;">Die "Zahlungsdauer" ist eine Annäherung: Bexio liefert uns kein eigenes Zahlungsdatum, darum nehmen wir den Zeitpunkt, an dem eine Rechnung zuletzt als "Bezahlt" aktualisiert wurde.</p>
         </div>
 
         <div class="tab-panel hidden" data-tab="qualitaet">
@@ -408,21 +432,38 @@ document.getElementById('leistungen-speichern-btn').addEventListener('click', as
   ladeLeistungen();
 });
 
+let finanzenMonate = 12;
+
+function initZeitraumSchalter() {
+  document.querySelectorAll('.zeitraum-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.zeitraum-btn').forEach(b => b.classList.remove('primary'));
+      btn.classList.add('primary');
+      finanzenMonate = Number(btn.dataset.monate);
+      ladeFinanzen();
+    });
+  });
+}
+
 async function ladeFinanzen() {
   // Alles hier bezieht sich ausschliesslich auf den gerade geöffneten Kunden
   // (customer_id = kundeId) -- nicht auf den Gesamtumsatz der Firma.
-  const { data: rechnungen } = await supabaseClient
+  // bexio_raw wird zusätzlich geladen, um daraus eine Näherung des
+  // Zahlungsdatums abzuleiten (siehe Kommentar weiter unten).
+  const { data: rechnungenRoh } = await supabaseClient
     .from('invoices')
-    .select('betrag_brutto, datum, faellig_am, status')
+    .select('betrag_brutto, datum, faellig_am, status, bexio_raw')
     .eq('customer_id', kundeId);
 
-  // -- Kennzahlen: Ausstehend (alle offenen Rechnungen dieses Kunden) und
-  // Überfällig (davon jene, deren Fälligkeitsdatum schon vorbei ist) --
+  const alle = rechnungenRoh || [];
   const heute = new Date(); heute.setHours(0, 0, 0, 0);
-  let ausstehend = 0;
-  let ueberfaellig = 0;
-  (rechnungen || []).forEach(r => {
+
+  // -- Kennzahlen, die immer über die komplette Kundenhistorie gelten,
+  // unabhängig vom Zeitraum-Schalter unten --
+  let ausstehend = 0, ueberfaellig = 0, lifetimeUmsatz = 0;
+  alle.forEach(r => {
     const code = (r.status || '').replace('code_', '');
+    lifetimeUmsatz += Number(r.betrag_brutto || 0);
     if (code === '8') {
       ausstehend += Number(r.betrag_brutto || 0);
       if (r.faellig_am && new Date(r.faellig_am) < heute) {
@@ -432,39 +473,77 @@ async function ladeFinanzen() {
   });
   document.getElementById('finanzen-ausstehend').textContent = 'CHF ' + chf(ausstehend);
   document.getElementById('finanzen-ueberfaellig').textContent = 'CHF ' + chf(ueberfaellig);
+  document.getElementById('finanzen-lifetime').textContent = 'CHF ' + chf(lifetimeUmsatz);
 
-  // -- Umsatz-Chart: Betrag pro Monat, nach Rechnungsdatum (nicht Fälligkeit) --
-  const ctx = document.getElementById('umsatz-chart');
-  const monate = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
-    monate.push(d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }));
-  }
+  // -- Zahlungsverhalten, nur für Rechnungen mit Rechnungsdatum im gewählten
+  // Zeitraum. Bexio liefert kein eigenes "bezahlt am"-Datum -- als Näherung
+  // nehmen wir den Zeitpunkt der letzten Aktualisierung (bexio_raw.updated_at)
+  // bei Rechnungen, die aktuell als "Bezahlt" markiert sind. --
+  const periodenStart = new Date(heute.getFullYear(), heute.getMonth() - finanzenMonate + 1, 1);
+  const imZeitraum = alle.filter(r => r.datum && new Date(r.datum) >= periodenStart);
 
-  const werte = new Array(12).fill(0);
-  (rechnungen || []).forEach(r => {
-    if (!r.datum) return;
-    const d = new Date(r.datum);
-    const diffMonate = (heute.getFullYear() - d.getFullYear()) * 12 + (heute.getMonth() - d.getMonth());
-    if (diffMonate >= 0 && diffMonate < 12) {
-      werte[11 - diffMonate] += Number(r.betrag_brutto || 0);
+  let zahlungstageSumme = 0, zahlungstageAnzahl = 0, ueberfaelligAnzahl = 0;
+  imZeitraum.forEach(r => {
+    const code = (r.status || '').replace('code_', '');
+    const faellig = r.faellig_am ? new Date(r.faellig_am) : null;
+    if (code === '9' && r.bexio_raw && r.bexio_raw.updated_at && r.datum) {
+      const bezahltAm = new Date(r.bexio_raw.updated_at);
+      const rechnungsdatum = new Date(r.datum);
+      const tage = Math.round((bezahltAm - rechnungsdatum) / (1000 * 60 * 60 * 24));
+      if (tage >= 0) { zahlungstageSumme += tage; zahlungstageAnzahl++; }
+      if (faellig && bezahltAm > faellig) ueberfaelligAnzahl++;
+    } else if (code === '8' && faellig && faellig < heute) {
+      ueberfaelligAnzahl++;
     }
   });
+
+  document.getElementById('finanzen-zahlungsdauer').textContent =
+    zahlungstageAnzahl > 0 ? Math.round(zahlungstageSumme / zahlungstageAnzahl) + ' Tage im Schnitt' : 'Keine Daten';
+  document.getElementById('finanzen-ueberfaellig-anzahl').textContent =
+    ueberfaelligAnzahl + 'x in den letzten ' + finanzenMonate + ' Monaten';
+
+  // -- Umsatz-Chart: gewählter Zeitraum, plus Vorjahresvergleich (gleiche
+  // Kalendermonate, ein Jahr zuvor) --
+  const ctx = document.getElementById('umsatz-chart');
+  const monatsListe = [];
+  for (let i = finanzenMonate - 1; i >= 0; i--) {
+    const d = new Date(heute.getFullYear(), heute.getMonth() - i, 1);
+    monatsListe.push({ jahr: d.getFullYear(), monat: d.getMonth(), label: d.toLocaleDateString('de-CH', { month: 'short', year: '2-digit' }) });
+  }
+
+  function summeFuerMonatsListe(liste) {
+    return liste.map(m => {
+      return alle.reduce((summe, r) => {
+        if (!r.datum) return summe;
+        const d = new Date(r.datum);
+        if (d.getFullYear() === m.jahr && d.getMonth() === m.monat) {
+          return summe + Number(r.betrag_brutto || 0);
+        }
+        return summe;
+      }, 0);
+    });
+  }
+
+  const labels = monatsListe.map(m => m.label);
+  const werteAktuell = summeFuerMonatsListe(monatsListe);
+  const vorjahrListe = monatsListe.map(m => ({ jahr: m.jahr - 1, monat: m.monat }));
+  const werteVorjahr = summeFuerMonatsListe(vorjahrListe);
 
   if (umsatzChart) umsatzChart.destroy();
   umsatzChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: monate,
+      labels: labels,
       datasets: [
-        { label: 'Umsatz', data: werte, backgroundColor: '#1f6f5c' }
+        { label: 'Umsatz', data: werteAktuell, backgroundColor: '#1f6f5c' },
+        { label: 'Vorjahr (gleicher Monat)', data: werteVorjahr, backgroundColor: 'rgba(31, 111, 92, 0.35)' }
       ]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => ' Umsatz: CHF ' + chf(ctx.parsed.y) } }
+        legend: { display: true, position: 'bottom' },
+        tooltip: { callbacks: { label: (ctx) => ' ' + ctx.dataset.label + ': CHF ' + chf(ctx.parsed.y) } }
       },
       scales: {
         y: { ticks: { callback: (wert) => chf(wert) } }
@@ -753,6 +832,7 @@ document.getElementById('dok-hochladen-btn').addEventListener('click', async () 
   const admin = await sylegroRequireAdmin();
   if (!admin) return;
   initTabsScoped();
+  initZeitraumSchalter();
   await ladeKunde();
   await ladeKontakte();
   await ladeAngebote();
