@@ -78,6 +78,20 @@
       <button type="button" class="btn primary" id="pflichtenheft-speichern-btn">Pflichtenheft speichern</button>
       <span id="speicher-status" class="hint"></span>
     </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="abschnitt-kopf">
+        <h2 style="margin:0;">Bibliothek verwalten</h2>
+        <button type="button" class="btn small" id="bibliothek-toggle-btn">Anzeigen</button>
+      </div>
+      <p class="hint">Hier kannst du Raumgruppen, ganze Kategorien oder einzelne Leistungen dauerhaft aus der Bibliothek entfernen (z.B. Testeinträge) — sie werden dann künftig nirgends mehr vorgeschlagen. Bereits gespeicherte Pflichtenhefte sind davon nicht betroffen, da sie ihre Daten unabhängig speichern. Hinweis: Ist eine Leistung gerade oben in einer noch ungespeicherten Raumgruppe angehakt und du löschst sie hier, verschwindet sie sofort auch aus der Ansicht oben — speichere vorher, falls du sie behalten willst.</p>
+      <div id="bibliothek-panel" class="versteckt">
+        <h3>Raumgruppen</h3>
+        <div id="bibliothek-raumgruppen-liste"></div>
+        <h3 style="margin-top:20px;">Leistungen nach Kategorie</h3>
+        <div id="bibliothek-leistungen-liste"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -87,19 +101,46 @@
 <script src="../../assets/supabase-client.js"></script>
 <script src="../../assets/auth.js"></script>
 <script>
-const HAEUFIGKEIT_LABEL = {
-  '1W': 'Wöchentlich',
-  '1M': 'Monatlich',
-  '1J': 'Jährlich',
-  'EL': 'Eigenleistung (Kunde)',
-  'NB': 'Nach Bedarf',
-  'BE': 'Bestellung (separate Abrechnung)'
-};
+// Häufigkeit wird als Text gespeichert: entweder "<Anzahl><Einheit>", z.B. "2W" = 2x pro
+// Woche, "4M" = 4x pro Monat, "12M" = 12x pro Monat -- oder einer der drei Spezialfälle
+// ohne Anzahl (EL/NB/BE).
+const EINHEIT_LABEL = { W: 'pro Woche', M: 'pro Monat', J: 'pro Jahr' };
+const SPEZIAL_LABEL = { EL: 'Eigenleistung (Kunde)', NB: 'Nach Bedarf', BE: 'Bestellung (separate Abrechnung)' };
 
-function haeufigkeitOptionen(ausgewaehlt) {
-  return Object.keys(HAEUFIGKEIT_LABEL).map(code =>
-    '<option value="' + code + '"' + (code === ausgewaehlt ? ' selected' : '') + '>' + HAEUFIGKEIT_LABEL[code] + '</option>'
-  ).join('');
+function parseHaeufigkeit(code) {
+  if (SPEZIAL_LABEL[code]) return { anzahl: null, einheit: code };
+  const treffer = /^([0-9]+)([WMJ])$/.exec(code || '1W');
+  if (treffer) return { anzahl: Number(treffer[1]), einheit: treffer[2] };
+  return { anzahl: 1, einheit: 'W' };
+}
+
+function haeufigkeitCode(anzahl, einheit) {
+  if (SPEZIAL_LABEL[einheit]) return einheit;
+  return Math.max(1, Number(anzahl) || 1) + einheit;
+}
+
+function haeufigkeitAnzeige(code) {
+  const { anzahl, einheit } = parseHaeufigkeit(code);
+  if (SPEZIAL_LABEL[einheit]) return SPEZIAL_LABEL[einheit];
+  return anzahl + 'x ' + EINHEIT_LABEL[einheit];
+}
+
+// Baut das kleine Anzahl+Einheit-Steuerelement, z.B. [ 2 ] [ pro Woche v ]
+function haeufigkeitWidget(zusatzKlasse, code, extraAttrs, versteckt) {
+  const { anzahl, einheit } = parseHaeufigkeit(code);
+  const istSpezial = !!SPEZIAL_LABEL[einheit];
+  let html = '<span class="' + zusatzKlasse + '"' + (extraAttrs ? ' ' + extraAttrs : '') + ' style="display:' + (versteckt ? 'none' : 'inline-flex') + '; gap:4px; align-items:center; white-space:nowrap;">';
+  html += '<input type="number" min="1" step="1" class="haeufigkeit-anzahl" value="' + (anzahl || 1) + '" style="width:52px;"' + (istSpezial ? ' disabled' : '') + '>';
+  html += '<select class="haeufigkeit-einheit">';
+  html += '<option value="W"' + (einheit === 'W' ? ' selected' : '') + '>x pro Woche</option>';
+  html += '<option value="M"' + (einheit === 'M' ? ' selected' : '') + '>x pro Monat</option>';
+  html += '<option value="J"' + (einheit === 'J' ? ' selected' : '') + '>x pro Jahr</option>';
+  html += '<option value="EL"' + (einheit === 'EL' ? ' selected' : '') + '>' + SPEZIAL_LABEL.EL + '</option>';
+  html += '<option value="NB"' + (einheit === 'NB' ? ' selected' : '') + '>' + SPEZIAL_LABEL.NB + '</option>';
+  html += '<option value="BE"' + (einheit === 'BE' ? ' selected' : '') + '>' + SPEZIAL_LABEL.BE + '</option>';
+  html += '</select>';
+  html += '</span>';
+  return html;
 }
 
 function escapeHtml(text) {
@@ -151,7 +192,7 @@ function renderRaumgruppeCard(rg, rgIndex) {
       const haeufigkeit = vorhanden ? vorhanden.haeufigkeit : (standard || '1W');
       html += '<div class="leistung-zeile" style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">';
       html += '<label style="flex:1;"><input type="checkbox" class="leistung-checkbox" data-rg="' + rgIndex + '" data-leistung-id="' + l.id + '"' + (checked ? ' checked' : '') + '> ' + escapeHtml(l.name) + '</label>';
-      html += '<select class="leistung-haeufigkeit" data-rg="' + rgIndex + '" data-leistung-id="' + l.id + '"' + (checked ? '' : ' disabled') + '>' + haeufigkeitOptionen(haeufigkeit) + '</select>';
+      html += haeufigkeitWidget('leistung-haeufigkeit', haeufigkeit, 'data-rg="' + rgIndex + '" data-leistung-id="' + l.id + '"', !checked);
       html += '</div>';
     });
     html += '</div>';
@@ -160,7 +201,7 @@ function renderRaumgruppeCard(rg, rgIndex) {
   html += '<div class="leistung-zeile leistung-neu" style="margin-top:14px; border-top:1px dashed #ccc; padding-top:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">';
   html += '<input type="text" class="neue-leistung-kategorie" list="kategorien-liste" placeholder="Kategorie (z.B. Boden)" style="flex:1; min-width:160px;">';
   html += '<input type="text" class="neue-leistung-name" placeholder="Neue Leistung" style="flex:1; min-width:160px;">';
-  html += '<select class="neue-leistung-haeufigkeit">' + haeufigkeitOptionen('1W') + '</select>';
+  html += haeufigkeitWidget('neue-leistung-haeufigkeit', '1W');
   html += '<button type="button" class="btn small neue-leistung-hinzufuegen-btn" data-rg="' + rgIndex + '">+ Hinzufügen</button>';
   html += '</div>';
 
@@ -192,7 +233,8 @@ document.getElementById('raumgruppen-liste').addEventListener('click', (e) => {
     const card = hinzufuegenBtn.closest('.card');
     const kategorie = card.querySelector('.neue-leistung-kategorie').value.trim();
     const name = card.querySelector('.neue-leistung-name').value.trim();
-    const haeufigkeit = card.querySelector('.neue-leistung-haeufigkeit').value;
+    const widget = card.querySelector('.neue-leistung-haeufigkeit');
+    const haeufigkeit = haeufigkeitCode(widget.querySelector('.haeufigkeit-anzahl').value, widget.querySelector('.haeufigkeit-einheit').value);
     if (!kategorie || !name) { alert('Bitte Kategorie und Name der neuen Leistung angeben.'); return; }
 
     let l = leistungenBibliothek.find(x => x.name.toLowerCase() === name.toLowerCase() && x.kategorie.toLowerCase() === kategorie.toLowerCase());
@@ -211,23 +253,29 @@ document.getElementById('raumgruppen-liste').addEventListener('change', (e) => {
     const rgIndex = Number(e.target.dataset.rg);
     const leistungId = e.target.dataset.leistungId;
     const l = leistungenBibliothek.find(x => String(x.id) === String(leistungId));
-    const select = e.target.closest('.leistung-zeile').querySelector('.leistung-haeufigkeit');
+    const widget = e.target.closest('.leistung-zeile').querySelector('.leistung-haeufigkeit');
     if (e.target.checked) {
-      select.disabled = false;
+      widget.style.display = 'inline-flex';
+      const code = haeufigkeitCode(widget.querySelector('.haeufigkeit-anzahl').value, widget.querySelector('.haeufigkeit-einheit').value);
       if (!raumgruppen[rgIndex].leistungen.find(x => x.vorlage_id === l.id)) {
-        raumgruppen[rgIndex].leistungen.push({ vorlage_id: l.id, kategorie: l.kategorie, name: l.name, haeufigkeit: select.value });
+        raumgruppen[rgIndex].leistungen.push({ vorlage_id: l.id, kategorie: l.kategorie, name: l.name, haeufigkeit: code });
       }
     } else {
-      select.disabled = true;
+      widget.style.display = 'none';
       raumgruppen[rgIndex].leistungen = raumgruppen[rgIndex].leistungen.filter(x => x.vorlage_id !== l.id);
     }
     return;
   }
-  if (e.target.classList.contains('leistung-haeufigkeit')) {
-    const rgIndex = Number(e.target.dataset.rg);
-    const leistungId = e.target.dataset.leistungId;
+
+  const widget = e.target.closest('.leistung-haeufigkeit');
+  if (widget && (e.target.classList.contains('haeufigkeit-anzahl') || e.target.classList.contains('haeufigkeit-einheit'))) {
+    const anzahlInput = widget.querySelector('.haeufigkeit-anzahl');
+    const einheitSelect = widget.querySelector('.haeufigkeit-einheit');
+    anzahlInput.disabled = !!SPEZIAL_LABEL[einheitSelect.value];
+    const rgIndex = Number(widget.dataset.rg);
+    const leistungId = widget.dataset.leistungId;
     const eintrag = raumgruppen[rgIndex].leistungen.find(x => x.vorlage_id === leistungId);
-    if (eintrag) eintrag.haeufigkeit = e.target.value;
+    if (eintrag) eintrag.haeufigkeit = haeufigkeitCode(anzahlInput.value, einheitSelect.value);
   }
 });
 
@@ -376,6 +424,94 @@ document.getElementById('pflichtenheft-speichern-btn').addEventListener('click',
   setTimeout(() => { window.location.href = 'detail.html?id=' + kundeId; }, 1200);
 });
 
+async function ladeBibliothek() {
+  const [{ data: rgVorlagen }, { data: lgVorlagen }, { data: matrix }] = await Promise.all([
+    supabaseClient.from('raumgruppen_vorlagen').select('*').order('reihenfolge'),
+    supabaseClient.from('leistungen_vorlagen').select('*').order('reihenfolge'),
+    supabaseClient.from('raumgruppe_leistung_vorlagen').select('*')
+  ]);
+  raumgruppenBibliothek = rgVorlagen || [];
+  leistungenBibliothek = lgVorlagen || [];
+  matrixVorlagen = matrix || [];
+}
+
+function renderBibliothekPanel() {
+  const rgContainer = document.getElementById('bibliothek-raumgruppen-liste');
+  rgContainer.innerHTML = raumgruppenBibliothek.map(rg =>
+    '<div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #eee;">' +
+      '<span>' + escapeHtml(rg.name) + '</span>' +
+      '<button type="button" class="icon-btn bibliothek-raumgruppe-loeschen-btn" data-id="' + rg.id + '" title="Aus Bibliothek entfernen">✕</button>' +
+    '</div>'
+  ).join('') || '<p class="hint">Keine Raumgruppen in der Bibliothek.</p>';
+
+  const lgContainer = document.getElementById('bibliothek-leistungen-liste');
+  const kategorien = kategorienReihenfolge();
+  lgContainer.innerHTML = kategorien.length === 0 ? '<p class="hint">Keine Leistungen in der Bibliothek.</p>' : kategorien.map(kategorie => {
+    const zeilen = leistungenBibliothek.filter(l => l.kategorie === kategorie);
+    let html = '<div style="margin-top:12px;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
+    html += '<h4 style="margin:0;">' + escapeHtml(kategorie) + '</h4>';
+    html += '<button type="button" class="btn small bibliothek-kategorie-loeschen-btn" data-kategorie="' + escapeHtml(kategorie) + '">Ganze Kategorie löschen</button>';
+    html += '</div>';
+    zeilen.forEach(l => {
+      html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 0 3px 12px; border-bottom:1px solid #eee;">' +
+        '<span>' + escapeHtml(l.name) + '</span>' +
+        '<button type="button" class="icon-btn bibliothek-leistung-loeschen-btn" data-id="' + l.id + '" title="Aus Bibliothek entfernen">✕</button>' +
+      '</div>';
+    });
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+document.getElementById('bibliothek-toggle-btn').addEventListener('click', () => {
+  const panel = document.getElementById('bibliothek-panel');
+  const jetztVersteckt = panel.classList.toggle('versteckt');
+  document.getElementById('bibliothek-toggle-btn').textContent = jetztVersteckt ? 'Anzeigen' : 'Verbergen';
+  if (!jetztVersteckt) renderBibliothekPanel();
+});
+
+document.getElementById('bibliothek-panel').addEventListener('click', async (e) => {
+  const rgBtn = e.target.closest('.bibliothek-raumgruppe-loeschen-btn');
+  if (rgBtn) {
+    const rg = raumgruppenBibliothek.find(r => r.id === rgBtn.dataset.id);
+    if (!rg) return;
+    if (!confirm('Raumgruppe "' + rg.name + '" endgültig aus der Bibliothek entfernen?\n\nBereits gespeicherte Pflichtenhefte sind davon nicht betroffen.')) return;
+    const { error } = await supabaseClient.from('raumgruppen_vorlagen').delete().eq('id', rg.id);
+    if (error) { alert('Fehler beim Löschen: ' + error.message); return; }
+    await ladeBibliothek();
+    renderBibliothekPanel();
+    renderRaumgruppen();
+    return;
+  }
+
+  const lgBtn = e.target.closest('.bibliothek-leistung-loeschen-btn');
+  if (lgBtn) {
+    const l = leistungenBibliothek.find(x => x.id === lgBtn.dataset.id);
+    if (!l) return;
+    if (!confirm('Leistung "' + l.name + '" endgültig aus der Bibliothek entfernen?\n\nBereits gespeicherte Pflichtenhefte sind davon nicht betroffen.')) return;
+    const { error } = await supabaseClient.from('leistungen_vorlagen').delete().eq('id', l.id);
+    if (error) { alert('Fehler beim Löschen: ' + error.message); return; }
+    await ladeBibliothek();
+    renderBibliothekPanel();
+    renderRaumgruppen();
+    return;
+  }
+
+  const katBtn = e.target.closest('.bibliothek-kategorie-loeschen-btn');
+  if (katBtn) {
+    const kategorie = katBtn.dataset.kategorie;
+    const betroffene = leistungenBibliothek.filter(l => l.kategorie === kategorie);
+    if (betroffene.length === 0) return;
+    if (!confirm('Die ganze Kategorie "' + kategorie + '" mit allen ' + betroffene.length + ' Leistungen darin endgültig aus der Bibliothek entfernen?\n\nBereits gespeicherte Pflichtenhefte sind davon nicht betroffen.')) return;
+    const { error } = await supabaseClient.from('leistungen_vorlagen').delete().in('id', betroffene.map(l => l.id));
+    if (error) { alert('Fehler beim Löschen: ' + error.message); return; }
+    await ladeBibliothek();
+    renderBibliothekPanel();
+    renderRaumgruppen();
+  }
+});
+
 async function ladeDaten() {
   document.getElementById('zurueck-link').href = 'detail.html?id=' + kundeId;
 
@@ -387,14 +523,7 @@ async function ladeDaten() {
   document.getElementById('info-liegenschaft').textContent = liegenschaft ? liegenschaft.name : '–';
   document.getElementById('titel').textContent = 'Pflichtenheft – ' + (liegenschaft ? liegenschaft.name : '');
 
-  const [{ data: rgVorlagen }, { data: lgVorlagen }, { data: matrix }] = await Promise.all([
-    supabaseClient.from('raumgruppen_vorlagen').select('*').order('reihenfolge'),
-    supabaseClient.from('leistungen_vorlagen').select('*').order('reihenfolge'),
-    supabaseClient.from('raumgruppe_leistung_vorlagen').select('*')
-  ]);
-  raumgruppenBibliothek = rgVorlagen || [];
-  leistungenBibliothek = lgVorlagen || [];
-  matrixVorlagen = matrix || [];
+  await ladeBibliothek();
 
   const { data: bestehendesPflichtenheft } = await supabaseClient
     .from('pflichtenhefte')
