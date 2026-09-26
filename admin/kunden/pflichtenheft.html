@@ -539,25 +539,28 @@ async function erzeugePflichtenheftPdfBlob(version) {
 // Tabelle, gleiches Muster wie der manuelle Upload dort). Existiert für dieselbe Version schon
 // ein abgelegtes PDF (z.B. weil diese Version schon einmal korrigiert wurde), wird es ersetzt,
 // damit nicht mehrere PDFs derselben Version im Dokumente-Tab herumliegen.
+// Gibt { ok: true } zurück, oder { ok: false, fehler: '<Klartext-Fehlermeldung>' } -- damit die
+// genaue Ursache direkt im Status-Text angezeigt werden kann, ohne die Browser-Konsole öffnen zu müssen.
 async function speicherePdfAlsDokument(version) {
   try {
     const titel = 'Pflichtenheft – ' + (liegenschaftName || 'Liegenschaft') + ' (Version ' + version + ')';
     const blob = await erzeugePflichtenheftPdfBlob(version);
     const pfad = kundeId + '/' + Date.now() + '-pflichtenheft-v' + version + '.pdf';
 
-    const { data: vorhandene } = await supabaseClient
+    const { data: vorhandene, error: fehlerSuche } = await supabaseClient
       .from('documents')
       .select('id, datei_pfad')
       .eq('customer_id', kundeId)
       .eq('property_id', propertyId)
       .eq('titel', titel);
+    if (fehlerSuche) { return { ok: false, fehler: fehlerSuche.message || JSON.stringify(fehlerSuche) }; }
     if (vorhandene && vorhandene.length > 0) {
       await supabaseClient.storage.from('kunden-dokumente').remove(vorhandene.map(v => v.datei_pfad));
       await supabaseClient.from('documents').delete().in('id', vorhandene.map(v => v.id));
     }
 
     const { error: fehlerUpload } = await supabaseClient.storage.from('kunden-dokumente').upload(pfad, blob, { contentType: 'application/pdf' });
-    if (fehlerUpload) { console.error('PDF-Upload fehlgeschlagen:', fehlerUpload); return false; }
+    if (fehlerUpload) { return { ok: false, fehler: fehlerUpload.message || JSON.stringify(fehlerUpload) }; }
 
     const { error: fehlerEintrag } = await supabaseClient.from('documents').insert({
       customer_id: kundeId,
@@ -567,11 +570,10 @@ async function speicherePdfAlsDokument(version) {
       datei_pfad: pfad,
       hochgeladen_am: new Date().toISOString()
     });
-    if (fehlerEintrag) { console.error('Dokument-Eintrag fehlgeschlagen:', fehlerEintrag); return false; }
-    return true;
+    if (fehlerEintrag) { return { ok: false, fehler: fehlerEintrag.message || JSON.stringify(fehlerEintrag) }; }
+    return { ok: true };
   } catch (e) {
-    console.error('PDF-Erstellung fehlgeschlagen:', e);
-    return false;
+    return { ok: false, fehler: (e && e.message) ? e.message : String(e) };
   }
 }
 
@@ -715,9 +717,9 @@ document.getElementById('pflichtenheft-speichern-btn').addEventListener('click',
 
     bearbeitungsModus = null;
     status.textContent = 'Korrigiert! (weiterhin dieselbe Version, keine neue Version angelegt) – PDF wird aktualisiert…';
-    const pdfOkKorrektur = await speicherePdfAlsDokument(aktuelleVersion);
+    const pdfErgebnisKorrektur = await speicherePdfAlsDokument(aktuelleVersion);
     status.textContent = 'Korrigiert! (weiterhin dieselbe Version, keine neue Version angelegt)' +
-      (pdfOkKorrektur ? ' Das aktualisierte PDF liegt im Dokumente-Tab bereit.' : ' Achtung: Das PDF konnte nicht automatisch abgelegt werden.');
+      (pdfErgebnisKorrektur.ok ? ' Das aktualisierte PDF liegt im Dokumente-Tab bereit.' : ' Achtung: Das PDF konnte nicht automatisch abgelegt werden. Fehlermeldung: ' + pdfErgebnisKorrektur.fehler);
   } else {
     // 3. Bestehendes aktives Pflichtenheft dieser Liegenschaft archivieren
     const { data: bestehend } = await supabaseClient
@@ -770,9 +772,9 @@ document.getElementById('pflichtenheft-speichern-btn').addEventListener('click',
     aktuelleVersion = naechsteVersion;
     bearbeitungsModus = null;
     status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ') – PDF wird abgelegt…';
-    const pdfOkNeu = await speicherePdfAlsDokument(naechsteVersion);
+    const pdfErgebnisNeu = await speicherePdfAlsDokument(naechsteVersion);
     status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ')' +
-      (pdfOkNeu ? ' Das PDF liegt im Dokumente-Tab bereit.' : ' Achtung: Das PDF konnte nicht automatisch abgelegt werden.');
+      (pdfErgebnisNeu.ok ? ' Das PDF liegt im Dokumente-Tab bereit.' : ' Achtung: Das PDF konnte nicht automatisch abgelegt werden. Fehlermeldung: ' + pdfErgebnisNeu.fehler);
   }
 
   // Statt sofort wegzunavigieren: kurze Bestätigung mit der Möglichkeit, direkt noch etwas
