@@ -13,7 +13,11 @@
     <nav>
       <a href="../kunden/uebersicht.html" class="top-cat">Kunden</a>
 
-      <a href="uebersicht.html" class="top-cat active">Mitarbeiter</a>
+      <a href="uebersicht.html" class="top-cat">Mitarbeiter</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Mitarbeiter</a>
+      <a href="#" class="sub-item disabled">Funktionsfreigabe (bald)</a>
+      <a href="#" class="sub-item disabled">Stunden/Zeiten (bald)</a>
+      <a href="#" class="sub-item disabled">Mitarbeitergespräche (bald)</a>
 
       <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
     </nav>
