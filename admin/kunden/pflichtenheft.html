@@ -226,6 +226,40 @@ function setzeFuellfarbe(doc, hex) { doc.setFillColor(...hexZuRgb(hex)); }
 function setzeTextfarbe(doc, hex) { doc.setTextColor(...hexZuRgb(hex)); }
 function setzeLinienfarbe(doc, hex) { doc.setDrawColor(...hexZuRgb(hex)); }
 
+// Bricht Text robust auf eine gegebene Breite um -- WICHTIG: bricht nötigenfalls auch mitten in
+// einem einzelnen, sehr langen Wort (zeichenweise), statt es einfach über den Zeilenrand hinaus
+// stehen zu lassen. jsPDFs eigenes splitTextToSize() bricht nur an Leerzeichen um; ein einzelnes
+// langes Wort (z.B. eine lange Raumgruppen-Bezeichnung in einer schmalen Spalte) konnte dadurch
+// über die Spaltengrenze hinausragen und wurde von der Farbfläche der Nachbarspalte "abgeschnitten"
+// -- genau der von Eldin gemeldete Fehler. Diese Funktion garantiert: keine Zeile ist jemals
+// breiter als maxBreite, egal wie lang ein einzelnes Wort ist. Schriftart/-grösse müssen VOR dem
+// Aufruf per doc.setFont()/doc.setFontSize() gesetzt sein (wie bei doc.getTextWidth() üblich).
+function textUmbrechen(doc, text, maxBreite) {
+  const woerter = String(text == null ? '' : text).split(' ');
+  const zeilen = [];
+  let aktuell = '';
+  woerter.forEach(wort => {
+    const versuch = aktuell ? aktuell + ' ' + wort : wort;
+    if (!aktuell || doc.getTextWidth(versuch) <= maxBreite) {
+      aktuell = versuch;
+    } else {
+      zeilen.push(aktuell);
+      aktuell = wort;
+    }
+    // Passt das aktuelle Zeilenstück (z.B. ein einzelnes, zu langes Wort) für sich allein immer
+    // noch nicht in maxBreite, wird es zeichenweise weiter zerlegt (mit Trennstrich) -- so bleibt
+    // garantiert nichts breiter als sein Kasten, auch bei einem einzelnen sehr langen Wort.
+    while (aktuell.length > 1 && doc.getTextWidth(aktuell) > maxBreite) {
+      let schnitt = aktuell.length - 1;
+      while (schnitt > 1 && doc.getTextWidth(aktuell.substring(0, schnitt) + '-') > maxBreite) schnitt--;
+      zeilen.push(aktuell.substring(0, schnitt) + '-');
+      aktuell = aktuell.substring(schnitt);
+    }
+  });
+  if (aktuell) zeilen.push(aktuell);
+  return zeilen.length ? zeilen : [''];
+}
+
 // jsPDF kennt keinen echten Farbverlauf -- wird stattdessen aus vielen schmalen, farblich
 // interpolierten Streifen "nachgebaut" (gleicher Effekt wie der Blau-Grün-Balken im Sylegro-CI).
 function zeichneFarbverlaufBalken(doc, x, y, breite, hoehe, farbeVon, farbeBis, schritte) {
@@ -498,10 +532,12 @@ function renderVorschau() {
 
 // Erzeugt das fertige Pflichtenheft als PDF -- im Sylegro-Design (Markenfarben, Logo oben
 // rechts) und als kompakte Matrix (Raumgruppen als Spalten, Leistungen als Zeilen gruppiert
-// nach Kategorie), damit ein Pflichtenheft in aller Regel auf eine einzige Seite passt --
-// genau wie beim Beispiel-Pflichtenheft, an dem sich dieses Layout orientiert. Reicht der
-// Platz bei sehr umfangreichen Pflichtenheften ausnahmsweise nicht, wird automatisch eine
-// weitere Seite mit wiederholtem Spaltenkopf angehängt, statt Inhalt abzuschneiden.
+// nach Kategorie). Alle Texte werden IMMER innerhalb ihrer eigenen Spalte/Zelle umgebrochen
+// (nie breiter als ihr Kasten), und Schrift/Zeilenhöhen werden automatisch so weit verkleinert,
+// dass der Inhalt in aller Regel auf einer einzigen Seite Platz findet -- unabhängig davon, wie
+// viele Raumgruppen oder Leistungen ein Kunde hat. Nur wenn selbst die kleinstmögliche, noch
+// lesbare Schrift nicht ausreicht (sehr grosses Pflichtenheft), wird ausnahmsweise eine zweite
+// Seite mit wiederholtem Spaltenkopf angehängt, statt Inhalt abzuschneiden oder zu verzerren.
 async function erzeugePflichtenheftPdfBlob(version) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
@@ -509,13 +545,58 @@ async function erzeugePflichtenheftPdfBlob(version) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const marginLeft = 12, marginRight = 12, marginTop = 12, marginBottom = 12;
   const nameSpaltenBreite = 58;
+  const KOPFBLOCK_HOEHE_SEITE1 = 34; // Titel/Logo/Farbverlauf/Legende auf Seite 1 (siehe zeichneSeitenkopf)
+  const ZEILE_PRO_PT = 0.47; // Umrechnung Schriftgrösse -> Zeilenabstand in mm, empirisch abgestimmt
+  const MIN_SKALIERUNG = 0.55; // härtere Untergrenze, ab der die Schrift sonst unleserlich würde
 
   const zeilen = baueMatrixDaten();
   const anzahlSpalten = Math.max(raumgruppen.length, 1);
   const tabellenBreite = pageWidth - marginLeft - marginRight;
   const spaltenBreite = (tabellenBreite - nameSpaltenBreite) / anzahlSpalten;
-  const zeilenHoehe = 4.6;
-  const kategorieHoehe = 5.2;
+
+  const BASIS = { zeilenHoehe: 4.6, kategorieHoehe: 5.2, fontName: 7.6, fontCode: 7.4, fontKategorie: 8.2, fontSpaltenkopf: 7.3 };
+
+  // -- Schritt 1: benötigte Spaltenkopf-Höhe ermitteln (abhängig von der längsten Raumgruppen-Bezeichnung) --
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(BASIS.fontSpaltenkopf);
+  let maxKopfZeilen = 1;
+  raumgruppen.forEach(rg => {
+    const anzahlZeilen = textUmbrechen(doc, rg.name, spaltenBreite - 2).length;
+    maxKopfZeilen = Math.max(maxKopfZeilen, Math.min(anzahlZeilen, 4));
+  });
+  const kopfHoeheBasis = 4 + maxKopfZeilen * (BASIS.fontSpaltenkopf * ZEILE_PRO_PT) + 1.5;
+
+  // -- Schritt 2: benötigte Höhe JEDER einzelnen Zeile bei Basis-Schriftgrösse messen (ohne zu
+  // zeichnen) und dabei merken -- WICHTIG: die Skalierung wird später auf genau diese gemessenen
+  // Werte multipliziert (nicht neu berechnet), sonst würden feste "Innenabstände" in der Formel
+  // beim Verkleinern nicht mitschrumpfen und die Tabelle würde am Ende trotzdem nicht mehr ganz
+  // auf die Seite passen (genau das war der Grund, warum die letzte Zeile zuvor überstehen konnte).
+  doc.setFontSize(BASIS.fontName);
+  let benoetigteHoehe = 0;
+  let letzteKategorie = null;
+  const zeilenPlan = zeilen.map(zeile => {
+    const istNeueKategorie = zeile.kategorie !== letzteKategorie;
+    letzteKategorie = zeile.kategorie;
+    const namenZeilen = Math.max(textUmbrechen(doc, zeile.name, nameSpaltenBreite - 5).length, 1);
+    const hoeheBasis = Math.max(BASIS.zeilenHoehe, namenZeilen * BASIS.fontName * ZEILE_PRO_PT + 1.6);
+    benoetigteHoehe += (istNeueKategorie ? BASIS.kategorieHoehe : 0) + hoeheBasis;
+    return { zeile, istNeueKategorie, hoeheBasis };
+  });
+
+  // -- Schritt 3: verfügbare Höhe auf einer Seite ermitteln und Skalierungsfaktor bestimmen --
+  const verfuegbareHoehe = pageHeight - marginTop - KOPFBLOCK_HOEHE_SEITE1 - kopfHoeheBasis - marginBottom;
+  let skalierung = benoetigteHoehe > 0 ? Math.min(1, verfuegbareHoehe / benoetigteHoehe) : 1;
+  skalierung = Math.max(skalierung, MIN_SKALIERUNG);
+
+  const G = {
+    zeilenHoehe: BASIS.zeilenHoehe * skalierung,
+    kategorieHoehe: BASIS.kategorieHoehe * skalierung,
+    fontName: Math.max(5.2, BASIS.fontName * skalierung),
+    fontCode: Math.max(5.2, BASIS.fontCode * skalierung),
+    fontKategorie: Math.max(6, BASIS.fontKategorie * skalierung),
+    fontSpaltenkopf: Math.max(5.2, BASIS.fontSpaltenkopf * skalierung),
+    kopfHoehe: Math.max(8, kopfHoeheBasis * skalierung)
+  };
 
   let seitenBlockStartY = 0; // y-Position, ab der auf der aktuellen Seite die Tabellenumrandung gezeichnet werden muss
 
@@ -535,8 +616,8 @@ async function erzeugePflichtenheftPdfBlob(version) {
 
   // Zeichnet den Kopf einer Seite: auf Seite 1 mit Titel/Logo/Farbverlauf/Legende, auf
   // Folgeseiten kompakter (nur ein Hinweis "Fortsetzung"), danach in jedem Fall den
-  // Spaltenkopf der Matrix (Raumgruppen-Namen, farbig hinterlegt). Gibt die y-Position
-  // zurück, ab der die erste Datenzeile beginnt.
+  // Spaltenkopf der Matrix (Raumgruppen-Namen, farbig hinterlegt, textumbrochen). Gibt die
+  // y-Position zurück, ab der die erste Datenzeile beginnt.
   function zeichneSeitenkopf(istErsteSeite) {
     let y = marginTop;
 
@@ -581,9 +662,13 @@ async function erzeugePflichtenheftPdfBlob(version) {
       y += 6;
     }
 
-    // Spaltenkopf der Matrix
-    const kopfHoehe = 12;
+    // Spaltenkopf der Matrix -- jede Raumgruppen-Bezeichnung wird auf ihre eigene Spaltenbreite
+    // umgebrochen (nie breiter als die Spalte) und innerhalb der (automatisch bemessenen)
+    // Kopfzeilen-Höhe vertikal zentriert, statt an einer festen Höhe abgeschnitten zu werden.
+    const kopfHoehe = G.kopfHoehe;
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(G.fontSpaltenkopf);
+    const zeilenAbstandKopf = G.fontSpaltenkopf * ZEILE_PRO_PT;
     let sx = marginLeft + nameSpaltenBreite;
     for (let i = 0; i < anzahlSpalten; i++) {
       const rg = raumgruppen[i];
@@ -591,21 +676,21 @@ async function erzeugePflichtenheftPdfBlob(version) {
       setzeFuellfarbe(doc, farbe);
       doc.rect(sx, y, spaltenBreite, kopfHoehe, 'F');
       if (rg) {
-        doc.setFontSize(7.3);
         setzeTextfarbe(doc, FARBE_TEXT);
-        const zeilenText = doc.splitTextToSize(rg.name, spaltenBreite - 2).slice(0, 3);
-        let ty = y + 4;
+        const zeilenText = textUmbrechen(doc, rg.name, spaltenBreite - 2).slice(0, 4);
+        const blockHoehe = zeilenText.length * zeilenAbstandKopf;
+        let ty = y + (kopfHoehe - blockHoehe) / 2 + zeilenAbstandKopf * 0.75;
         zeilenText.forEach(zeile => {
           const breite = doc.getTextWidth(zeile);
-          doc.text(zeile, sx + (spaltenBreite - breite) / 2, ty);
-          ty += 3.4;
+          doc.text(zeile, sx + Math.max(0, (spaltenBreite - breite) / 2), ty);
+          ty += zeilenAbstandKopf;
         });
       }
       sx += spaltenBreite;
     }
     setzeFuellfarbe(doc, FARBE_KATEGORIE_BAND);
     doc.rect(marginLeft, y, nameSpaltenBreite, kopfHoehe, 'F');
-    doc.setFontSize(8);
+    doc.setFontSize(Math.max(G.fontSpaltenkopf, 7));
     setzeTextfarbe(doc, FARBE_TEXT);
     doc.text('Leistung', marginLeft + 2, y + kopfHoehe / 2 + 1.2);
 
@@ -633,12 +718,22 @@ async function erzeugePflichtenheftPdfBlob(version) {
     zeichneTabellenrahmenAufSeite(seitenBlockStartY, y);
   } else {
     let aktuelleKategorie = null;
+    const zeilenAbstandName = G.fontName * ZEILE_PRO_PT;
 
-    zeilen.forEach(zeile => {
+    zeilenPlan.forEach(plan => {
+      const zeile = plan.zeile;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(G.fontName);
+      // Immer vollständig umbrechen statt nur die erste Zeile zu zeigen -- so geht bei langen
+      // Leistungsnamen nie Text verloren, und nichts ragt über den Namen-Spaltenrand hinaus.
+      const nameZeilen = textUmbrechen(doc, zeile.name, nameSpaltenBreite - 5);
+      // Zeilenhöhe = die in Schritt 2 GEMESSENE Basis-Höhe dieser Zeile, mit dem Skalierungsfaktor
+      // multipliziert -- nicht neu berechnet -- damit Mass und Zeichnung immer exakt zusammenpassen.
+      const zeilenHoeheAktuell = plan.hoeheBasis * skalierung;
       const brauchtKategorieBand = zeile.kategorie !== aktuelleKategorie;
-      const benoetigteHoehe = (brauchtKategorieBand ? kategorieHoehe : 0) + zeilenHoehe;
+      const benoetigteHoeheHier = (brauchtKategorieBand ? G.kategorieHoehe : 0) + zeilenHoeheAktuell;
 
-      if (y + benoetigteHoehe > pageHeight - marginBottom) {
+      if (y + benoetigteHoeheHier > pageHeight - marginBottom) {
         zeichneTabellenrahmenAufSeite(seitenBlockStartY, y);
         doc.addPage();
         y = zeichneSeitenkopf(false);
@@ -647,39 +742,46 @@ async function erzeugePflichtenheftPdfBlob(version) {
 
       if (zeile.kategorie !== aktuelleKategorie) {
         setzeFuellfarbe(doc, FARBE_KATEGORIE_BAND);
-        doc.rect(marginLeft, y, tabellenBreite, kategorieHoehe, 'F');
+        doc.rect(marginLeft, y, tabellenBreite, G.kategorieHoehe, 'F');
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.2);
+        doc.setFontSize(G.fontKategorie);
         setzeTextfarbe(doc, FARBE_TEXT);
-        doc.text(zeile.kategorie, marginLeft + 2, y + kategorieHoehe - 1.6);
-        y += kategorieHoehe;
+        // Sicherheitsnetz: auch die Kategorie-Überschrift wird auf die volle Tabellenbreite
+        // umgebrochen statt frei zu "schweben" -- bei realistischen Kategorienamen reicht das
+        // immer für eine Zeile, bei einem sehr langen Namen bricht sie sauber um.
+        const katZeilen = textUmbrechen(doc, zeile.kategorie, tabellenBreite - 4);
+        doc.text(katZeilen[0], marginLeft + 2, y + G.kategorieHoehe - 1.6);
+        y += G.kategorieHoehe;
         aktuelleKategorie = zeile.kategorie;
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.6);
+      doc.setFontSize(G.fontName);
       setzeTextfarbe(doc, FARBE_TEXT);
-      const nameZeilen = doc.splitTextToSize(zeile.name, nameSpaltenBreite - 5);
-      doc.text(nameZeilen[0], marginLeft + 3, y + zeilenHoehe - 1.4);
+      let ny = y + zeilenAbstandName + 0.4;
+      nameZeilen.forEach(nz => {
+        doc.text(nz, marginLeft + 3, ny);
+        ny += zeilenAbstandName;
+      });
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.4);
+      doc.setFontSize(G.fontCode);
       setzeTextfarbe(doc, FARBE_BLAU);
       let cx = marginLeft + nameSpaltenBreite;
       raumgruppen.forEach(rg => {
         const code = matrixZelle(zeile.kategorie, zeile.name, rg);
         if (code) {
           const breite = doc.getTextWidth(code);
-          doc.text(code, cx + (spaltenBreite - breite) / 2, y + zeilenHoehe - 1.4);
+          doc.text(code, cx + Math.max(0, (spaltenBreite - breite) / 2), y + zeilenHoeheAktuell - 1.4);
         }
         cx += spaltenBreite;
       });
 
       setzeLinienfarbe(doc, FARBE_LINIE);
       doc.setLineWidth(0.2);
-      doc.line(marginLeft, y + zeilenHoehe, marginLeft + tabellenBreite, y + zeilenHoehe);
+      doc.line(marginLeft, y + zeilenHoeheAktuell, marginLeft + tabellenBreite, y + zeilenHoeheAktuell);
 
-      y += zeilenHoehe;
+      y += zeilenHoeheAktuell;
     });
 
     zeichneTabellenrahmenAufSeite(seitenBlockStartY, y);
