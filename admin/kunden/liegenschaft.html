@@ -37,6 +37,7 @@
         <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
         <button class="tab-btn" data-tab="dokumente">Dokumente</button>
         <button class="tab-btn" data-tab="schluessel">Schlüssel</button>
+        <button class="tab-btn" data-tab="mitarbeiter">Mitarbeiter</button>
         <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
       </div>
 
@@ -71,6 +72,12 @@
           <tbody id="schluessel-tabelle"></tbody>
         </table>
         <p class="hint" id="schluessel-leer" style="display:none;">Noch keine Schlüssel zu dieser Liegenschaft.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="mitarbeiter">
+        <p class="hint">Nur die hier ausgewählten Sylegro-Mitarbeiter stehen dem Kunden im Portal zur Auswahl, wenn er angibt, mit wem er eine Qualitätskontrolle für diese Liegenschaft gemeinsam durchgeführt hat.</p>
+        <div id="mitarbeiter-liste"></div>
+        <p class="hint" id="mitarbeiter-leer" style="display:none;">Es wurden noch keine Sylegro-Mitarbeiter-Logins gefunden.</p>
       </div>
 
       <div class="tab-panel hidden" data-tab="qualitaet">
@@ -152,6 +159,43 @@ async function ladeSchluessel() {
   });
 }
 
+// Zeigt alle Sylegro-Mitarbeiter-Logins (profiles mit role='admin') mit einem An/Aus-Schalter
+// "zuständig für diese Liegenschaft" -- gleiche Idee wie die Freigabe-Funktion bei den
+// Kunden-Kontakten im Kundenprofil, nur hier auf Liegenschafts-Ebene statt Kunden-Ebene.
+async function ladeMitarbeiterZuweisung() {
+  const [{ data: alleAdmins }, { data: zugewiesen }] = await Promise.all([
+    supabaseClient.from('profiles').select('id, display_name').eq('role', 'admin').order('display_name'),
+    supabaseClient.from('property_mitarbeiter').select('profile_id').eq('property_id', liegenschaftId)
+  ]);
+  const zugewieseneIds = (zugewiesen || []).map(z => z.profile_id);
+
+  const liste = document.getElementById('mitarbeiter-liste');
+  liste.innerHTML = '';
+  document.getElementById('mitarbeiter-leer').style.display = (alleAdmins && alleAdmins.length > 0) ? 'none' : 'block';
+
+  (alleAdmins || []).forEach(a => {
+    const label = document.createElement('label');
+    label.style.display = 'block';
+    label.style.padding = '5px 0';
+    label.innerHTML =
+      '<input type="checkbox" class="mitarbeiter-checkbox" data-id="' + a.id + '"' + (zugewieseneIds.includes(a.id) ? ' checked' : '') + '> ' +
+      (a.display_name || 'Unbenannt');
+    liste.appendChild(label);
+  });
+
+  liste.querySelectorAll('.mitarbeiter-checkbox').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      cb.disabled = true;
+      if (cb.checked) {
+        await supabaseClient.from('property_mitarbeiter').insert({ property_id: liegenschaftId, profile_id: cb.dataset.id });
+      } else {
+        await supabaseClient.from('property_mitarbeiter').delete().eq('property_id', liegenschaftId).eq('profile_id', cb.dataset.id);
+      }
+      cb.disabled = false;
+    });
+  });
+}
+
 (async function () {
   const admin = await sylegroRequireAdmin();
   if (!admin) return;
@@ -159,6 +203,7 @@ async function ladeSchluessel() {
   await ladeLiegenschaft();
   await ladeDokumente();
   await ladeSchluessel();
+  await ladeMitarbeiterZuweisung();
 })();
 </script>
 </body>
