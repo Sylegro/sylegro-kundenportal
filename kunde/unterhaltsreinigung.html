@@ -5,6 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Unterhaltsreinigung | Sylegro Kundenportal</title>
 <link rel="stylesheet" href="../assets/style.css">
+<style>
+  .qk-raumgruppe-card { margin-bottom: 18px; }
+  .qk-kategorie-titel { font-weight: 700; margin: 16px 0 8px 0; }
+  .qk-kategorie-titel:first-child { margin-top: 0; }
+  .qk-leistung-zeile { padding: 12px 0; border-bottom: 1px dotted var(--color-border); }
+  .qk-leistung-zeile:last-child { border-bottom: none; }
+  .qk-leistung-name { font-weight: 600; margin-bottom: 8px; }
+  .qk-bewertung-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  .qk-bewertung-btn {
+    padding: 7px 14px; border-radius: 999px; border: 1px solid var(--color-border);
+    background: var(--color-surface); cursor: pointer; font-size: 0.85rem; color: var(--color-text);
+  }
+  .qk-bewertung-btn.aktiv[data-wert="sehr_zufrieden"] { background: var(--color-success); border-color: var(--color-success); color: #fff; }
+  .qk-bewertung-btn.aktiv[data-wert="zufrieden"] { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+  .qk-bewertung-btn.aktiv[data-wert="weniger_zufrieden"] { background: var(--color-warning); border-color: var(--color-warning); color: #fff; }
+  .qk-bewertung-btn.aktiv[data-wert="nicht_zufrieden"] { background: var(--color-danger); border-color: var(--color-danger); color: #fff; }
+  .qk-zusatzfelder { margin-top: 10px; display: none; }
+  .qk-zusatzfelder.sichtbar { display: block; }
+  .qk-zusatzfelder textarea { width: 100%; min-height: 60px; margin-bottom: 8px; }
+  .qk-leistung-zeile.fehlt { background: var(--color-danger-bg); border-radius: 8px; padding-left: 8px; padding-right: 8px; }
+  .qk-score-box {
+    display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: var(--radius);
+    background: var(--color-primary-bg); border: 1px solid var(--color-primary-border); margin-bottom: 16px;
+  }
+  .qk-score-zahl { font-size: 1.6rem; font-weight: 700; color: var(--color-primary-dark); }
+  .qk-detail-zeile.hidden { display: none; }
+</style>
 </head>
 <body>
 <div class="app-shell">
@@ -28,31 +55,86 @@
     </div>
   </aside>
   <main class="main">
-    <div class="topbar"><h1>Unterhaltsreinigung – Musterstrasse 12</h1></div>
+    <div class="topbar"><h1 id="titel">Unterhaltsreinigung</h1></div>
 
-    <div class="card">
-      <h2>Reinigungsqualität</h2>
-      <p class="hint">Bewertung der letzten Einsätze durch dich bzw. gemeinsam mit Sylegro.</p>
-      <table>
-        <thead><tr><th>Datum</th><th>Bewertung</th><th>Kommentar</th></tr></thead>
-        <tbody>
-          <tr><td>15.09.2026</td><td>★★★★★</td><td>—</td></tr>
-          <tr><td>08.09.2026</td><td>★★★★☆</td><td>Bodenfleck im Empfang nachgebessert</td></tr>
-        </tbody>
-      </table>
-      <div style="margin-top:14px;"><a class="btn primary" href="#">Letzten Einsatz bewerten</a></div>
+    <div class="card" id="liegenschaft-auswahl-card" style="display:none; margin-bottom:16px;">
+      <label>Liegenschaft</label>
+      <select id="liegenschaft-auswahl"></select>
     </div>
 
-    <div class="card">
-      <h2>Eingesetzte Mitarbeiter</h2>
-      <div class="photo-grid">
-        <div class="photo">Foto<br>M. Rossi</div>
-        <div class="photo">Foto<br>A. Hodžić</div>
+    <div id="keine-liegenschaft-hinweis" class="wip-note" style="display:none;">
+      Für dich ist noch keine Liegenschaft mit Unterhaltsreinigung hinterlegt.
+    </div>
+
+    <div id="hauptbereich" style="display:none;">
+      <div class="card">
+        <h2 style="margin:0 0 6px 0;">Reinigungsqualität</h2>
+        <p class="hint">Bisherige Qualitätskontrollen dieser Liegenschaft.</p>
+        <div class="qk-grundriss-zeile" style="margin-bottom:14px;">
+          <button type="button" class="btn small" id="grundriss-oeffnen-btn" style="display:none;">Grundrissplan öffnen</button>
+        </div>
+        <table>
+          <thead><tr><th>Datum</th><th>Score</th><th>Durchgeführt von</th><th></th></tr></thead>
+          <tbody id="kontrollen-tabelle"></tbody>
+        </table>
+        <p class="hint" id="kontrollen-leer" style="display:none;">Noch keine Qualitätskontrollen durchgeführt.</p>
       </div>
-    </div>
 
-    <div class="wip-note">
-      Geplant: Foto-Qualitätsnachweise pro Einsatz sowie Möglichkeit, Reinigungsqualität direkt hier zu erfassen (selbständig oder gemeinsam mit Sylegro).
+      <div id="keine-freigabe-hinweis" class="wip-note" style="display:none;">
+        Du bist aktuell noch nicht freigegeben, um selbst Qualitätskontrollen durchzuführen. Wende dich dafür an Sylegro.
+      </div>
+
+      <div id="neue-kontrolle-bereich" style="display:none;">
+        <div class="card" style="margin-top:16px;">
+          <div class="abschnitt-kopf">
+            <h2 style="margin:0;">Neue Qualitätskontrolle</h2>
+          </div>
+          <div class="form-grid">
+            <div>
+              <label>Datum</label>
+              <input type="date" id="kontrolle-datum">
+            </div>
+            <div>
+              <label>Von dir</label>
+              <div id="kunde-name-anzeige" style="padding-top:6px; font-weight:600;">–</div>
+            </div>
+            <div>
+              <label>Durchgeführt</label>
+              <select id="kontrolle-gemeinsam-auswahl">
+                <option value="alleine">Alleine</option>
+                <option value="gemeinsam">Gemeinsam mit Sylegro</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid" id="sylegro-person-zeile" style="display:none; margin-top:12px;">
+            <div>
+              <label>Sylegro-Mitarbeiter</label>
+              <select id="sylegro-person-auswahl"><option value="">— auswählen —</option></select>
+              <p class="hint" id="sylegro-person-leer-hinweis" style="display:none;">Für diese Liegenschaft sind noch keine Sylegro-Mitarbeiter hinterlegt. Wende dich dafür an Sylegro.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="qk-score-box">
+          <div class="qk-score-zahl" id="qk-score-anzeige">–</div>
+          <div class="hint">Gesamt-Score über alle bewerteten Leistungen (aktualisiert sich automatisch, sobald alle Leistungen bewertet sind).</div>
+        </div>
+
+        <div id="raumgruppen-liste"></div>
+
+        <div style="margin:20px 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <button type="button" class="btn primary" id="kontrolle-speichern-btn">Kontrolle speichern</button>
+          <span id="speicher-status" class="hint"></span>
+        </div>
+
+        <div id="nach-speichern-optionen" class="versteckt" style="margin:0 0 20px 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <button type="button" class="btn primary" id="fertig-btn">Fertig</button>
+        </div>
+      </div>
+
+      <div id="kein-pflichtenheft-hinweis" class="wip-note" style="display:none;">
+        Für diese Liegenschaft existiert noch kein Pflichtenheft. Eine Qualitätskontrolle ist erst möglich, sobald Sylegro eines hinterlegt hat.
+      </div>
     </div>
   </main>
 </div>
@@ -61,12 +143,433 @@
 <script src="../assets/supabase-client.js"></script>
 <script src="../assets/auth.js"></script>
 <script>
-  (async function () {
-    const kunde = await sylegroRequireLogin();
-    if (!kunde) return;
-    if (!sylegroRequireService(kunde, 'uhr')) return;
-    sylegroApplyNavVisibility(kunde);
-  })();
+// Punktewerte für die Gesamt-Score-Berechnung (gleiche Werte wie im Admin-Formular).
+const SCORE_WERT = { sehr_zufrieden: 100, zufrieden: 90, weniger_zufrieden: 60, nicht_zufrieden: 20 };
+const BEWERTUNG_LABEL = {
+  sehr_zufrieden: 'Sehr zufrieden', zufrieden: 'Zufrieden',
+  weniger_zufrieden: 'Weniger zufrieden', nicht_zufrieden: 'Nicht zufrieden'
+};
+const BEWERTUNG_REIHENFOLGE = ['sehr_zufrieden', 'zufrieden', 'weniger_zufrieden', 'nicht_zufrieden'];
+const QK_TYP_LABEL = { sylegro: 'Sylegro', kunde: 'Kunde', gemeinsam: 'Gemeinsam' };
+
+let kundeKontext = null;       // Rückgabe von sylegroRequireLogin()
+let meinProfil = null;         // { id, display_name, kann_qualitaetskontrolle }
+let ausgewaehltePropertyId = null;
+let grundrissplanPfad = null;
+let aktivesPflichtenheftId = null;
+let raumgruppenListe = [];
+let bewertungen = {};
+let qualitaetBewertungenCache = {};
+
+function leistungKey(raumgruppeName, kategorie, leistungName) {
+  return raumgruppeName + '|||' + kategorie + '|||' + leistungName;
+}
+
+function qkScoreFarbe(score) {
+  if (score === null || score === undefined) return 'var(--color-text-muted)';
+  if (score >= 90) return 'var(--color-success)';
+  if (score >= 60) return 'var(--color-warning)';
+  return 'var(--color-danger)';
+}
+
+document.getElementById('kontrolle-gemeinsam-auswahl').addEventListener('change', (e) => {
+  document.getElementById('sylegro-person-zeile').style.display = (e.target.value === 'gemeinsam') ? 'block' : 'none';
+});
+
+async function ladeSylegroPersonen() {
+  // Nur die Sylegro-Mitarbeiter, die auf der Liegenschaft-Detailseite (Tab "Mitarbeiter")
+  // ausdrücklich dieser Liegenschaft zugewiesen wurden -- nicht alle Sylegro-Logins.
+  const { data: zuweisungen } = await supabaseClient
+    .from('property_mitarbeiter')
+    .select('profile_id, profiles(display_name)')
+    .eq('property_id', ausgewaehltePropertyId);
+  const auswahl = (zuweisungen || []).map(z => ({ id: z.profile_id, name: (z.profiles && z.profiles.display_name) || 'Sylegro' }));
+  const select = document.getElementById('sylegro-person-auswahl');
+  select.innerHTML = '<option value="">— auswählen —</option>' + auswahl.map(a => '<option value="' + a.id + '">' + a.name + '</option>').join('');
+  document.getElementById('sylegro-person-leer-hinweis').style.display = auswahl.length === 0 ? 'block' : 'none';
+}
+
+async function ladeGrundrissStatus() {
+  const { data: liegenschaft } = await supabaseClient.from('properties').select('grundrissplan_pfad').eq('id', ausgewaehltePropertyId).single();
+  grundrissplanPfad = liegenschaft ? liegenschaft.grundrissplan_pfad : null;
+  document.getElementById('grundriss-oeffnen-btn').style.display = grundrissplanPfad ? 'inline-block' : 'none';
+}
+
+document.getElementById('grundriss-oeffnen-btn').addEventListener('click', async () => {
+  if (!grundrissplanPfad) return;
+  const { data, error } = await supabaseClient.storage.from('grundrissplaene').createSignedUrl(grundrissplanPfad, 300);
+  if (error || !data) { alert('Grundrissplan konnte nicht geöffnet werden.'); return; }
+  window.open(data.signedUrl, '_blank');
+});
+
+function berechneGesamtScore() {
+  const bewertet = Object.values(bewertungen).filter(b => b.bewertung);
+  if (bewertet.length === 0) return null;
+  const summe = bewertet.reduce((acc, b) => acc + SCORE_WERT[b.bewertung], 0);
+  return Math.round((summe / bewertet.length) * 10) / 10;
+}
+
+function aktualisiereScoreAnzeige() {
+  const gesamt = Object.keys(bewertungen).length;
+  const bewertet = Object.values(bewertungen).filter(b => b.bewertung).length;
+  const score = berechneGesamtScore();
+  const anzeige = document.getElementById('qk-score-anzeige');
+  anzeige.textContent = score === null ? '–' : score + '%' + (bewertet < gesamt ? ' (bisher ' + bewertet + ' von ' + gesamt + ')' : '');
+}
+
+function renderRaumgruppen() {
+  const container = document.getElementById('raumgruppen-liste');
+  container.innerHTML = '';
+  raumgruppenListe.forEach(rg => {
+    const card = document.createElement('div');
+    card.className = 'card qk-raumgruppe-card';
+    let html = '<h3 style="margin:0 0 10px 0;">' + rg.name + '</h3>';
+    rg.kategorien.forEach(kat => {
+      html += '<div class="qk-kategorie-titel">' + kat.kategorie + '</div>';
+      kat.leistungen.forEach(le => {
+        const b = bewertungen[le.key];
+        html +=
+          '<div class="qk-leistung-zeile" data-key="' + le.key + '">' +
+          '<div class="qk-leistung-name">' + le.name + '</div>' +
+          '<div class="qk-bewertung-buttons">' +
+          BEWERTUNG_REIHENFOLGE.map(w =>
+            '<button type="button" class="qk-bewertung-btn' + (b.bewertung === w ? ' aktiv' : '') + '" data-key="' + le.key + '" data-wert="' + w + '">' + BEWERTUNG_LABEL[w] + '</button>'
+          ).join('') +
+          '</div>' +
+          '<div class="qk-zusatzfelder' + ((b.bewertung === 'weniger_zufrieden' || b.bewertung === 'nicht_zufrieden') ? ' sichtbar' : '') + '" data-key="' + le.key + '">' +
+          '<textarea placeholder="Bemerkung (Pflichtfeld bei dieser Bewertung) — was genau war nicht in Ordnung?" data-key="' + le.key + '">' + (b.bemerkung || '') + '</textarea>' +
+          '</div>' +
+          '<div style="margin-top:6px;">' +
+          '<label class="btn small" style="cursor:pointer;">' + (b.fotoName ? 'Foto: ' + b.fotoName + ' (ändern)' : 'Foto hinzufügen (optional)') +
+          '<input type="file" accept="image/*" data-key="' + le.key + '" class="qk-foto-input" style="display:none;">' +
+          '</label>' +
+          '</div>' +
+          '</div>';
+      });
+    });
+    card.innerHTML = html;
+    container.appendChild(card);
+  });
+
+  container.querySelectorAll('.qk-bewertung-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.key;
+      const wert = btn.dataset.wert;
+      bewertungen[key].bewertung = (bewertungen[key].bewertung === wert) ? null : wert;
+      renderRaumgruppen();
+      aktualisiereScoreAnzeige();
+    });
+  });
+  container.querySelectorAll('textarea[data-key]').forEach(ta => {
+    ta.addEventListener('input', () => { bewertungen[ta.dataset.key].bemerkung = ta.value; });
+  });
+  container.querySelectorAll('.qk-foto-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const datei = e.target.files[0];
+      if (!datei) return;
+      bewertungen[input.dataset.key].fotoDatei = datei;
+      bewertungen[input.dataset.key].fotoName = datei.name;
+      renderRaumgruppen();
+    });
+  });
+  aktualisiereScoreAnzeige();
+}
+
+function pruefeVollstaendigkeit() {
+  const fehlendeBewertung = [], fehlendeBemerkung = [];
+  Object.entries(bewertungen).forEach(([key, b]) => {
+    if (!b.bewertung) fehlendeBewertung.push(key);
+    else if ((b.bewertung === 'weniger_zufrieden' || b.bewertung === 'nicht_zufrieden') && !(b.bemerkung && b.bemerkung.trim())) fehlendeBemerkung.push(key);
+  });
+  return { fehlendeBewertung, fehlendeBemerkung };
+}
+
+function markiereFehlendeZeilen(keys) {
+  document.querySelectorAll('.qk-leistung-zeile').forEach(z => z.classList.remove('fehlt'));
+  keys.forEach(key => {
+    const zeile = document.querySelector('.qk-leistung-zeile[data-key="' + CSS.escape(key) + '"]');
+    if (zeile) zeile.classList.add('fehlt');
+  });
+  if (keys.length > 0) {
+    const erste = document.querySelector('.qk-leistung-zeile[data-key="' + CSS.escape(keys[0]) + '"]');
+    if (erste) erste.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+document.getElementById('kontrolle-speichern-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('speicher-status');
+  const gemeinsam = document.getElementById('kontrolle-gemeinsam-auswahl').value === 'gemeinsam';
+  const sylegroId = document.getElementById('sylegro-person-auswahl').value;
+  const sylegroName = document.getElementById('sylegro-person-auswahl').selectedOptions[0]
+    ? document.getElementById('sylegro-person-auswahl').selectedOptions[0].textContent : '';
+  const datum = document.getElementById('kontrolle-datum').value;
+
+  if (gemeinsam && !sylegroId) {
+    statusEl.textContent = 'Bitte auswählen, mit welcher Sylegro-Person die Kontrolle gemeinsam durchgeführt wurde.';
+    document.getElementById('sylegro-person-auswahl').focus();
+    return;
+  }
+
+  const typ = gemeinsam ? 'gemeinsam' : 'kunde';
+  const eigenerName = (meinProfil && meinProfil.display_name) || kundeKontext.firma || 'Kunde';
+  const namen = gemeinsam
+    ? eigenerName + ' (Kunde) & ' + sylegroName + ' (Sylegro)'
+    : eigenerName + ' (Kunde)';
+
+  const { fehlendeBewertung, fehlendeBemerkung } = pruefeVollstaendigkeit();
+  if (fehlendeBewertung.length > 0) {
+    statusEl.textContent = 'Es fehlt noch die Bewertung bei ' + fehlendeBewertung.length + ' Leistung(en) — eine Kontrolle muss immer das ganze Pflichtenheft abdecken.';
+    markiereFehlendeZeilen(fehlendeBewertung);
+    return;
+  }
+  if (fehlendeBemerkung.length > 0) {
+    statusEl.textContent = 'Bei "Weniger zufrieden" / "Nicht zufrieden" ist eine Bemerkung Pflicht — bitte ergänzen.';
+    markiereFehlendeZeilen(fehlendeBemerkung);
+    return;
+  }
+  markiereFehlendeZeilen([]);
+
+  document.getElementById('kontrolle-speichern-btn').disabled = true;
+  statusEl.textContent = 'Speichere…';
+
+  try {
+    const eintraege = Object.values(bewertungen);
+    for (let i = 0; i < eintraege.length; i++) {
+      const b = eintraege[i];
+      if (b.fotoDatei) {
+        const endung = (b.fotoDatei.name.split('.').pop() || 'jpg').toLowerCase();
+        const pfad = kundeKontext.customerId + '/' + Date.now() + '-' + i + '.' + endung;
+        const { error: fehlerFoto } = await supabaseClient.storage.from('qualitaetskontrolle-fotos').upload(pfad, b.fotoDatei);
+        if (fehlerFoto) throw new Error('Foto konnte nicht hochgeladen werden (' + b.leistung_name + '): ' + fehlerFoto.message);
+        b.foto_pfad = pfad;
+      }
+    }
+
+    const gesamtScore = berechneGesamtScore();
+    const { data: kontrolle, error: fehlerKontrolle } = await supabaseClient
+      .from('qualitaetskontrollen')
+      .insert({
+        property_id: ausgewaehltePropertyId,
+        pflichtenheft_id: aktivesPflichtenheftId,
+        datum: datum || new Date().toISOString().slice(0, 10),
+        durchgefuehrt_von_typ: typ,
+        durchgefuehrt_von_namen: namen,
+        durchgefuehrt_von_admin_id: gemeinsam ? sylegroId : null,
+        durchgefuehrt_von_kunde_id: meinProfil ? meinProfil.id : null,
+        gesamt_score: gesamtScore,
+        erstellt_von: meinProfil ? meinProfil.id : null
+      })
+      .select('id')
+      .single();
+    if (fehlerKontrolle) throw new Error('Kontrolle konnte nicht gespeichert werden: ' + fehlerKontrolle.message);
+
+    const bewertungenZeilen = eintraege.map(b => ({
+      kontrolle_id: kontrolle.id,
+      raumgruppe_name: b.raumgruppe_name,
+      leistung_name: b.leistung_name,
+      kategorie: b.kategorie,
+      bewertung: b.bewertung,
+      bemerkung: b.bemerkung || null,
+      foto_pfad: b.foto_pfad || null
+    }));
+    const { error: fehlerBewertungen } = await supabaseClient.from('qualitaetskontrolle_bewertungen').insert(bewertungenZeilen);
+    if (fehlerBewertungen) throw new Error('Bewertungen konnten nicht gespeichert werden: ' + fehlerBewertungen.message);
+
+    statusEl.textContent = 'Gespeichert. Gesamt-Score: ' + gesamtScore + '%.';
+    document.getElementById('nach-speichern-optionen').classList.remove('versteckt');
+    document.getElementById('kontrolle-speichern-btn').style.display = 'none';
+    await ladeKontrollenListe();
+  } catch (e) {
+    statusEl.textContent = 'Achtung: ' + e.message;
+    document.getElementById('kontrolle-speichern-btn').disabled = false;
+  }
+});
+
+document.getElementById('fertig-btn').addEventListener('click', () => window.location.reload());
+
+async function ladeKontrollenListe() {
+  const { data: kontrollen } = await supabaseClient
+    .from('qualitaetskontrollen')
+    .select('*')
+    .eq('property_id', ausgewaehltePropertyId)
+    .order('datum', { ascending: false });
+
+  const tbody = document.getElementById('kontrollen-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('kontrollen-leer').style.display = (kontrollen && kontrollen.length > 0) ? 'none' : 'block';
+
+  (kontrollen || []).forEach(k => {
+    const tr = document.createElement('tr');
+    const scoreText = (k.gesamt_score === null || k.gesamt_score === undefined) ? '–' : k.gesamt_score + '%';
+    tr.innerHTML =
+      '<td>' + (k.datum ? new Date(k.datum).toLocaleDateString('de-CH') : '–') + '</td>' +
+      '<td style="color:' + qkScoreFarbe(k.gesamt_score) + '; font-weight:600;">' + scoreText + '</td>' +
+      '<td>' + (k.durchgefuehrt_von_namen || '–') + '</td>' +
+      '<td><button type="button" class="btn small qk-detail-btn" data-id="' + k.id + '">Details</button></td>';
+    tbody.appendChild(tr);
+
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'qk-detail-zeile hidden';
+    detailTr.dataset.id = k.id;
+    detailTr.innerHTML = '<td colspan="4"><div class="qk-detail-inhalt"></div></td>';
+    tbody.appendChild(detailTr);
+  });
+
+  tbody.querySelectorAll('.qk-detail-btn').forEach(btn => {
+    btn.addEventListener('click', () => qkDetailUmschalten(btn.dataset.id, btn));
+  });
+}
+
+async function qkDetailUmschalten(kontrolleId, btn) {
+  const detailTr = document.querySelector('.qk-detail-zeile[data-id="' + kontrolleId + '"]');
+  const sichtbar = !detailTr.classList.contains('hidden');
+  if (sichtbar) { detailTr.classList.add('hidden'); btn.textContent = 'Details'; return; }
+
+  btn.textContent = 'Wird geladen…';
+  if (!qualitaetBewertungenCache[kontrolleId]) {
+    const { data } = await supabaseClient.from('qualitaetskontrolle_bewertungen').select('*').eq('kontrolle_id', kontrolleId);
+    qualitaetBewertungenCache[kontrolleId] = data || [];
+  }
+  const bewertungenListe = qualitaetBewertungenCache[kontrolleId];
+
+  const raumgruppenReihenfolge = [];
+  const raumgruppenMap = {};
+  bewertungenListe.forEach(b => {
+    if (!raumgruppenMap[b.raumgruppe_name]) { raumgruppenMap[b.raumgruppe_name] = []; raumgruppenReihenfolge.push(b.raumgruppe_name); }
+    raumgruppenMap[b.raumgruppe_name].push(b);
+  });
+
+  let html = '';
+  raumgruppenReihenfolge.forEach(rgName => {
+    html += '<div style="font-weight:700; margin-top:12px;">' + rgName + '</div>';
+    raumgruppenMap[rgName].forEach(b => {
+      html +=
+        '<div style="padding:8px 0; border-bottom:1px dotted var(--color-border);">' +
+        '<div><span style="font-weight:600;">' + b.leistung_name + '</span>' +
+        ' — <span style="color:' + qkScoreFarbe(SCORE_WERT[b.bewertung]) + '; font-weight:600;">' + (BEWERTUNG_LABEL[b.bewertung] || b.bewertung) + '</span></div>' +
+        (b.bemerkung ? '<div class="hint" style="margin-top:2px;">' + b.bemerkung + '</div>' : '') +
+        (b.foto_pfad ? '<button type="button" class="btn small qk-foto-btn" data-pfad="' + b.foto_pfad + '" style="margin-top:4px;">Foto ansehen</button>' : '') +
+        '</div>';
+    });
+  });
+  if (bewertungenListe.length === 0) html = '<p class="hint">Keine Detaildaten gefunden.</p>';
+
+  const inhalt = detailTr.querySelector('.qk-detail-inhalt');
+  inhalt.innerHTML = html;
+  inhalt.querySelectorAll('.qk-foto-btn').forEach(fbtn => {
+    fbtn.addEventListener('click', async () => {
+      const { data, error } = await supabaseClient.storage.from('qualitaetskontrolle-fotos').createSignedUrl(fbtn.dataset.pfad, 300);
+      if (error || !data) { alert('Foto konnte nicht geöffnet werden.'); return; }
+      window.open(data.signedUrl, '_blank');
+    });
+  });
+
+  detailTr.classList.remove('hidden');
+  btn.textContent = 'Details ausblenden';
+}
+
+async function ladeFuerLiegenschaft() {
+  document.getElementById('kein-pflichtenheft-hinweis').style.display = 'none';
+  document.getElementById('neue-kontrolle-bereich').style.display = 'none';
+  document.getElementById('keine-freigabe-hinweis').style.display = 'none';
+
+  await ladeGrundrissStatus();
+  await ladeKontrollenListe();
+
+  if (!meinProfil || !meinProfil.kann_qualitaetskontrolle) {
+    document.getElementById('keine-freigabe-hinweis').style.display = 'block';
+    return;
+  }
+
+  const { data: pflichtenheft } = await supabaseClient
+    .from('pflichtenhefte')
+    .select('id, version')
+    .eq('property_id', ausgewaehltePropertyId)
+    .eq('status', 'aktiv')
+    .maybeSingle();
+
+  if (!pflichtenheft) {
+    document.getElementById('kein-pflichtenheft-hinweis').style.display = 'block';
+    return;
+  }
+  aktivesPflichtenheftId = pflichtenheft.id;
+
+  const { data: gespeicherteRaumgruppen } = await supabaseClient
+    .from('pflichtenheft_raumgruppen').select('*').eq('pflichtenheft_id', pflichtenheft.id).order('reihenfolge');
+  const raumgruppeIds = (gespeicherteRaumgruppen || []).map(r => r.id);
+  let gespeicherteLeistungen = [];
+  if (raumgruppeIds.length > 0) {
+    const { data } = await supabaseClient
+      .from('pflichtenheft_leistungen').select('*').in('pflichtenheft_raumgruppe_id', raumgruppeIds).order('reihenfolge');
+    gespeicherteLeistungen = data || [];
+  }
+
+  bewertungen = {};
+  raumgruppenListe = (gespeicherteRaumgruppen || []).map(rg => {
+    const leistungenDieserRaumgruppe = gespeicherteLeistungen.filter(le => le.pflichtenheft_raumgruppe_id === rg.id);
+    const kategorienReihenfolge = [];
+    const kategorienMap = {};
+    leistungenDieserRaumgruppe.forEach(le => {
+      if (!kategorienMap[le.kategorie]) { kategorienMap[le.kategorie] = []; kategorienReihenfolge.push(le.kategorie); }
+      const key = leistungKey(rg.name, le.kategorie, le.name);
+      bewertungen[key] = { raumgruppe_name: rg.name, kategorie: le.kategorie, leistung_name: le.name, bewertung: null, bemerkung: '', fotoDatei: null, fotoName: null };
+      kategorienMap[le.kategorie].push({ key, name: le.name });
+    });
+    return { id: rg.id, name: rg.name, kategorien: kategorienReihenfolge.map(k => ({ kategorie: k, leistungen: kategorienMap[k] })) };
+  });
+
+  if (Object.keys(bewertungen).length === 0) {
+    document.getElementById('kein-pflichtenheft-hinweis').textContent = 'Das Pflichtenheft dieser Liegenschaft enthält noch keine Leistungen.';
+    document.getElementById('kein-pflichtenheft-hinweis').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('kontrolle-datum').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('kunde-name-anzeige').textContent = (meinProfil && meinProfil.display_name) || kundeKontext.firma || 'Kunde';
+  document.getElementById('kontrolle-speichern-btn').style.display = 'inline-block';
+  document.getElementById('nach-speichern-optionen').classList.add('versteckt');
+  document.getElementById('speicher-status').textContent = '';
+  document.getElementById('neue-kontrolle-bereich').style.display = 'block';
+  await ladeSylegroPersonen();
+  renderRaumgruppen();
+}
+
+(async function () {
+  const kunde = await sylegroRequireLogin();
+  if (!kunde) return;
+  if (!sylegroRequireService(kunde, 'uhr')) return;
+  sylegroApplyNavVisibility(kunde);
+  kundeKontext = kunde;
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const { data: profil } = await supabaseClient.from('profiles').select('id, display_name, kann_qualitaetskontrolle').eq('id', session.user.id).single();
+  meinProfil = profil || null;
+
+  const { data: liegenschaften } = await supabaseClient
+    .from('properties').select('id, name').eq('customer_id', kunde.customerId).eq('typ', 'reinigung').order('name');
+
+  if (!liegenschaften || liegenschaften.length === 0) {
+    document.getElementById('keine-liegenschaft-hinweis').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('hauptbereich').style.display = 'block';
+
+  if (liegenschaften.length > 1) {
+    const select = document.getElementById('liegenschaft-auswahl');
+    select.innerHTML = liegenschaften.map(l => '<option value="' + l.id + '">' + l.name + '</option>').join('');
+    document.getElementById('liegenschaft-auswahl-card').style.display = 'block';
+    select.addEventListener('change', () => {
+      ausgewaehltePropertyId = select.value;
+      document.getElementById('titel').textContent = 'Unterhaltsreinigung – ' + select.selectedOptions[0].textContent;
+      ladeFuerLiegenschaft();
+    });
+  }
+
+  ausgewaehltePropertyId = liegenschaften[0].id;
+  document.getElementById('titel').textContent = 'Unterhaltsreinigung – ' + liegenschaften[0].name;
+  await ladeFuerLiegenschaft();
+})();
 </script>
 </body>
 </html>
