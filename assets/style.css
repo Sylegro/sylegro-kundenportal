@@ -497,6 +497,7 @@ tr:last-child td { border-bottom: none; }
 }
 
 .liegenschaft-detail.hidden { display: none; }
+.qk-detail-zeile.hidden { display: none; }
 
 .liegenschaft-detail td {
   padding: 16px 20px;
