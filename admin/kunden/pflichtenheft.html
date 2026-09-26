@@ -577,6 +577,32 @@ async function speicherePdfAlsDokument(version) {
   }
 }
 
+// Prüft im Hintergrund, ob für ein bereits bestehendes Pflichtenheft (das evtl. schon VOR
+// Einführung des automatischen PDF-Exports gespeichert wurde) schon ein passendes PDF im
+// Dokumente-Tab liegt. Falls nicht, wird es einmalig automatisch nachgetragen -- ganz ohne
+// dass dafür "Fehler korrigieren" + "Jetzt endgültig speichern" nötig ist. Wird beim blossen
+// Öffnen der Ansicht aufgerufen, läuft still im Hintergrund und meldet sich nur kurz im
+// Hinweistext, falls tatsächlich etwas nachgetragen wurde oder es einen Fehler gab.
+async function pdfNachtragenFallsFehlend(version) {
+  if (!version) return;
+  const titel = 'Pflichtenheft – ' + (liegenschaftName || 'Liegenschaft') + ' (Version ' + version + ')';
+  const { data: vorhandene, error } = await supabaseClient
+    .from('documents')
+    .select('id')
+    .eq('customer_id', kundeId)
+    .eq('property_id', propertyId)
+    .eq('titel', titel);
+  if (error || (vorhandene && vorhandene.length > 0)) return; // schon vorhanden, oder Prüfung fehlgeschlagen -> nichts tun
+
+  const hinweis = document.getElementById('vorschau-hinweis');
+  const basisText = hinweis.textContent;
+  hinweis.textContent = basisText + ' (PDF wird im Hintergrund für den Dokumente-Tab nachgetragen…)';
+  const ergebnis = await speicherePdfAlsDokument(version);
+  hinweis.textContent = basisText + (ergebnis.ok
+    ? ' Das PDF wurde soeben automatisch im Dokumente-Tab nachgetragen.'
+    : ' Achtung: automatisches PDF-Nachtragen fehlgeschlagen (' + ergebnis.fehler + ').');
+}
+
 function zeigeVorschauBereich(nurAnsicht) {
   renderVorschau();
   document.getElementById('vorschau-titel').textContent = nurAnsicht ? 'Pflichtenheft' : 'Vorschau';
@@ -952,6 +978,7 @@ async function ladeDaten() {
   // führt in den Bearbeitungsmodus.
   if (bestehendesPflichtenheft) {
     zeigeVorschauBereich(true);
+    pdfNachtragenFallsFehlend(bestehendesPflichtenheft.version);
   }
 }
 
