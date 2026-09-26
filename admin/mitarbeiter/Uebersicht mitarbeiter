@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin – Mitarbeiter | Sylegro Portal</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="../kunden/uebersicht.html" class="top-cat">Kunden</a>
+
+      <a href="uebersicht.html" class="top-cat active">Mitarbeiter</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1>Mitarbeiter verwalten</h1>
+    </div>
+
+    <div class="card">
+      <h2>Bexio-Synchronisation</h2>
+      <p class="hint">Übernimmt Name und E-Mail-Adresse aller Mitarbeiter aus der Bexio-Lohnbuchhaltung. Löst noch kein Portal-Login aus — das machst du pro Person gezielt unten mit "Login erstellen".</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button class="btn" onclick="bexioSyncMitarbeiter()">Mitarbeiter jetzt synchronisieren</button>
+      </div>
+      <div id="bexio-status" style="margin-top:10px; font-size:0.85rem;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Alle Mitarbeiter</h2>
+      <p class="hint">Ein Portal-Login ist Voraussetzung dafür, dass ein Mitarbeiter z.B. bei einer Liegenschaft für Qualitätskontrollen als zuständig ausgewählt werden kann.</p>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>E-Mail</th><th>Portal-Login</th><th></th></tr>
+        </thead>
+        <tbody id="mitarbeiter-body">
+          <tr><td colspan="4" class="hint">Lade Mitarbeiter…</td></tr>
+        </tbody>
+      </table>
+      <p class="hint" id="mitarbeiter-leer" style="display:none;">Noch keine Mitarbeiter synchronisiert — auf "Mitarbeiter jetzt synchronisieren" klicken.</p>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+  async function ladeMitarbeiter() {
+    const body = document.getElementById('mitarbeiter-body');
+    const { data: mitarbeiter, error } = await supabaseClient
+      .from('mitarbeiter_stamm')
+      .select('*')
+      .order('nachname');
+
+    if (error) {
+      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      return;
+    }
+
+    document.getElementById('mitarbeiter-leer').style.display = (mitarbeiter && mitarbeiter.length > 0) ? 'none' : 'block';
+    body.innerHTML = '';
+
+    (mitarbeiter || []).forEach(m => {
+      const tr = document.createElement('tr');
+      let loginZelle;
+      if (m.profile_id) {
+        loginZelle = '<span class="badge success">Vorhanden</span>';
+      } else if (!m.email) {
+        loginZelle = '<span class="badge neutral">Keine E-Mail in Bexio</span>';
+      } else {
+        loginZelle = '<span class="badge warning">Noch kein Login</span>';
+      }
+      const aktionZelle = (!m.profile_id && m.email)
+        ? '<button type="button" class="btn small login-erstellen-btn" data-id="' + m.id + '">Login erstellen</button>'
+        : '';
+      tr.innerHTML =
+        '<td>' + (m.display_name || '—') + '</td>' +
+        '<td>' + (m.email || '—') + '</td>' +
+        '<td>' + loginZelle + '</td>' +
+        '<td>' + aktionZelle + '</td>';
+      body.appendChild(tr);
+    });
+
+    body.querySelectorAll('.login-erstellen-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Login für diese Person erstellen? Es wird eine Einladungs-E-Mail verschickt, mit der sie selbst ein Passwort setzt.')) return;
+        btn.disabled = true;
+        btn.textContent = 'Wird erstellt…';
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        try {
+          const res = await fetch('https://amnaydttfuenhgevqptp.supabase.co/functions/v1/admin-create-mitarbeiter-login', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mitarbeiter_id: btn.dataset.id })
+          });
+          const json = await res.json();
+          if (!res.ok || json.error) {
+            alert('Fehler: ' + (json.error || 'Unbekannter Fehler.'));
+            btn.disabled = false;
+            btn.textContent = 'Login erstellen';
+            return;
+          }
+          await ladeMitarbeiter();
+        } catch (e) {
+          alert('Fehler: ' + e.message);
+          btn.disabled = false;
+          btn.textContent = 'Login erstellen';
+        }
+      });
+    });
+  }
+
+  async function bexioAufruf(funktionsname, erfolgstext) {
+    const status = document.getElementById('bexio-status');
+    status.textContent = 'Synchronisiere…';
+    status.style.color = 'var(--color-text-muted)';
+
+    const { data, error } = await supabaseClient.functions.invoke(funktionsname, {});
+
+    if (error || (data && data.error)) {
+      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    status.textContent = erfolgstext(data);
+    status.style.color = 'var(--color-success)';
+    ladeMitarbeiter();
+  }
+
+  function bexioSyncMitarbeiter() {
+    bexioAufruf('bexio-sync-mitarbeiter', d => 'Mitarbeiter: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').' + (d.fehleranzahl ? ' Achtung: ' + d.fehleranzahl + ' Fehler — siehe Supabase-Logs.' : ''));
+  }
+
+  (async function () {
+    const admin = await sylegroRequireAdmin();
+    if (!admin) return;
+    ladeMitarbeiter();
+  })();
+</script>
+</body>
+</html>
