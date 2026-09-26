@@ -546,8 +546,11 @@ async function erzeugePflichtenheftPdfBlob(version) {
   const marginLeft = 12, marginRight = 12, marginTop = 12, marginBottom = 12;
   const nameSpaltenBreite = 58;
   const KOPFBLOCK_HOEHE_SEITE1 = 34; // Titel/Logo/Farbverlauf/Legende auf Seite 1 (siehe zeichneSeitenkopf)
+  const FORTSETZUNG_KOPF_HOEHE = 6; // schlanker Kopf auf Folgeseiten (nur der "Fortsetzung"-Hinweis)
   const ZEILE_PRO_PT = 0.47; // Umrechnung Schriftgrösse -> Zeilenabstand in mm, empirisch abgestimmt
   const MIN_SKALIERUNG = 0.55; // härtere Untergrenze, ab der die Schrift sonst unleserlich würde
+  const KOMFORT_SKALIERUNG = 0.85; // ab hier gilt eine Verkleinerung noch als "leicht" und akzeptabel
+  const MAX_SEITEN_VERSUCH = 6; // mehr Seiten würden ohnehin nicht mehr sinnvoll sein
 
   const zeilen = baueMatrixDaten();
   const anzahlSpalten = Math.max(raumgruppen.length, 1);
@@ -583,9 +586,45 @@ async function erzeugePflichtenheftPdfBlob(version) {
     return { zeile, istNeueKategorie, hoeheBasis };
   });
 
-  // -- Schritt 3: verfügbare Höhe auf einer Seite ermitteln und Skalierungsfaktor bestimmen --
-  const verfuegbareHoehe = pageHeight - marginTop - KOPFBLOCK_HOEHE_SEITE1 - kopfHoeheBasis - marginBottom;
-  let skalierung = benoetigteHoehe > 0 ? Math.min(1, verfuegbareHoehe / benoetigteHoehe) : 1;
+  // -- Schritt 3: benötigte Seitenzahl UND Skalierungsfaktor gemeinsam bestimmen. Grundidee (auf
+  // Eldins Wunsch): bei vielen Leistungen lieber eine zweite Seite mit angenehmer Schriftgrösse
+  // als eine einzige Seite mit krampfhaft winziger Schrift. Es wird darum zuerst geprüft, ob eine
+  // Seite mit höchstens leichter Verkleinerung (bis KOMFORT_SKALIERUNG) reicht; reicht das nicht,
+  // wird mit zwei, dann drei usw. Seiten gerechnet -- mit mehr Seiten steht ingesamt mehr Höhe zur
+  // Verfügung, wodurch die Schrift wieder grösser sein darf. Die eigentliche Aufteilung der Zeilen
+  // auf die Seiten übernimmt weiter unten ganz automatisch die normale Seitenumbruch-Prüfung.
+  const verfuegbareHoeheSeite1 = pageHeight - marginTop - KOPFBLOCK_HOEHE_SEITE1 - kopfHoeheBasis - marginBottom;
+  const verfuegbareHoeheFolgeseite = pageHeight - marginTop - FORTSETZUNG_KOPF_HOEHE - kopfHoeheBasis - marginBottom;
+
+  let hoehenSkalierung = 1;
+  if (benoetigteHoehe > 0) {
+    hoehenSkalierung = Math.min(1, verfuegbareHoeheSeite1 / benoetigteHoehe);
+    for (let seiten = 2; hoehenSkalierung < KOMFORT_SKALIERUNG && seiten <= MAX_SEITEN_VERSUCH; seiten++) {
+      const verfuegbareHoeheGesamt = verfuegbareHoeheSeite1 + (seiten - 1) * verfuegbareHoeheFolgeseite;
+      hoehenSkalierung = Math.min(1, verfuegbareHoeheGesamt / benoetigteHoehe);
+    }
+  }
+
+  // Bei vielen RAUMGRUPPEN (Spalten statt Zeilen) hilft eine zweite Seite nichts -- die Spalten
+  // werden stattdessen automatisch schmaler (Gesamtbreite bleibt gleich). Spaltenbeschriftungen
+  // brechen dank textUmbrechen() dabei immer sauber um, aber die kurzen Häufigkeits-Codes (z.B.
+  // "12M") in den Zellen werden nirgends umgebrochen. Darum wird hier zusätzlich geprüft, ob der
+  // breiteste tatsächlich vorkommende Code noch in eine Spalte passt, und die Skalierung notfalls
+  // zusätzlich dafür verkleinert -- so bleibt die "passt immer in seinen Kasten"-Garantie auch bei
+  // sehr vielen Raumgruppen (schmale Spalten) erhalten.
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(BASIS.fontCode);
+  let breitesterCodeBasis = 0;
+  zeilen.forEach(zeile => {
+    raumgruppen.forEach(rg => {
+      const code = matrixZelle(zeile.kategorie, zeile.name, rg);
+      if (code) breitesterCodeBasis = Math.max(breitesterCodeBasis, doc.getTextWidth(code));
+    });
+  });
+  const breitenSkalierung = breitesterCodeBasis > 0 ? Math.min(1, (spaltenBreite - 3) / breitesterCodeBasis) : 1;
+
+  let skalierung = Math.min(hoehenSkalierung, breitenSkalierung);
   skalierung = Math.max(skalierung, MIN_SKALIERUNG);
 
   const G = {
@@ -764,14 +803,24 @@ async function erzeugePflichtenheftPdfBlob(version) {
         ny += zeilenAbstandName;
       });
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(G.fontCode);
       setzeTextfarbe(doc, FARBE_BLAU);
       let cx = marginLeft + nameSpaltenBreite;
       raumgruppen.forEach(rg => {
         const code = matrixZelle(zeile.kategorie, zeile.name, rg);
         if (code) {
-          const breite = doc.getTextWidth(code);
+          // Letztes Sicherheitsnetz: passt der Code trotz der Skalierung oben in einem
+          // Extremfall (sehr viele Raumgruppen) immer noch nicht in seine Spalte, wird nur für
+          // diesen einen Code die Schrift zusätzlich verkleinert -- er ragt dadurch garantiert
+          // nie über seine Spalte hinaus.
+          let codeFontGroesse = G.fontCode;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(codeFontGroesse);
+          let breite = doc.getTextWidth(code);
+          while (breite > spaltenBreite - 1 && codeFontGroesse > 3.5) {
+            codeFontGroesse -= 0.4;
+            doc.setFontSize(codeFontGroesse);
+            breite = doc.getTextWidth(code);
+          }
           doc.text(code, cx + Math.max(0, (spaltenBreite - breite) / 2), y + zeilenHoeheAktuell - 1.4);
         }
         cx += spaltenBreite;
