@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qualitätskontrolle | Sylegro Admin</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+  .qk-raumgruppe-card { margin-bottom: 18px; }
+  .qk-kategorie-titel { font-weight: 700; margin: 16px 0 8px 0; }
+  .qk-kategorie-titel:first-child { margin-top: 0; }
+  .qk-leistung-zeile { padding: 12px 0; border-bottom: 1px dotted var(--color-border); }
+  .qk-leistung-zeile:last-child { border-bottom: none; }
+  .qk-leistung-name { font-weight: 600; margin-bottom: 8px; }
+  .qk-bewertung-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  .qk-bewertung-btn {
+    padding: 7px 14px; border-radius: 999px; border: 1px solid var(--color-border);
+    background: var(--color-surface); cursor: pointer; font-size: 0.85rem; color: var(--color-text);
+  }
+  .qk-bewertung-btn.aktiv[data-wert="sehr_zufrieden"] { background: var(--color-success); border-color: var(--color-success); color: #fff; }
+  .qk-bewertung-btn.aktiv[data-wert="zufrieden"] { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+  .qk-bewertung-btn.aktiv[data-wert="weniger_zufrieden"] { background: var(--color-warning); border-color: var(--color-warning); color: #fff; }
+  .qk-bewertung-btn.aktiv[data-wert="nicht_zufrieden"] { background: var(--color-danger); border-color: var(--color-danger); color: #fff; }
+  .qk-zusatzfelder { margin-top: 10px; display: none; }
+  .qk-zusatzfelder.sichtbar { display: block; }
+  .qk-zusatzfelder textarea { width: 100%; min-height: 60px; margin-bottom: 8px; }
+  .qk-leistung-zeile.fehlt { background: var(--color-danger-bg); border-radius: 8px; padding-left: 8px; padding-right: 8px; }
+  .qk-score-box {
+    display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: var(--radius);
+    background: var(--color-primary-bg); border: 1px solid var(--color-primary-border); margin-bottom: 16px;
+  }
+  .qk-score-zahl { font-size: 1.6rem; font-weight: 700; color: var(--color-primary-dark); }
+  .qk-grundriss-zeile { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="uebersicht.html" class="top-cat">Kunden</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Kunden</a>
+      <a href="#" class="sub-item disabled">Ansprechpartner (bald)</a>
+      <a href="#" class="sub-item disabled">Dokumente (bald)</a>
+
+      <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1 id="titel">Qualitätskontrolle</h1>
+      <a id="zurueck-link" href="detail.html">← Zurück zum Kundenprofil</a>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="info-grid">
+        <div>
+          <div class="label">Kunde</div>
+          <div id="info-kunde">–</div>
+        </div>
+        <div>
+          <div class="label">Liegenschaft</div>
+          <div id="info-liegenschaft">–</div>
+        </div>
+        <div>
+          <div class="label">Geprüftes Pflichtenheft</div>
+          <div id="info-pflichtenheft">–</div>
+        </div>
+      </div>
+      <div class="qk-grundriss-zeile">
+        <button type="button" class="btn small" id="grundriss-oeffnen-btn" style="display:none;">Grundrissplan öffnen</button>
+        <span class="hint" id="grundriss-status">Noch kein Grundrissplan hochgeladen.</span>
+        <label class="btn small" style="cursor:pointer;">
+          Grundrissplan hochladen/ersetzen
+          <input type="file" id="grundriss-upload-input" accept="image/*,.pdf" style="display:none;">
+        </label>
+      </div>
+    </div>
+
+    <div id="kein-pflichtenheft-hinweis" class="card versteckt">
+      <p class="hint">Für diese Liegenschaft existiert noch kein aktives Pflichtenheft. Eine Qualitätskontrolle bezieht sich immer auf das aktuelle Pflichtenheft — bitte zuerst dort eines erstellen.</p>
+      <a class="btn primary" id="zum-pflichtenheft-link" href="#">Zum Pflichtenheft-Baukasten</a>
+    </div>
+
+    <div id="kontrolle-bereich" class="versteckt">
+      <div class="card" style="margin-bottom:16px;">
+        <h2 style="margin:0 0 12px 0;">Angaben zur Kontrolle</h2>
+        <div class="form-grid">
+          <div>
+            <label>Datum</label>
+            <input type="date" id="kontrolle-datum">
+          </div>
+          <div>
+            <label>Durchgeführt von</label>
+            <select id="kontrolle-typ">
+              <option value="sylegro">Sylegro-intern</option>
+              <option value="kunde">Kunde</option>
+              <option value="gemeinsam">Gemeinsam (Sylegro + Kunde)</option>
+            </select>
+          </div>
+          <div>
+            <label>Name(n) der Person(en)</label>
+            <input type="text" id="kontrolle-namen" placeholder="z.B. Max Muster (Sylegro), Anna Beispiel (Kunde)">
+          </div>
+        </div>
+      </div>
+
+      <div class="qk-score-box">
+        <div class="qk-score-zahl" id="qk-score-anzeige">–</div>
+        <div class="hint">Gesamt-Score über alle bewerteten Leistungen (aktualisiert sich automatisch, sobald alle Leistungen bewertet sind).</div>
+      </div>
+
+      <div id="raumgruppen-liste"></div>
+
+      <div style="margin:20px 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <button type="button" class="btn primary" id="kontrolle-speichern-btn">Kontrolle speichern</button>
+        <span id="speicher-status" class="hint"></span>
+      </div>
+
+      <div id="nach-speichern-optionen" class="versteckt" style="margin:0 0 20px 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <button type="button" class="btn small" id="neue-kontrolle-btn">Weitere Kontrolle für diese Liegenschaft erfassen</button>
+        <button type="button" class="btn primary" id="fertig-btn">Fertig — zurück zum Kundenprofil</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+// Punktewerte für die Gesamt-Score-Berechnung (von Eldin bestätigt).
+const SCORE_WERT = { sehr_zufrieden: 100, zufrieden: 90, weniger_zufrieden: 60, nicht_zufrieden: 20 };
+const BEWERTUNG_LABEL = {
+  sehr_zufrieden: 'Sehr zufrieden',
+  zufrieden: 'Zufrieden',
+  weniger_zufrieden: 'Weniger zufrieden',
+  nicht_zufrieden: 'Nicht zufrieden'
+};
+// Reihenfolge der Buttons in der Bewertungs-Leiste pro Leistung.
+const BEWERTUNG_REIHENFOLGE = ['sehr_zufrieden', 'zufrieden', 'weniger_zufrieden', 'nicht_zufrieden'];
+
+const params = new URLSearchParams(window.location.search);
+const propertyId = params.get('id');
+const kundeId = params.get('kunde');
+
+let kundeName = '';
+let liegenschaftName = '';
+let aktivesPflichtenheftId = null;
+let aktivesPflichtenheftVersion = null;
+let grundrissplanPfad = null;
+
+// raumgruppenListe = [{ id, name, kategorien: [{ kategorie, leistungen: [{ key, name }] }] }]
+let raumgruppenListe = [];
+// bewertungen[key] = { raumgruppe_name, kategorie, leistung_name, bewertung: null|string, bemerkung: '', fotoDatei: File|null, fotoName: null }
+let bewertungen = {};
+
+function leistungKey(raumgruppeName, kategorie, leistungName) {
+  return raumgruppeName + '|||' + kategorie + '|||' + leistungName;
+}
+
+async function ladeGrundrissStatus() {
+  const { data: liegenschaft } = await supabaseClient.from('properties').select('grundrissplan_pfad').eq('id', propertyId).single();
+  grundrissplanPfad = liegenschaft ? liegenschaft.grundrissplan_pfad : null;
+  const btn = document.getElementById('grundriss-oeffnen-btn');
+  const status = document.getElementById('grundriss-status');
+  if (grundrissplanPfad) {
+    btn.style.display = 'inline-block';
+    status.textContent = 'Grundrissplan vorhanden.';
+  } else {
+    btn.style.display = 'none';
+    status.textContent = 'Noch kein Grundrissplan hochgeladen.';
+  }
+}
+
+// Hinweis: der Bucket-Name lautet bewusst OHNE Umlaut "grundrissplaene" (siehe Migration).
+document.getElementById('grundriss-oeffnen-btn').addEventListener('click', async () => {
+  if (!grundrissplanPfad) return;
+  const { data, error } = await supabaseClient.storage.from('grundrissplaene').createSignedUrl(grundrissplanPfad, 300);
+  if (error || !data) { alert('Grundrissplan konnte nicht geöffnet werden: ' + (error ? error.message : 'unbekannter Fehler')); return; }
+  window.open(data.signedUrl, '_blank');
+});
+
+document.getElementById('grundriss-upload-input').addEventListener('change', async (e) => {
+  const datei = e.target.files[0];
+  if (!datei) return;
+  const status = document.getElementById('grundriss-status');
+  status.textContent = 'Lade hoch…';
+  const endung = (datei.name.split('.').pop() || 'dat').toLowerCase();
+  const neuerPfad = kundeId + '/' + propertyId + '-grundrissplan.' + endung;
+
+  // Falls vorher schon ein Plan mit ANDERER Dateiendung existierte, die alte Datei zuerst
+  // entfernen -- sonst blieben zwei Dateien liegen (Fehler dabei wird bewusst ignoriert).
+  if (grundrissplanPfad && grundrissplanPfad !== neuerPfad) {
+    try { await supabaseClient.storage.from('grundrissplaene').remove([grundrissplanPfad]); } catch (e2) { /* ignorieren */ }
+  }
+
+  const { error: fehlerUpload } = await supabaseClient.storage.from('grundrissplaene').upload(neuerPfad, datei, { upsert: true });
+  if (fehlerUpload) { status.textContent = 'Fehler beim Hochladen: ' + fehlerUpload.message; return; }
+
+  const { error: fehlerSpeichern } = await supabaseClient.from('properties').update({ grundrissplan_pfad: neuerPfad }).eq('id', propertyId);
+  if (fehlerSpeichern) { status.textContent = 'Datei hochgeladen, aber Ablage fehlgeschlagen: ' + fehlerSpeichern.message; return; }
+
+  grundrissplanPfad = neuerPfad;
+  await ladeGrundrissStatus();
+  status.textContent = 'Grundrissplan aktualisiert.';
+});
+
+function berechneGesamtScore() {
+  const bewertet = Object.values(bewertungen).filter(b => b.bewertung);
+  if (bewertet.length === 0) return null;
+  const summe = bewertet.reduce((acc, b) => acc + SCORE_WERT[b.bewertung], 0);
+  return Math.round((summe / bewertet.length) * 10) / 10;
+}
+
+function aktualisiereScoreAnzeige() {
+  const gesamt = Object.keys(bewertungen).length;
+  const score = berechneGesamtScore();
+  const anzeige = document.getElementById('qk-score-anzeige');
+  const bewertet = Object.values(bewertungen).filter(b => b.bewertung).length;
+  if (score === null) {
+    anzeige.textContent = '–';
+  } else {
+    anzeige.textContent = score + '%' + (bewertet < gesamt ? ' (bisher ' + bewertet + ' von ' + gesamt + ')' : '');
+  }
+}
+
+function renderRaumgruppen() {
+  const container = document.getElementById('raumgruppen-liste');
+  container.innerHTML = '';
+
+  raumgruppenListe.forEach(rg => {
+    const card = document.createElement('div');
+    card.className = 'card qk-raumgruppe-card';
+    let html = '<h3 style="margin:0 0 10px 0;">' + rg.name + '</h3>';
+
+    rg.kategorien.forEach(kat => {
+      html += '<div class="qk-kategorie-titel">' + kat.kategorie + '</div>';
+      kat.leistungen.forEach(le => {
+        const b = bewertungen[le.key];
+        html +=
+          '<div class="qk-leistung-zeile" data-key="' + le.key + '">' +
+          '<div class="qk-leistung-name">' + le.name + '</div>' +
+          '<div class="qk-bewertung-buttons">' +
+          BEWERTUNG_REIHENFOLGE.map(w =>
+            '<button type="button" class="qk-bewertung-btn' + (b.bewertung === w ? ' aktiv' : '') + '" data-key="' + le.key + '" data-wert="' + w + '">' + BEWERTUNG_LABEL[w] + '</button>'
+          ).join('') +
+          '</div>' +
+          '<div class="qk-zusatzfelder' + ((b.bewertung === 'weniger_zufrieden' || b.bewertung === 'nicht_zufrieden') ? ' sichtbar' : '') + '" data-key="' + le.key + '">' +
+          '<textarea placeholder="Bemerkung (Pflichtfeld bei dieser Bewertung) — was genau war nicht in Ordnung?" data-key="' + le.key + '">' + (b.bemerkung || '') + '</textarea>' +
+          '</div>' +
+          '<div style="margin-top:6px;">' +
+          '<label class="btn small" style="cursor:pointer;">' + (b.fotoName ? 'Foto: ' + b.fotoName + ' (ändern)' : 'Foto hinzufügen (optional)') +
+          '<input type="file" accept="image/*" data-key="' + le.key + '" class="qk-foto-input" style="display:none;">' +
+          '</label>' +
+          '</div>' +
+          '</div>';
+      });
+    });
+
+    card.innerHTML = html;
+    container.appendChild(card);
+  });
+
+  // Event-Listener nach dem Einfügen ins DOM anhängen (Event-Delegation wäre auch möglich,
+  // bei dieser überschaubaren Anzahl Elemente ist direktes Anhängen einfacher zu lesen).
+  container.querySelectorAll('.qk-bewertung-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.key;
+      const wert = btn.dataset.wert;
+      bewertungen[key].bewertung = (bewertungen[key].bewertung === wert) ? null : wert;
+      renderRaumgruppen();
+      aktualisiereScoreAnzeige();
+    });
+  });
+  container.querySelectorAll('textarea[data-key]').forEach(ta => {
+    ta.addEventListener('input', () => { bewertungen[ta.dataset.key].bemerkung = ta.value; });
+  });
+  container.querySelectorAll('.qk-foto-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const datei = e.target.files[0];
+      if (!datei) return;
+      bewertungen[input.dataset.key].fotoDatei = datei;
+      bewertungen[input.dataset.key].fotoName = datei.name;
+      renderRaumgruppen();
+    });
+  });
+
+  aktualisiereScoreAnzeige();
+}
+
+function pruefeVollstaendigkeit() {
+  const fehlendeBewertung = [];
+  const fehlendeBemerkung = [];
+  Object.entries(bewertungen).forEach(([key, b]) => {
+    if (!b.bewertung) fehlendeBewertung.push(key);
+    else if ((b.bewertung === 'weniger_zufrieden' || b.bewertung === 'nicht_zufrieden') && !(b.bemerkung && b.bemerkung.trim())) fehlendeBemerkung.push(key);
+  });
+  return { fehlendeBewertung, fehlendeBemerkung };
+}
+
+function markiereFehlendeZeilen(keys) {
+  document.querySelectorAll('.qk-leistung-zeile').forEach(zeile => zeile.classList.remove('fehlt'));
+  keys.forEach(key => {
+    const zeile = document.querySelector('.qk-leistung-zeile[data-key="' + CSS.escape(key) + '"]');
+    if (zeile) zeile.classList.add('fehlt');
+  });
+  if (keys.length > 0) {
+    const erste = document.querySelector('.qk-leistung-zeile[data-key="' + CSS.escape(keys[0]) + '"]');
+    if (erste) erste.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+document.getElementById('kontrolle-speichern-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('speicher-status');
+
+  const typ = document.getElementById('kontrolle-typ').value;
+  const namen = document.getElementById('kontrolle-namen').value.trim();
+  const datum = document.getElementById('kontrolle-datum').value;
+
+  if (!namen) {
+    statusEl.textContent = 'Bitte den/die Namen der durchführenden Person(en) eintragen.';
+    document.getElementById('kontrolle-namen').focus();
+    return;
+  }
+
+  const { fehlendeBewertung, fehlendeBemerkung } = pruefeVollstaendigkeit();
+  if (fehlendeBewertung.length > 0) {
+    statusEl.textContent = 'Es fehlt noch die Bewertung bei ' + fehlendeBewertung.length + ' Leistung(en) — eine Kontrolle muss immer das ganze Pflichtenheft abdecken.';
+    markiereFehlendeZeilen(fehlendeBewertung);
+    return;
+  }
+  if (fehlendeBemerkung.length > 0) {
+    statusEl.textContent = 'Bei "Weniger zufrieden" / "Nicht zufrieden" ist eine Bemerkung Pflicht — bitte bei ' + fehlendeBemerkung.length + ' Leistung(en) ergänzen.';
+    markiereFehlendeZeilen(fehlendeBemerkung);
+    return;
+  }
+  markiereFehlendeZeilen([]);
+
+  document.getElementById('kontrolle-speichern-btn').disabled = true;
+  statusEl.textContent = 'Speichere…';
+
+  try {
+    // 1) Fotos hochladen (falls vorhanden) -- erst danach wissen wir die endgültigen Pfade.
+    const eintraege = Object.values(bewertungen);
+    for (let i = 0; i < eintraege.length; i++) {
+      const b = eintraege[i];
+      if (b.fotoDatei) {
+        const endung = (b.fotoDatei.name.split('.').pop() || 'jpg').toLowerCase();
+        const pfad = kundeId + '/' + Date.now() + '-' + i + '.' + endung;
+        const { error: fehlerFoto } = await supabaseClient.storage.from('qualitaetskontrolle-fotos').upload(pfad, b.fotoDatei);
+        if (fehlerFoto) throw new Error('Foto konnte nicht hochgeladen werden (' + b.leistung_name + '): ' + fehlerFoto.message);
+        b.foto_pfad = pfad;
+      }
+    }
+
+    // 2) Kontrolle anlegen
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const gesamtScore = berechneGesamtScore();
+    const { data: kontrolle, error: fehlerKontrolle } = await supabaseClient
+      .from('qualitaetskontrollen')
+      .insert({
+        property_id: propertyId,
+        pflichtenheft_id: aktivesPflichtenheftId,
+        datum: datum || new Date().toISOString().slice(0, 10),
+        durchgefuehrt_von_typ: typ,
+        durchgefuehrt_von_namen: namen,
+        gesamt_score: gesamtScore,
+        erstellt_von: user ? user.id : null
+      })
+      .select('id')
+      .single();
+    if (fehlerKontrolle) throw new Error('Kontrolle konnte nicht gespeichert werden: ' + fehlerKontrolle.message);
+
+    // 3) Alle Bewertungen anlegen
+    const bewertungenZeilen = eintraege.map(b => ({
+      kontrolle_id: kontrolle.id,
+      raumgruppe_name: b.raumgruppe_name,
+      leistung_name: b.leistung_name,
+      kategorie: b.kategorie,
+      bewertung: b.bewertung,
+      bemerkung: b.bemerkung || null,
+      foto_pfad: b.foto_pfad || null
+    }));
+    const { error: fehlerBewertungen } = await supabaseClient.from('qualitaetskontrolle_bewertungen').insert(bewertungenZeilen);
+    if (fehlerBewertungen) throw new Error('Bewertungen konnten nicht gespeichert werden: ' + fehlerBewertungen.message);
+
+    statusEl.textContent = 'Gespeichert. Gesamt-Score: ' + gesamtScore + '%.';
+    document.getElementById('nach-speichern-optionen').classList.remove('versteckt');
+    document.getElementById('kontrolle-speichern-btn').style.display = 'none';
+  } catch (e) {
+    statusEl.textContent = 'Achtung: ' + e.message;
+    document.getElementById('kontrolle-speichern-btn').disabled = false;
+  }
+});
+
+document.getElementById('fertig-btn').addEventListener('click', () => {
+  window.location.href = 'detail.html?id=' + kundeId;
+});
+
+document.getElementById('neue-kontrolle-btn').addEventListener('click', () => {
+  window.location.reload();
+});
+
+async function ladeDaten() {
+  document.getElementById('zurueck-link').href = 'detail.html?id=' + kundeId;
+  document.getElementById('zum-pflichtenheft-link').href = 'pflichtenheft.html?id=' + propertyId + '&kunde=' + kundeId;
+  document.getElementById('kontrolle-datum').value = new Date().toISOString().slice(0, 10);
+
+  const [{ data: kunde }, { data: liegenschaft }] = await Promise.all([
+    supabaseClient.from('customers').select('firma').eq('id', kundeId).single(),
+    supabaseClient.from('properties').select('name').eq('id', propertyId).single()
+  ]);
+  kundeName = kunde ? kunde.firma : '';
+  liegenschaftName = liegenschaft ? liegenschaft.name : '';
+  document.getElementById('info-kunde').textContent = kundeName || '–';
+  document.getElementById('info-liegenschaft').textContent = liegenschaftName || '–';
+  document.getElementById('titel').textContent = 'Qualitätskontrolle – ' + liegenschaftName;
+
+  await ladeGrundrissStatus();
+
+  const { data: pflichtenheft } = await supabaseClient
+    .from('pflichtenhefte')
+    .select('id, version')
+    .eq('property_id', propertyId)
+    .eq('status', 'aktiv')
+    .maybeSingle();
+
+  if (!pflichtenheft) {
+    document.getElementById('kein-pflichtenheft-hinweis').classList.remove('versteckt');
+    document.getElementById('kontrolle-bereich').classList.add('versteckt');
+    return;
+  }
+
+  aktivesPflichtenheftId = pflichtenheft.id;
+  aktivesPflichtenheftVersion = pflichtenheft.version;
+  document.getElementById('info-pflichtenheft').textContent = 'Version ' + pflichtenheft.version;
+
+  const { data: gespeicherteRaumgruppen } = await supabaseClient
+    .from('pflichtenheft_raumgruppen')
+    .select('*')
+    .eq('pflichtenheft_id', pflichtenheft.id)
+    .order('reihenfolge');
+
+  const raumgruppeIds = (gespeicherteRaumgruppen || []).map(r => r.id);
+  let gespeicherteLeistungen = [];
+  if (raumgruppeIds.length > 0) {
+    const { data } = await supabaseClient
+      .from('pflichtenheft_leistungen')
+      .select('*')
+      .in('pflichtenheft_raumgruppe_id', raumgruppeIds)
+      .order('reihenfolge');
+    gespeicherteLeistungen = data || [];
+  }
+
+  bewertungen = {};
+  raumgruppenListe = (gespeicherteRaumgruppen || []).map(rg => {
+    const leistungenDieserRaumgruppe = gespeicherteLeistungen.filter(le => le.pflichtenheft_raumgruppe_id === rg.id);
+    const kategorienReihenfolge = [];
+    const kategorienMap = {};
+    leistungenDieserRaumgruppe.forEach(le => {
+      if (!kategorienMap[le.kategorie]) { kategorienMap[le.kategorie] = []; kategorienReihenfolge.push(le.kategorie); }
+      const key = leistungKey(rg.name, le.kategorie, le.name);
+      bewertungen[key] = { raumgruppe_name: rg.name, kategorie: le.kategorie, leistung_name: le.name, bewertung: null, bemerkung: '', fotoDatei: null, fotoName: null };
+      kategorienMap[le.kategorie].push({ key, name: le.name });
+    });
+    return {
+      id: rg.id,
+      name: rg.name,
+      kategorien: kategorienReihenfolge.map(k => ({ kategorie: k, leistungen: kategorienMap[k] }))
+    };
+  });
+
+  if (Object.keys(bewertungen).length === 0) {
+    document.getElementById('kein-pflichtenheft-hinweis').classList.remove('versteckt');
+    document.getElementById('kein-pflichtenheft-hinweis').querySelector('p').textContent = 'Das aktive Pflichtenheft dieser Liegenschaft enthält noch keine Leistungen. Bitte zuerst dort mindestens eine Raumgruppe mit Leistungen erfassen.';
+    document.getElementById('kontrolle-bereich').classList.add('versteckt');
+    return;
+  }
+
+  document.getElementById('kontrolle-bereich').classList.remove('versteckt');
+  renderRaumgruppen();
+}
+
+(async function () {
+  if (!propertyId || !kundeId) {
+    document.body.innerHTML = '<div style="padding:40px; font-family:sans-serif;">Fehlender Link-Parameter. Bitte über den "Qualitätskontrolle"-Knopf in der Liegenschaften-Liste des Kunden öffnen.</div>';
+    return;
+  }
+  const admin = await sylegroRequireAdmin();
+  if (!admin) return;
+  await ladeDaten();
+})();
+</script>
+</body>
+</html>
