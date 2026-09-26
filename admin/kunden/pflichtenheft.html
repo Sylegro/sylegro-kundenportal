@@ -549,13 +549,13 @@ async function speicherePdfAlsDokument(version) {
 
     const { data: vorhandene, error: fehlerSuche } = await supabaseClient
       .from('documents')
-      .select('id, datei_pfad')
+      .select('id, pfad')
       .eq('customer_id', kundeId)
       .eq('property_id', propertyId)
       .eq('titel', titel);
     if (fehlerSuche) { return { ok: false, fehler: fehlerSuche.message || JSON.stringify(fehlerSuche) }; }
     if (vorhandene && vorhandene.length > 0) {
-      await supabaseClient.storage.from('kunden-dokumente').remove(vorhandene.map(v => v.datei_pfad));
+      await supabaseClient.storage.from('kunden-dokumente').remove(vorhandene.map(v => v.pfad));
       await supabaseClient.from('documents').delete().in('id', vorhandene.map(v => v.id));
     }
 
@@ -567,7 +567,7 @@ async function speicherePdfAlsDokument(version) {
       property_id: propertyId,
       titel,
       kategorie: 'sonstiges',
-      datei_pfad: pfad,
+      pfad,
       hochgeladen_am: new Date().toISOString()
     });
     if (fehlerEintrag) { return { ok: false, fehler: fehlerEintrag.message || JSON.stringify(fehlerEintrag) }; }
