@@ -119,6 +119,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../assets/supabase-client.js"></script>
 <script src="../../assets/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // Häufigkeit wird als Text gespeichert: entweder "<Anzahl><Einheit>", z.B. "2W" = 2x pro
 // Woche, "4M" = 4x pro Monat, "12M" = 12x pro Monat -- oder einer der drei Spezialfälle
@@ -202,6 +203,9 @@ let raumgruppen = [];             // aktueller Bauzustand: [{vorlage_id, name, l
 let localKeyZaehler = 0;
 let bearbeitungsModus = null;        // null | 'neu' | 'korrektur' -- steuert, was "Jetzt endgültig speichern" tut
 let laufendesPflichtenheftId = null; // id des aktuell aktiven Pflichtenhefts (falls vorhanden) -- nötig für den Korrektur-Modus
+let aktuelleVersion = null;          // Versionsnummer des aktuell aktiven Pflichtenhefts -- für den Dateinamen/Titel des PDFs
+let kundeName = '';
+let liegenschaftName = '';
 
 function kategorienReihenfolge() {
   const gesehen = [];
@@ -430,6 +434,147 @@ function renderVorschau() {
   container.innerHTML = html;
 }
 
+// Erzeugt das fertige Pflichtenheft als PDF (gleicher Inhalt/Reihenfolge wie die Vorschau
+// oben: pro Raumgruppe die Leistungen gruppiert nach Kategorie, Häufigkeit rechts sichtbar).
+async function erzeugePflichtenheftPdfBlob(version) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginLeft = 18, marginRight = 18, marginTop = 20, marginBottom = 18;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+  let y = marginTop;
+
+  function neueSeiteFallsNoetig(benoetigteHoehe) {
+    if (y + benoetigteHoehe > pageHeight - marginBottom) {
+      doc.addPage();
+      y = marginTop;
+    }
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('Pflichtenheft', marginLeft, y);
+  y += 9;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text((kundeName || '–') + ' – ' + (liegenschaftName || '–'), marginLeft, y);
+  y += 6;
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  doc.text('Version ' + version + ' · Stand ' + new Date().toLocaleDateString('de-CH'), marginLeft, y);
+  doc.setTextColor(0);
+  y += 8;
+  doc.setDrawColor(220);
+  doc.line(marginLeft, y, pageWidth - marginRight, y);
+  y += 8;
+
+  raumgruppen.forEach(rg => {
+    neueSeiteFallsNoetig(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text(rg.name, marginLeft, y);
+    y += 7;
+
+    if (rg.leistungen.length === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(120);
+      doc.text('Keine Leistungen ausgewählt.', marginLeft, y);
+      doc.setTextColor(0);
+      y += 8;
+      return;
+    }
+
+    const nachKategorie = {};
+    const kategorieReihenfolgeHier = [];
+    rg.leistungen.forEach(le => {
+      if (!nachKategorie[le.kategorie]) { nachKategorie[le.kategorie] = []; kategorieReihenfolgeHier.push(le.kategorie); }
+      nachKategorie[le.kategorie].push(le);
+    });
+
+    kategorieReihenfolgeHier.forEach(kategorie => {
+      neueSeiteFallsNoetig(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(60);
+      doc.text(kategorie, marginLeft + 2, y);
+      doc.setTextColor(0);
+      y += 5.5;
+
+      nachKategorie[kategorie].forEach(le => {
+        neueSeiteFallsNoetig(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        const haeufigkeitText = haeufigkeitAnzeige(le.haeufigkeit);
+        const nameMaxBreite = contentWidth - 14 - doc.getTextWidth(haeufigkeitText);
+        const nameZeilen = doc.splitTextToSize(le.name, nameMaxBreite);
+        doc.text(nameZeilen, marginLeft + 4, y);
+        doc.text(haeufigkeitText, pageWidth - marginRight, y, { align: 'right' });
+        const zeilenHoehe = Math.max(nameZeilen.length, 1) * 5;
+        doc.setDrawColor(235);
+        doc.line(marginLeft + 4, y + zeilenHoehe - 3, pageWidth - marginRight, y + zeilenHoehe - 3);
+        y += zeilenHoehe + 2.5;
+      });
+      y += 2;
+    });
+    y += 4;
+  });
+
+  const seitenzahl = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= seitenzahl; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Seite ' + i + ' von ' + seitenzahl, pageWidth - marginRight, pageHeight - 10, { align: 'right' });
+    doc.setTextColor(0);
+  }
+
+  return doc.output('blob');
+}
+
+// Erzeugt das PDF und legt es im Dokumente-Tab des Kunden ab (Supabase Storage + "documents"-
+// Tabelle, gleiches Muster wie der manuelle Upload dort). Existiert für dieselbe Version schon
+// ein abgelegtes PDF (z.B. weil diese Version schon einmal korrigiert wurde), wird es ersetzt,
+// damit nicht mehrere PDFs derselben Version im Dokumente-Tab herumliegen.
+async function speicherePdfAlsDokument(version) {
+  try {
+    const titel = 'Pflichtenheft – ' + (liegenschaftName || 'Liegenschaft') + ' (Version ' + version + ')';
+    const blob = await erzeugePflichtenheftPdfBlob(version);
+    const pfad = kundeId + '/' + Date.now() + '-pflichtenheft-v' + version + '.pdf';
+
+    const { data: vorhandene } = await supabaseClient
+      .from('documents')
+      .select('id, datei_pfad')
+      .eq('customer_id', kundeId)
+      .eq('property_id', propertyId)
+      .eq('titel', titel);
+    if (vorhandene && vorhandene.length > 0) {
+      await supabaseClient.storage.from('kunden-dokumente').remove(vorhandene.map(v => v.datei_pfad));
+      await supabaseClient.from('documents').delete().in('id', vorhandene.map(v => v.id));
+    }
+
+    const { error: fehlerUpload } = await supabaseClient.storage.from('kunden-dokumente').upload(pfad, blob, { contentType: 'application/pdf' });
+    if (fehlerUpload) { console.error('PDF-Upload fehlgeschlagen:', fehlerUpload); return false; }
+
+    const { error: fehlerEintrag } = await supabaseClient.from('documents').insert({
+      customer_id: kundeId,
+      property_id: propertyId,
+      titel,
+      kategorie: 'sonstiges',
+      datei_pfad: pfad,
+      hochgeladen_am: new Date().toISOString()
+    });
+    if (fehlerEintrag) { console.error('Dokument-Eintrag fehlgeschlagen:', fehlerEintrag); return false; }
+    return true;
+  } catch (e) {
+    console.error('PDF-Erstellung fehlgeschlagen:', e);
+    return false;
+  }
+}
+
 function zeigeVorschauBereich(nurAnsicht) {
   renderVorschau();
   document.getElementById('vorschau-titel').textContent = nurAnsicht ? 'Pflichtenheft' : 'Vorschau';
@@ -569,7 +714,10 @@ document.getElementById('pflichtenheft-speichern-btn').addEventListener('click',
     if (fehlerLeistungenKorrektur) { status.textContent = 'Fehler beim Speichern der Leistungen: ' + fehlerLeistungenKorrektur.message; return; }
 
     bearbeitungsModus = null;
-    status.textContent = 'Korrigiert! (weiterhin dieselbe Version, keine neue Version angelegt)';
+    status.textContent = 'Korrigiert! (weiterhin dieselbe Version, keine neue Version angelegt) – PDF wird aktualisiert…';
+    const pdfOkKorrektur = await speicherePdfAlsDokument(aktuelleVersion);
+    status.textContent = 'Korrigiert! (weiterhin dieselbe Version, keine neue Version angelegt)' +
+      (pdfOkKorrektur ? ' Das aktualisierte PDF liegt im Dokumente-Tab bereit.' : ' Achtung: Das PDF konnte nicht automatisch abgelegt werden.');
   } else {
     // 3. Bestehendes aktives Pflichtenheft dieser Liegenschaft archivieren
     const { data: bestehend } = await supabaseClient
@@ -619,8 +767,12 @@ document.getElementById('pflichtenheft-speichern-btn').addEventListener('click',
     if (fehlerLeistungen) { status.textContent = 'Fehler beim Speichern der Leistungen: ' + fehlerLeistungen.message; return; }
 
     laufendesPflichtenheftId = neuesPflichtenheft.id;
+    aktuelleVersion = naechsteVersion;
     bearbeitungsModus = null;
-    status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ')';
+    status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ') – PDF wird abgelegt…';
+    const pdfOkNeu = await speicherePdfAlsDokument(naechsteVersion);
+    status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ')' +
+      (pdfOkNeu ? ' Das PDF liegt im Dokumente-Tab bereit.' : ' Achtung: Das PDF konnte nicht automatisch abgelegt werden.');
   }
 
   // Statt sofort wegzunavigieren: kurze Bestätigung mit der Möglichkeit, direkt noch etwas
@@ -727,9 +879,11 @@ async function ladeDaten() {
     supabaseClient.from('customers').select('firma').eq('id', kundeId).single(),
     supabaseClient.from('properties').select('name').eq('id', propertyId).single()
   ]);
-  document.getElementById('info-kunde').textContent = kunde ? kunde.firma : '–';
-  document.getElementById('info-liegenschaft').textContent = liegenschaft ? liegenschaft.name : '–';
-  document.getElementById('titel').textContent = 'Pflichtenheft – ' + (liegenschaft ? liegenschaft.name : '');
+  kundeName = kunde ? kunde.firma : '';
+  liegenschaftName = liegenschaft ? liegenschaft.name : '';
+  document.getElementById('info-kunde').textContent = kundeName || '–';
+  document.getElementById('info-liegenschaft').textContent = liegenschaftName || '–';
+  document.getElementById('titel').textContent = 'Pflichtenheft – ' + liegenschaftName;
 
   await ladeBibliothek();
 
@@ -744,6 +898,7 @@ async function ladeDaten() {
 
   if (bestehendesPflichtenheft) {
     laufendesPflichtenheftId = bestehendesPflichtenheft.id;
+    aktuelleVersion = bestehendesPflichtenheft.version;
     document.getElementById('info-version').textContent = 'Version ' + bestehendesPflichtenheft.version;
     const { data: gespeicherteRaumgruppen } = await supabaseClient
       .from('pflichtenheft_raumgruppen')
@@ -783,6 +938,7 @@ async function ladeDaten() {
     });
   } else {
     laufendesPflichtenheftId = null;
+    aktuelleVersion = null;
     document.getElementById('info-version').textContent = 'Noch keines – dies wird Version 1';
     raumgruppen = [];
   }
