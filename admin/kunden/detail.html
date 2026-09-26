@@ -193,7 +193,7 @@
         </div>
 
         <table>
-          <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th><th>Pflichtenheft</th></tr></thead>
+          <thead><tr><th>Name</th><th>Adresse</th><th>Typ</th><th>Pflichtenheft</th><th>Qualitätskontrolle</th></tr></thead>
           <tbody id="liegenschaften-tabelle"></tbody>
         </table>
         <p class="hint" id="liegenschaften-leer" style="display:none;">Noch keine Liegenschaften erfasst.</p>
@@ -543,12 +543,27 @@ async function ladeFinanzen() {
 }
 
 async function ladeKontakte() {
-  const { data: kontakte } = await supabaseClient.from('contact_persons').select('*').eq('customer_id', kundeId);
+  const [{ data: kontakte }, { data: profile }] = await Promise.all([
+    supabaseClient.from('contact_persons').select('*').eq('customer_id', kundeId),
+    supabaseClient.from('profiles').select('id, email, kann_qualitaetskontrolle').eq('customer_id', kundeId)
+  ]);
   const liste = document.getElementById('kontakte-liste');
   liste.innerHTML = '';
   (kontakte || []).forEach(k => {
+    // Ein Kontakt hat evtl. noch kein eigenes Login (profiles-Zeile) -- die Zuordnung läuft
+    // über die E-Mail-Adresse, gleiches Muster wie im Portal-Login-Tab weiter unten.
+    const passendesProfil = (profile || []).find(p => p.email && k.email && p.email.toLowerCase() === k.email.toLowerCase());
+
     const div = document.createElement('div');
     div.className = 'kontakt-card';
+    let rechteZeile;
+    if (!passendesProfil) {
+      rechteZeile = '<button disabled title="Dieser Kontakt hat noch kein eigenes Portal-Login">Qualitätskontrolle freigeben (braucht zuerst Login)</button>';
+    } else if (passendesProfil.kann_qualitaetskontrolle) {
+      rechteZeile = '<button class="qk-freigabe-btn" data-profil-id="' + passendesProfil.id + '" data-status="freigegeben">✓ Qualitätskontrolle freigegeben (klicken zum Entziehen)</button>';
+    } else {
+      rechteZeile = '<button class="qk-freigabe-btn" data-profil-id="' + passendesProfil.id + '" data-status="gesperrt">Qualitätskontrolle freigeben</button>';
+    }
     div.innerHTML =
       '<div class="kontakt-name">' + k.name + '</div>' +
       '<div class="kontakt-rolle">' + (k.rolle || '—') + '</div>' +
@@ -556,13 +571,23 @@ async function ladeKontakte() {
       '<div class="kontakt-zeile">' + (k.telefon || '—') + '</div>' +
       '<button class="kontakt-menu-btn">⋮</button>' +
       '<div class="kontakt-menu-dropdown hidden">' +
-      '<button disabled>Rechte verwalten (bald)</button>' +
+      rechteZeile +
       '<button disabled>Eigenes Login erstellen (bald)</button>' +
       '</div>';
     liste.appendChild(div);
   });
   liste.querySelectorAll('.kontakt-menu-btn').forEach(btn => {
     btn.addEventListener('click', () => btn.nextElementSibling.classList.toggle('hidden'));
+  });
+  liste.querySelectorAll('.qk-freigabe-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const neuerWert = btn.dataset.status !== 'freigegeben';
+      btn.disabled = true;
+      btn.textContent = 'Speichere…';
+      const { error } = await supabaseClient.from('profiles').update({ kann_qualitaetskontrolle: neuerWert }).eq('id', btn.dataset.profilId);
+      if (error) { alert('Konnte nicht gespeichert werden: ' + error.message); }
+      await ladeKontakte();
+    });
   });
 }
 
@@ -626,7 +651,8 @@ async function ladeLiegenschaften() {
       '<td><a class="liegenschaft-link" href="liegenschaft.html?id=' + l.id + '&kunde=' + kundeId + '">' + l.name + '</a></td>' +
       '<td>' + (l.adresse || '–') + '</td>' +
       '<td>' + l.typ + '</td>' +
-      '<td><a class="btn small" href="pflichtenheft.html?id=' + l.id + '&kunde=' + kundeId + '">Pflichtenheft</a></td>';
+      '<td><a class="btn small" href="pflichtenheft.html?id=' + l.id + '&kunde=' + kundeId + '">Pflichtenheft</a></td>' +
+      '<td><a class="btn small" href="qualitaetskontrolle.html?id=' + l.id + '&kunde=' + kundeId + '">Qualitätskontrolle</a></td>';
     tbody.appendChild(tr);
   });
 
