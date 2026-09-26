@@ -144,6 +144,29 @@ function haeufigkeitAnzeige(code) {
   return anzahl + 'x ' + EINHEIT_LABEL[einheit];
 }
 
+// Kurzform für die kompakte Darstellung, z.B. "2x/W", "4x/M", oder EL/NB/BE.
+function haeufigkeitKurz(code) {
+  const { anzahl, einheit } = parseHaeufigkeit(code);
+  if (SPEZIAL_LABEL[einheit]) return einheit;
+  return anzahl + 'x/' + einheit;
+}
+
+// Kleines Symbol pro Kategorie für die kompakte Darstellung. Bekannte Kategorien aus der
+// Admeco-Bibliothek sind hinterlegt; alles andere (z.B. neu angelegte Kategorien) bekommt
+// ein neutrales Standard-Symbol.
+const KATEGORIE_ICONS = {
+  'boden': '🧹',
+  'glasreinigung': '🪟',
+  'entleeren/reinigen': '🗑️',
+  'feucht abwischen/abstauben': '🧽',
+  'griffspuren entfernen': '✋',
+  'reinigen': '🧴',
+  'auffüllen/auswechseln': '🧻'
+};
+function kategorieIcon(kategorie) {
+  return KATEGORIE_ICONS[(kategorie || '').toLowerCase().trim()] || '📋';
+}
+
 // Baut das kleine Anzahl+Einheit-Steuerelement, z.B. [ 2 ] [ pro Woche v ]
 function haeufigkeitWidget(zusatzKlasse, code, extraAttrs, versteckt) {
   const { anzahl, einheit } = parseHaeufigkeit(code);
@@ -375,31 +398,38 @@ function renderVorschau() {
     return;
   }
   // Die Vorschau zeigt die echte Speicherreihenfolge (zuerst erfasste Raumgruppe zuoberst),
-  // nicht die zum Bearbeiten umgekehrte Anzeigereihenfolge.
-  container.innerHTML = raumgruppen.map(rg => {
-    let html = '<div style="margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid #eee;">';
-    html += '<h3 style="margin:0 0 8px 0;">' + escapeHtml(rg.name) + '</h3>';
+  // nicht die zum Bearbeiten umgekehrte Anzeigereihenfolge. Kompakte Darstellung: pro Kategorie
+  // ein Symbol + Name, darunter die Leistungen als kleine Chips mit der Häufigkeit als Badge.
+  let html = raumgruppen.map(rg => {
+    let rgHtml = '<div style="margin-bottom:22px; padding-bottom:16px; border-bottom:1px solid #eee;">';
+    rgHtml += '<h3 style="margin:0 0 10px 0;">' + escapeHtml(rg.name) + '</h3>';
     if (rg.leistungen.length === 0) {
-      html += '<p class="hint" style="margin:0;">Keine Leistungen ausgewählt.</p>';
-      html += '</div>';
-      return html;
+      rgHtml += '<p class="hint" style="margin:0;">Keine Leistungen ausgewählt.</p></div>';
+      return rgHtml;
     }
     const nachKategorie = {};
+    const kategorieReihenfolgeHier = [];
     rg.leistungen.forEach(le => {
-      if (!nachKategorie[le.kategorie]) nachKategorie[le.kategorie] = [];
+      if (!nachKategorie[le.kategorie]) { nachKategorie[le.kategorie] = []; kategorieReihenfolgeHier.push(le.kategorie); }
       nachKategorie[le.kategorie].push(le);
     });
-    Object.keys(nachKategorie).forEach(kategorie => {
-      html += '<div style="margin-top:8px;"><strong>' + escapeHtml(kategorie) + '</strong>';
-      html += '<ul style="margin:4px 0 0 20px;">';
+    kategorieReihenfolgeHier.forEach(kategorie => {
+      rgHtml += '<div style="margin-top:10px;">';
+      rgHtml += '<div style="font-size:0.78rem; color:#666; margin-bottom:4px;">' + kategorieIcon(kategorie) + ' ' + escapeHtml(kategorie) + '</div>';
+      rgHtml += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
       nachKategorie[kategorie].forEach(le => {
-        html += '<li>' + escapeHtml(le.name) + ' — ' + haeufigkeitAnzeige(le.haeufigkeit) + '</li>';
+        rgHtml += '<span style="display:inline-flex; align-items:center; gap:5px; background:#f2f2f2; border-radius:14px; padding:4px 6px 4px 10px; font-size:0.82rem; white-space:nowrap;">';
+        rgHtml += escapeHtml(le.name);
+        rgHtml += '<span style="background:#fff; border-radius:10px; padding:1px 6px; font-size:0.72rem; color:#555;">' + haeufigkeitKurz(le.haeufigkeit) + '</span>';
+        rgHtml += '</span>';
       });
-      html += '</ul></div>';
+      rgHtml += '</div></div>';
     });
-    html += '</div>';
-    return html;
+    rgHtml += '</div>';
+    return rgHtml;
   }).join('');
+  html += '<p class="hint" style="margin-top:4px;">Kürzel: W = pro Woche, M = pro Monat, J = pro Jahr, EL = Eigenleistung (Kunde), NB = Nach Bedarf, BE = Bestellung (separate Abrechnung). Die Zahl davor ist die Anzahl, z.B. "2x/W" = 2x pro Woche.</p>';
+  container.innerHTML = html;
 }
 
 function zeigeVorschauBereich(nurAnsicht) {
