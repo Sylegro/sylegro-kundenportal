@@ -398,8 +398,8 @@ function renderVorschau() {
     return;
   }
   // Die Vorschau zeigt die echte Speicherreihenfolge (zuerst erfasste Raumgruppe zuoberst),
-  // nicht die zum Bearbeiten umgekehrte Anzeigereihenfolge. Kompakte Darstellung: pro Kategorie
-  // ein Symbol + Name, darunter die Leistungen als kleine Chips mit der Häufigkeit als Badge.
+  // nicht die zum Bearbeiten umgekehrte Anzeigereihenfolge. Schlichte, saubere Liste ohne
+  // Icons: pro Kategorie eine Überschrift, darunter die Leistungen mit der Häufigkeit rechts.
   let html = raumgruppen.map(rg => {
     let rgHtml = '<div style="margin-bottom:22px; padding-bottom:16px; border-bottom:1px solid #eee;">';
     rgHtml += '<h3 style="margin:0 0 10px 0;">' + escapeHtml(rg.name) + '</h3>';
@@ -414,21 +414,19 @@ function renderVorschau() {
       nachKategorie[le.kategorie].push(le);
     });
     kategorieReihenfolgeHier.forEach(kategorie => {
-      rgHtml += '<div style="margin-top:10px;">';
-      rgHtml += '<div style="font-size:0.78rem; color:#666; margin-bottom:4px;">' + kategorieIcon(kategorie) + ' ' + escapeHtml(kategorie) + '</div>';
-      rgHtml += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
+      rgHtml += '<div style="margin-top:12px;">';
+      rgHtml += '<div style="font-weight:600; font-size:0.85rem; color:#333; margin-bottom:4px;">' + escapeHtml(kategorie) + '</div>';
       nachKategorie[kategorie].forEach(le => {
-        rgHtml += '<span style="display:inline-flex; align-items:center; gap:5px; background:#f2f2f2; border-radius:14px; padding:4px 6px 4px 10px; font-size:0.82rem; white-space:nowrap;">';
-        rgHtml += escapeHtml(le.name);
-        rgHtml += '<span style="background:#fff; border-radius:10px; padding:1px 6px; font-size:0.72rem; color:#555;">' + haeufigkeitKurz(le.haeufigkeit) + '</span>';
-        rgHtml += '</span>';
+        rgHtml += '<div style="display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px dotted #e2e2e2; font-size:0.92rem;">';
+        rgHtml += '<span>' + escapeHtml(le.name) + '</span>';
+        rgHtml += '<span style="color:#555; white-space:nowrap; margin-left:16px;">' + haeufigkeitAnzeige(le.haeufigkeit) + '</span>';
+        rgHtml += '</div>';
       });
-      rgHtml += '</div></div>';
+      rgHtml += '</div>';
     });
     rgHtml += '</div>';
     return rgHtml;
   }).join('');
-  html += '<p class="hint" style="margin-top:4px;">Kürzel: W = pro Woche, M = pro Monat, J = pro Jahr, EL = Eigenleistung (Kunde), NB = Nach Bedarf, BE = Bestellung (separate Abrechnung). Die Zahl davor ist die Anzahl, z.B. "2x/W" = 2x pro Woche.</p>';
   container.innerHTML = html;
 }
 
