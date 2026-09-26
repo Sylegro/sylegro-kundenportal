@@ -45,7 +45,7 @@
           <div id="info-version">–</div>
         </div>
       </div>
-      <p class="hint" style="margin-top:10px;">Neu erstellte Raumgruppen werden zuoberst angezeigt, damit du beim Erfassen nicht scrollen musst. Im fertigen Pflichtenheft erscheinen sie dann in der Reihenfolge, in der du sie zuerst erfasst hast. Beim "Jetzt endgültig speichern" wird — falls schon ein aktives Pflichtenheft besteht — eine neue Version angelegt; die vorherige bleibt im Hintergrund erhalten. Über "Pflichtenheft anpassen" kannst du Fehler direkt vor dem endgültigen Speichern noch korrigieren, ohne dass dafür schon eine Version angelegt wird.</p>
+      <p class="hint" style="margin-top:10px;">Neu erstellte Raumgruppen werden zuoberst angezeigt, damit du beim Erfassen nicht scrollen musst. Im fertigen Pflichtenheft erscheinen sie dann in der Reihenfolge, in der du sie zuerst erfasst hast. "Fehler korrigieren" überschreibt die aktuelle Version (keine neue Version, für Tippfehler & Versehen). "Pflichtenheft anpassen" legt eine echte neue Version an (für tatsächliche inhaltliche Änderungen) — die vorherige Version bleibt dabei im Hintergrund erhalten.</p>
     </div>
 
     <div id="baukasten-bereich">
@@ -100,10 +100,15 @@
         <p class="hint" id="vorschau-hinweis">So sieht das Pflichtenheft aus. Prüfe alles in Ruhe. Mit "Pflichtenheft anpassen" kommst du zurück zur Bearbeitung — dabei wird noch nichts gespeichert. Erst mit "Jetzt endgültig speichern" wird es wirklich abgelegt.</p>
         <div id="vorschau-inhalt"></div>
       </div>
-      <div style="margin:20px 0; display:flex; align-items:center; gap:14px;">
-        <button type="button" class="btn small" id="vorschau-anpassen-btn">Pflichtenheft anpassen</button>
+      <div style="margin:20px 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <button type="button" class="btn small" id="vorschau-korrigieren-btn">Fehler korrigieren (keine neue Version)</button>
+        <button type="button" class="btn small" id="vorschau-anpassen-btn">Pflichtenheft anpassen (neue Version)</button>
         <button type="button" class="btn primary" id="pflichtenheft-speichern-btn">Jetzt endgültig speichern</button>
         <span id="speicher-status" class="hint"></span>
+      </div>
+      <div id="nach-speichern-optionen" class="versteckt" style="margin:0 0 20px 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <button type="button" class="btn small" id="nach-speichern-korrigieren-btn">Doch noch etwas korrigieren</button>
+        <button type="button" class="btn primary" id="nach-speichern-fertig-btn">Fertig — zurück zum Kundenprofil</button>
       </div>
     </div>
   </main>
@@ -172,6 +177,8 @@ let leistungenBibliothek = [];    // [{id, kategorie, name, reihenfolge, istNeu?
 let matrixVorlagen = [];          // [{raumgruppe_vorlage_id, leistung_vorlage_id, standard_haeufigkeit}]
 let raumgruppen = [];             // aktueller Bauzustand: [{vorlage_id, name, leistungen:[{vorlage_id, kategorie, name, haeufigkeit}]}]
 let localKeyZaehler = 0;
+let bearbeitungsModus = null;        // null | 'neu' | 'korrektur' -- steuert, was "Jetzt endgültig speichern" tut
+let laufendesPflichtenheftId = null; // id des aktuell aktiven Pflichtenhefts (falls vorhanden) -- nötig für den Korrektur-Modus
 
 function kategorienReihenfolge() {
   const gesehen = [];
@@ -399,9 +406,12 @@ function zeigeVorschauBereich(nurAnsicht) {
   renderVorschau();
   document.getElementById('vorschau-titel').textContent = nurAnsicht ? 'Pflichtenheft' : 'Vorschau';
   document.getElementById('vorschau-hinweis').textContent = nurAnsicht
-    ? 'Dies ist die aktuell gültige Version dieses Pflichtenhefts. Um etwas zu ändern, klicke auf "Pflichtenheft anpassen".'
+    ? 'Dies ist die aktuell gültige Version dieses Pflichtenhefts. "Fehler korrigieren" behebt kleine Fehler/Versehen, ohne eine neue Version anzulegen. "Pflichtenheft anpassen" ist für echte inhaltliche Änderungen und legt eine neue Version an.'
     : 'So sieht das Pflichtenheft aus. Prüfe alles in Ruhe. Mit "Pflichtenheft anpassen" kommst du zurück zur Bearbeitung — dabei wird noch nichts gespeichert. Erst mit "Jetzt endgültig speichern" wird es wirklich abgelegt.';
+  document.getElementById('vorschau-korrigieren-btn').style.display = nurAnsicht ? '' : 'none';
+  document.getElementById('vorschau-anpassen-btn').style.display = '';
   document.getElementById('pflichtenheft-speichern-btn').style.display = nurAnsicht ? 'none' : '';
+  document.getElementById('nach-speichern-optionen').classList.add('versteckt');
   document.getElementById('speicher-status').textContent = '';
   document.getElementById('baukasten-bereich').classList.add('versteckt');
   document.getElementById('vorschau-bereich').classList.remove('versteckt');
@@ -417,10 +427,29 @@ document.getElementById('pflichtenheft-vorschau-btn').addEventListener('click', 
   zeigeVorschauBereich(false);
 });
 
-document.getElementById('vorschau-anpassen-btn').addEventListener('click', () => {
+document.getElementById('vorschau-korrigieren-btn').addEventListener('click', () => {
+  bearbeitungsModus = 'korrektur';
   document.getElementById('vorschau-bereich').classList.add('versteckt');
   document.getElementById('baukasten-bereich').classList.remove('versteckt');
   window.scrollTo(0, 0);
+});
+
+document.getElementById('vorschau-anpassen-btn').addEventListener('click', () => {
+  if (!bearbeitungsModus) bearbeitungsModus = 'neu';
+  document.getElementById('vorschau-bereich').classList.add('versteckt');
+  document.getElementById('baukasten-bereich').classList.remove('versteckt');
+  window.scrollTo(0, 0);
+});
+
+document.getElementById('nach-speichern-korrigieren-btn').addEventListener('click', () => {
+  bearbeitungsModus = 'korrektur';
+  document.getElementById('vorschau-bereich').classList.add('versteckt');
+  document.getElementById('baukasten-bereich').classList.remove('versteckt');
+  window.scrollTo(0, 0);
+});
+
+document.getElementById('nach-speichern-fertig-btn').addEventListener('click', () => {
+  window.location.href = 'detail.html?id=' + kundeId;
 });
 
 document.getElementById('pflichtenheft-speichern-btn').addEventListener('click', async () => {
@@ -465,55 +494,114 @@ document.getElementById('pflichtenheft-speichern-btn').addEventListener('click',
     rg.vorlage_id = vorhandene.id;
   }
 
-  // 3. Bestehendes aktives Pflichtenheft dieser Liegenschaft archivieren
-  const { data: bestehend } = await supabaseClient
-    .from('pflichtenhefte')
-    .select('id, version')
-    .eq('property_id', propertyId)
-    .eq('status', 'aktiv')
-    .maybeSingle();
+  // Ab hier zwei mögliche Wege:
+  // - "Korrektur": die bestehende, aktuell aktive Version wird direkt überschrieben (kein Versionssprung).
+  // - Normalfall: es wird eine neue Version angelegt (bei der allerersten Erstellung: Version 1;
+  //   existiert schon eine aktive Version, wird diese archiviert und die neue Version aktiv).
+  if (bearbeitungsModus === 'korrektur' && laufendesPflichtenheftId) {
+    const pflichtenheftId = laufendesPflichtenheftId;
 
-  const naechsteVersion = bestehend ? bestehend.version + 1 : 1;
-  if (bestehend) {
-    const { error } = await supabaseClient.from('pflichtenhefte').update({ status: 'archiviert' }).eq('id', bestehend.id);
-    if (error) { status.textContent = 'Fehler beim Archivieren der alten Version: ' + error.message; return; }
-  }
+    // Bestehende Raumgruppen/Leistungen dieser Version zuerst entfernen ...
+    const { data: alteRaumgruppen, error: fehlerLesen } = await supabaseClient
+      .from('pflichtenheft_raumgruppen')
+      .select('id')
+      .eq('pflichtenheft_id', pflichtenheftId);
+    if (fehlerLesen) { status.textContent = 'Fehler beim Korrigieren: ' + fehlerLesen.message; return; }
 
-  // 4. Neues Pflichtenheft anlegen
-  const { data: neuesPflichtenheft, error: fehlerPflichtenheft } = await supabaseClient
-    .from('pflichtenhefte')
-    .insert({ property_id: propertyId, version: naechsteVersion, status: 'aktiv' })
-    .select()
-    .single();
-  if (fehlerPflichtenheft) { status.textContent = 'Fehler beim Anlegen: ' + fehlerPflichtenheft.message; return; }
+    const alteIds = (alteRaumgruppen || []).map(r => r.id);
+    if (alteIds.length > 0) {
+      const { error: fehlerLoeschenLeistungen } = await supabaseClient.from('pflichtenheft_leistungen').delete().in('pflichtenheft_raumgruppe_id', alteIds);
+      if (fehlerLoeschenLeistungen) { status.textContent = 'Fehler beim Korrigieren: ' + fehlerLoeschenLeistungen.message; return; }
+    }
+    const { error: fehlerLoeschenRaumgruppen } = await supabaseClient.from('pflichtenheft_raumgruppen').delete().eq('pflichtenheft_id', pflichtenheftId);
+    if (fehlerLoeschenRaumgruppen) { status.textContent = 'Fehler beim Korrigieren: ' + fehlerLoeschenRaumgruppen.message; return; }
 
-  // 5. Raumgruppen dieses Pflichtenhefts speichern
-  const { data: eingefuegteRaumgruppen, error: fehlerRaumgruppen } = await supabaseClient
-    .from('pflichtenheft_raumgruppen')
-    .insert(raumgruppen.map((rg, i) => ({ pflichtenheft_id: neuesPflichtenheft.id, name: rg.name, reihenfolge: i + 1 })))
-    .select();
-  if (fehlerRaumgruppen) { status.textContent = 'Fehler beim Speichern der Raumgruppen: ' + fehlerRaumgruppen.message; return; }
+    // ... und durch den korrigierten Inhalt ersetzen, unter derselben Pflichtenheft-Id/Version.
+    const { data: eingefuegteRaumgruppen, error: fehlerRaumgruppen } = await supabaseClient
+      .from('pflichtenheft_raumgruppen')
+      .insert(raumgruppen.map((rg, i) => ({ pflichtenheft_id: pflichtenheftId, name: rg.name, reihenfolge: i + 1 })))
+      .select();
+    if (fehlerRaumgruppen) { status.textContent = 'Fehler beim Speichern der Raumgruppen: ' + fehlerRaumgruppen.message; return; }
 
-  // 6. Alle Leistungen aller Raumgruppen speichern
-  const leistungenZeilen = [];
-  raumgruppen.forEach((rg, i) => {
-    const raumgruppeId = eingefuegteRaumgruppen[i].id;
-    rg.leistungen.forEach((le, j) => {
-      leistungenZeilen.push({
-        pflichtenheft_id: neuesPflichtenheft.id,
-        pflichtenheft_raumgruppe_id: raumgruppeId,
-        kategorie: le.kategorie,
-        name: le.name,
-        haeufigkeit: le.haeufigkeit,
-        reihenfolge: j + 1
+    const leistungenZeilenKorrektur = [];
+    raumgruppen.forEach((rg, i) => {
+      const raumgruppeId = eingefuegteRaumgruppen[i].id;
+      rg.leistungen.forEach((le, j) => {
+        leistungenZeilenKorrektur.push({
+          pflichtenheft_id: pflichtenheftId,
+          pflichtenheft_raumgruppe_id: raumgruppeId,
+          kategorie: le.kategorie,
+          name: le.name,
+          haeufigkeit: le.haeufigkeit,
+          reihenfolge: j + 1
+        });
       });
     });
-  });
-  const { error: fehlerLeistungen } = await supabaseClient.from('pflichtenheft_leistungen').insert(leistungenZeilen);
-  if (fehlerLeistungen) { status.textContent = 'Fehler beim Speichern der Leistungen: ' + fehlerLeistungen.message; return; }
+    const { error: fehlerLeistungenKorrektur } = await supabaseClient.from('pflichtenheft_leistungen').insert(leistungenZeilenKorrektur);
+    if (fehlerLeistungenKorrektur) { status.textContent = 'Fehler beim Speichern der Leistungen: ' + fehlerLeistungenKorrektur.message; return; }
 
-  status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ')';
-  setTimeout(() => { window.location.href = 'detail.html?id=' + kundeId; }, 1200);
+    bearbeitungsModus = null;
+    status.textContent = 'Korrigiert! (weiterhin dieselbe Version, keine neue Version angelegt)';
+  } else {
+    // 3. Bestehendes aktives Pflichtenheft dieser Liegenschaft archivieren
+    const { data: bestehend } = await supabaseClient
+      .from('pflichtenhefte')
+      .select('id, version')
+      .eq('property_id', propertyId)
+      .eq('status', 'aktiv')
+      .maybeSingle();
+
+    const naechsteVersion = bestehend ? bestehend.version + 1 : 1;
+    if (bestehend) {
+      const { error } = await supabaseClient.from('pflichtenhefte').update({ status: 'archiviert' }).eq('id', bestehend.id);
+      if (error) { status.textContent = 'Fehler beim Archivieren der alten Version: ' + error.message; return; }
+    }
+
+    // 4. Neues Pflichtenheft anlegen
+    const { data: neuesPflichtenheft, error: fehlerPflichtenheft } = await supabaseClient
+      .from('pflichtenhefte')
+      .insert({ property_id: propertyId, version: naechsteVersion, status: 'aktiv' })
+      .select()
+      .single();
+    if (fehlerPflichtenheft) { status.textContent = 'Fehler beim Anlegen: ' + fehlerPflichtenheft.message; return; }
+
+    // 5. Raumgruppen dieses Pflichtenhefts speichern
+    const { data: eingefuegteRaumgruppen, error: fehlerRaumgruppen } = await supabaseClient
+      .from('pflichtenheft_raumgruppen')
+      .insert(raumgruppen.map((rg, i) => ({ pflichtenheft_id: neuesPflichtenheft.id, name: rg.name, reihenfolge: i + 1 })))
+      .select();
+    if (fehlerRaumgruppen) { status.textContent = 'Fehler beim Speichern der Raumgruppen: ' + fehlerRaumgruppen.message; return; }
+
+    // 6. Alle Leistungen aller Raumgruppen speichern
+    const leistungenZeilen = [];
+    raumgruppen.forEach((rg, i) => {
+      const raumgruppeId = eingefuegteRaumgruppen[i].id;
+      rg.leistungen.forEach((le, j) => {
+        leistungenZeilen.push({
+          pflichtenheft_id: neuesPflichtenheft.id,
+          pflichtenheft_raumgruppe_id: raumgruppeId,
+          kategorie: le.kategorie,
+          name: le.name,
+          haeufigkeit: le.haeufigkeit,
+          reihenfolge: j + 1
+        });
+      });
+    });
+    const { error: fehlerLeistungen } = await supabaseClient.from('pflichtenheft_leistungen').insert(leistungenZeilen);
+    if (fehlerLeistungen) { status.textContent = 'Fehler beim Speichern der Leistungen: ' + fehlerLeistungen.message; return; }
+
+    laufendesPflichtenheftId = neuesPflichtenheft.id;
+    bearbeitungsModus = null;
+    status.textContent = 'Gespeichert! (Version ' + naechsteVersion + ')';
+  }
+
+  // Statt sofort wegzunavigieren: kurze Bestätigung mit der Möglichkeit, direkt noch etwas
+  // zu korrigieren (dann ohne neue Version), bevor man zurück zum Kundenprofil geht.
+  document.getElementById('vorschau-korrigieren-btn').style.display = 'none';
+  document.getElementById('vorschau-anpassen-btn').style.display = 'none';
+  document.getElementById('pflichtenheft-speichern-btn').style.display = 'none';
+  document.getElementById('nach-speichern-optionen').classList.remove('versteckt');
+  renderVorschau();
 });
 
 async function ladeBibliothek() {
@@ -624,7 +712,10 @@ async function ladeDaten() {
     .eq('status', 'aktiv')
     .maybeSingle();
 
+  bearbeitungsModus = null;
+
   if (bestehendesPflichtenheft) {
+    laufendesPflichtenheftId = bestehendesPflichtenheft.id;
     document.getElementById('info-version').textContent = 'Version ' + bestehendesPflichtenheft.version;
     const { data: gespeicherteRaumgruppen } = await supabaseClient
       .from('pflichtenheft_raumgruppen')
@@ -663,6 +754,7 @@ async function ladeDaten() {
       };
     });
   } else {
+    laufendesPflichtenheftId = null;
     document.getElementById('info-version').textContent = 'Noch keines – dies wird Version 1';
     raumgruppen = [];
   }
