@@ -789,7 +789,7 @@ async function ladeDokumente() {
       '<td>' + d.kategorie + '</td>' +
       '<td>' + (d.properties ? d.properties.name : '–') + '</td>' +
       '<td>' + new Date(d.hochgeladen_am).toLocaleDateString('de-CH') + '</td>' +
-      '<td><a href="#" class="dok-link" data-pfad="' + d.datei_pfad + '">Herunterladen</a></td>';
+      '<td><a href="#" class="dok-link" data-pfad="' + d.pfad + '">Herunterladen</a></td>';
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('.dok-link').forEach(a => {
@@ -811,7 +811,7 @@ document.getElementById('dok-hochladen-btn').addEventListener('click', async () 
     customer_id: kundeId,
     titel,
     kategorie: document.getElementById('dok-kategorie').value,
-    datei_pfad: pfad,
+    pfad,
     hochgeladen_am: new Date().toISOString()
   });
   document.getElementById('dok-titel').value = '';
