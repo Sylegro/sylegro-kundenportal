@@ -55,10 +55,10 @@
 
       <table>
         <thead>
-          <tr><th>Name</th><th>E-Mail</th><th>Portal-Login</th><th></th></tr>
+          <tr><th>Name</th><th>Abteilung / Position</th><th>E-Mail</th><th>Portal-Login</th><th></th></tr>
         </thead>
         <tbody id="mitarbeiter-body">
-          <tr><td colspan="4" class="hint">Lade Mitarbeiter…</td></tr>
+          <tr><td colspan="5" class="hint">Lade Mitarbeiter…</td></tr>
         </tbody>
       </table>
       <p class="hint" id="mitarbeiter-leer" style="display:none;">Noch keine (aktiven) Mitarbeiter synchronisiert — auf "Mitarbeiter jetzt synchronisieren" klicken.</p>
@@ -80,7 +80,7 @@
       .order('nachname');
 
     if (error) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
       return;
     }
 
@@ -100,8 +100,12 @@
       const aktionZelle = (!m.profile_id && m.email)
         ? '<button type="button" class="btn small login-erstellen-btn" data-id="' + m.id + '">Login erstellen</button>'
         : '';
+      const einteilungZelle = m.abteilung
+        ? (m.abteilung + (m.position ? ' – ' + m.position : ''))
+        : '<span class="badge neutral">Nicht zugewiesen</span>';
       tr.innerHTML =
-        '<td>' + (m.display_name || '—') + '</td>' +
+        '<td><a href="profil.html?id=' + m.id + '" class="liegenschaft-link">' + (m.display_name || '—') + '</a></td>' +
+        '<td>' + einteilungZelle + '</td>' +
         '<td>' + (m.email || '—') + '</td>' +
         '<td>' + loginZelle + '</td>' +
         '<td>' + aktionZelle + '</td>';
