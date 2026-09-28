@@ -131,8 +131,24 @@
 
     const { data, error } = await supabaseClient.functions.invoke(funktionsname, {});
 
-    if (error || (data && data.error)) {
-      status.textContent = 'Fehler: ' + (data && data.error ? data.error : error.message);
+    if (error) {
+      // Wenn die Funktion einen Fehlerstatus (4xx/5xx) zurückgibt, steckt die
+      // eigentliche, verständliche Fehlermeldung im Antwort-Body -- die zeigen
+      // wir hier an, statt nur der allgemeinen Meldung von Supabase.
+      let meldung = error.message;
+      if (error.context && typeof error.context.json === 'function') {
+        try {
+          const body = await error.context.json();
+          if (body && body.error) meldung = body.error;
+        } catch (e) { /* Body war kein JSON -- allgemeine Meldung behalten */ }
+      }
+      status.textContent = 'Fehler: ' + meldung;
+      status.style.color = 'var(--color-danger)';
+      return;
+    }
+
+    if (data && data.error) {
+      status.textContent = 'Fehler: ' + data.error;
       status.style.color = 'var(--color-danger)';
       return;
     }
