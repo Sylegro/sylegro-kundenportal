@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mitarbeiterprofil | Sylegro Admin</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="../kunden/uebersicht.html" class="top-cat">Kunden</a>
+
+      <a href="uebersicht.html" class="top-cat">Mitarbeiter</a>
+      <a href="uebersicht.html" class="sub-item active">Alle Mitarbeiter</a>
+      <a href="#" class="sub-item disabled">Funktionsfreigabe (bald)</a>
+      <a href="#" class="sub-item disabled">Stunden/Zeiten (bald)</a>
+      <a href="#" class="sub-item disabled">Mitarbeitergespräche (bald)</a>
+
+      <a href="../betrieb/uebersicht.html" class="top-cat">Betrieb</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h1 id="mitarbeiter-name-titel">Mitarbeiter</h1>
+      <a href="uebersicht.html">← Zurück zur Übersicht</a>
+    </div>
+
+    <div class="card">
+      <div class="firma-header">
+        <div id="mitarbeiter-initialen" class="logo-platzhalter">?</div>
+        <div>
+          <div class="firma-name" id="mitarbeiter-name">–</div>
+          <span class="badge neutral" id="mitarbeiter-login-badge">–</span>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div>
+          <div class="label">E-Mail</div>
+          <div id="info-email">–</div>
+        </div>
+        <div>
+          <div class="label">Status</div>
+          <div id="info-status">–</div>
+        </div>
+      </div>
+
+      <div class="abschnitt-kopf" style="margin-top:20px;">
+        <div class="leistungen-kopf">
+          <h3 style="margin:0;">Abteilung &amp; Position</h3>
+          <button type="button" class="icon-btn" id="einteilung-edit-btn" title="Bearbeiten">✎</button>
+        </div>
+      </div>
+      <p class="hint">Legt fest, in welcher Abteilung dieser Mitarbeiter arbeitet und welche Position er/sie dort hat. Wird u.a. bei der Zuweisung zu Kunden/Liegenschaften verwendet.</p>
+
+      <div id="einteilung-anzeige" class="info-grid">
+        <div>
+          <div class="label">Abteilung</div>
+          <div id="anzeige-abteilung">–</div>
+        </div>
+        <div>
+          <div class="label">Position</div>
+          <div id="anzeige-position">–</div>
+        </div>
+      </div>
+
+      <div id="einteilung-formular" class="versteckt" style="margin-top:6px;">
+        <div class="form-grid">
+          <div>
+            <label for="form-abteilung">Abteilung</label>
+            <select id="form-abteilung">
+              <option value="">— wählen —</option>
+              <option value="Unterhaltsreinigung">Unterhaltsreinigung</option>
+              <option value="Spezialreinigung">Spezialreinigung</option>
+              <option value="Hauswartung">Hauswartung</option>
+            </select>
+          </div>
+          <div>
+            <label for="form-position">Position</label>
+            <select id="form-position" disabled>
+              <option value="">— zuerst Abteilung wählen —</option>
+            </select>
+          </div>
+        </div>
+        <button type="button" class="btn primary" id="einteilung-speichern-btn">Speichern</button>
+        <button type="button" class="btn small" id="einteilung-abbrechen-btn">Abbrechen</button>
+        <div id="einteilung-fehler" class="hint" style="color:var(--color-danger); display:none; margin-top:8px;"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const mitarbeiterId = params.get('id');
+
+  // Welche Positionen zu welcher Abteilung gehören. Bewusst hier im Code
+  // gepflegt (nicht in der Datenbank) -- bei Bedarf hier anpassen.
+  const POSITIONEN_NACH_ABTEILUNG = {
+    'Unterhaltsreinigung': ['Abteilungsleiter', 'Stv. Abteilungsleiter', 'Unterhaltsreiniger', 'Objektleiter', 'Allrounder'],
+    'Spezialreinigung': ['Abteilungsleiter', 'Stv. Abteilungsleiter', 'Vorarbeiter', 'Spezialreiniger', 'Lernender/in', 'Allrounder'],
+    'Hauswartung': ['Abteilungsleiter', 'Stv. Abteilungsleiter', 'Lernender/in', 'Hauswart', 'Allrounder']
+  };
+
+  let aktuellerMitarbeiter = null;
+
+  function initialenVon(name) {
+    if (!name) return '?';
+    const teile = name.trim().split(/\s+/);
+    const erste = teile[0] ? teile[0][0] : '';
+    const letzte = teile.length > 1 ? teile[teile.length - 1][0] : '';
+    return (erste + letzte).toUpperCase() || '?';
+  }
+
+  // Füllt das Positions-Dropdown passend zur gewählten Abteilung.
+  // "aktuellePosition" wird vorausgewählt, falls sie zur Abteilung passt.
+  function positionDropdownFuellen(abteilung, aktuellePosition) {
+    const select = document.getElementById('form-position');
+    if (!abteilung || !POSITIONEN_NACH_ABTEILUNG[abteilung]) {
+      select.innerHTML = '<option value="">— zuerst Abteilung wählen —</option>';
+      select.disabled = true;
+      return;
+    }
+    const optionen = POSITIONEN_NACH_ABTEILUNG[abteilung];
+    select.innerHTML = '<option value="">— wählen —</option>' +
+      optionen.map(p => '<option value="' + p + '"' + (p === aktuellePosition ? ' selected' : '') + '>' + p + '</option>').join('');
+    select.disabled = false;
+  }
+
+  document.getElementById('form-abteilung').addEventListener('change', (e) => {
+    positionDropdownFuellen(e.target.value, null);
+  });
+
+  document.getElementById('einteilung-edit-btn').addEventListener('click', () => {
+    document.getElementById('einteilung-anzeige').classList.add('versteckt');
+    document.getElementById('einteilung-formular').classList.remove('versteckt');
+    document.getElementById('einteilung-fehler').style.display = 'none';
+
+    const abteilung = aktuellerMitarbeiter.abteilung || '';
+    document.getElementById('form-abteilung').value = abteilung;
+    positionDropdownFuellen(abteilung, aktuellerMitarbeiter.position || null);
+  });
+
+  document.getElementById('einteilung-abbrechen-btn').addEventListener('click', () => {
+    document.getElementById('einteilung-formular').classList.add('versteckt');
+    document.getElementById('einteilung-anzeige').classList.remove('versteckt');
+  });
+
+  document.getElementById('einteilung-speichern-btn').addEventListener('click', async () => {
+    const abteilung = document.getElementById('form-abteilung').value || null;
+    const position = document.getElementById('form-position').value || null;
+    const fehler = document.getElementById('einteilung-fehler');
+    fehler.style.display = 'none';
+
+    if (position && !abteilung) {
+      fehler.textContent = 'Bitte zuerst eine Abteilung wählen.';
+      fehler.style.display = 'block';
+      return;
+    }
+    if (abteilung && position && !POSITIONEN_NACH_ABTEILUNG[abteilung].includes(position)) {
+      fehler.textContent = 'Diese Position gehört nicht zur gewählten Abteilung.';
+      fehler.style.display = 'block';
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from('mitarbeiter_stamm')
+      .update({ abteilung, position })
+      .eq('id', mitarbeiterId);
+
+    if (error) {
+      fehler.textContent = 'Fehler beim Speichern: ' + error.message;
+      fehler.style.display = 'block';
+      return;
+    }
+
+    aktuellerMitarbeiter.abteilung = abteilung;
+    aktuellerMitarbeiter.position = position;
+    einteilungAnzeigen();
+    document.getElementById('einteilung-formular').classList.add('versteckt');
+    document.getElementById('einteilung-anzeige').classList.remove('versteckt');
+  });
+
+  function einteilungAnzeigen() {
+    document.getElementById('anzeige-abteilung').textContent = aktuellerMitarbeiter.abteilung || '—';
+    document.getElementById('anzeige-position').textContent = aktuellerMitarbeiter.position || '—';
+  }
+
+  async function ladeMitarbeiter() {
+    if (!mitarbeiterId) {
+      document.getElementById('mitarbeiter-name-titel').textContent = 'Kein Mitarbeiter angegeben.';
+      return;
+    }
+
+    const { data: m, error } = await supabaseClient
+      .from('mitarbeiter_stamm')
+      .select('*')
+      .eq('id', mitarbeiterId)
+      .single();
+
+    if (error || !m) {
+      document.getElementById('mitarbeiter-name-titel').textContent = 'Mitarbeiter nicht gefunden.';
+      return;
+    }
+
+    aktuellerMitarbeiter = m;
+
+    document.getElementById('mitarbeiter-name-titel').textContent = m.display_name || '—';
+    document.getElementById('mitarbeiter-name').textContent = m.display_name || '—';
+    document.getElementById('mitarbeiter-initialen').textContent = initialenVon(m.display_name);
+    document.getElementById('info-email').textContent = m.email || '—';
+    document.getElementById('info-status').textContent = m.aktiv ? 'Aktiv' : 'Inaktiv';
+
+    const loginBadge = document.getElementById('mitarbeiter-login-badge');
+    if (m.profile_id) {
+      loginBadge.textContent = 'Portal-Login vorhanden';
+      loginBadge.className = 'badge success';
+    } else {
+      loginBadge.textContent = 'Kein Portal-Login';
+      loginBadge.className = 'badge warning';
+    }
+
+    einteilungAnzeigen();
+  }
+
+  (async function () {
+    const admin = await sylegroRequireAdmin();
+    if (!admin) return;
+    ladeMitarbeiter();
+  })();
+</script>
+</body>
+</html>
