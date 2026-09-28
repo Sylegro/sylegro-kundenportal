@@ -153,8 +153,12 @@
       return;
     }
 
+    status.style.whiteSpace = 'pre-wrap';
     status.textContent = erfolgstext(data);
     status.style.color = 'var(--color-success)';
+    if (data && data.debugStatusInfo) {
+      status.textContent += '\n\nDebug-Info (temporär, nur zur Feld-Suche -- keine sensiblen Daten):\n' + JSON.stringify(data.debugStatusInfo, null, 2);
+    }
     ladeMitarbeiter();
   }
 
