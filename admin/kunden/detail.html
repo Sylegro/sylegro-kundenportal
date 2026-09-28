@@ -65,6 +65,26 @@
 
           <div class="abschnitt-kopf" style="margin-top:20px;">
             <div class="leistungen-kopf">
+              <h3 style="margin:0;">Sylegro-Ansprechpartner</h3>
+              <button type="button" class="icon-btn" id="ansprechpartner-edit-btn" title="Bearbeiten">✎</button>
+            </div>
+          </div>
+          <p class="hint">Der Sylegro-Mitarbeiter, der für diesen Kunden übergeordnet zuständig ist (z.B. Kundenbetreuung). Getrennt von der Mitarbeiter-Zuweisung pro Liegenschaft weiter unten bei den einzelnen Objekten.</p>
+
+          <div id="ansprechpartner-anzeige">
+            <span id="anzeige-ansprechpartner">–</span>
+          </div>
+
+          <div id="ansprechpartner-formular" class="versteckt" style="margin-top:10px;">
+            <select id="form-ansprechpartner" style="max-width:320px; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+              <option value="">— keiner —</option>
+            </select>
+            <button type="button" class="btn primary" id="ansprechpartner-speichern-btn" style="margin-left:8px;">Speichern</button>
+            <button type="button" class="btn small" id="ansprechpartner-abbrechen-btn">Abbrechen</button>
+          </div>
+
+          <div class="abschnitt-kopf" style="margin-top:20px;">
+            <div class="leistungen-kopf">
               <h3 style="margin:0;">Leistungen / Kategorie</h3>
               <button type="button" class="icon-btn" id="leistungen-edit-btn" title="Bearbeiten">✎</button>
             </div>
@@ -389,9 +409,12 @@ async function pdfOeffnen(funktionsname, id) {
   window.open(URL.createObjectURL(blob), '_blank');
 }
 
+let aktuellerKunde = null;
+
 async function ladeKunde() {
   const { data: kunde } = await supabaseClient.from('customers').select('*').eq('id', kundeId).single();
   if (!kunde) return;
+  aktuellerKunde = kunde;
 
   document.getElementById('kunde-name-titel').textContent = kunde.firma;
   document.getElementById('firma-name').textContent = kunde.firma;
@@ -410,7 +433,66 @@ async function ladeKunde() {
 
   ladeLeistungen();
   ladeFinanzen();
+  ansprechpartnerAnzeigen();
 }
+
+// Sylegro-Ansprechpartner: übergeordnet zuständiger Mitarbeiter für diesen Kunden.
+// Wie bei der Mitarbeiter-Zuweisung pro Liegenschaft in liegenschaft.html wird hier
+// bewusst aus "profiles" (role='admin', also Mitarbeiter mit echtem Portal-Login)
+// ausgewählt, nicht aus "mitarbeiter_stamm" -- so bleibt es konsistent im ganzen Portal:
+// nur Mitarbeiter mit Login können irgendwo zugewiesen werden.
+async function ansprechpartnerAnzeigen() {
+  const span = document.getElementById('anzeige-ansprechpartner');
+  if (!aktuellerKunde.verantwortlicher_mitarbeiter_id) {
+    span.textContent = '—';
+    return;
+  }
+  const { data: p } = await supabaseClient
+    .from('profiles')
+    .select('display_name')
+    .eq('id', aktuellerKunde.verantwortlicher_mitarbeiter_id)
+    .maybeSingle();
+  span.textContent = (p && p.display_name) || '—';
+}
+
+async function ladeAnsprechpartnerOptionen() {
+  const { data: alleAdmins } = await supabaseClient
+    .from('profiles')
+    .select('id, display_name')
+    .eq('role', 'admin')
+    .order('display_name');
+  const select = document.getElementById('form-ansprechpartner');
+  select.innerHTML = '<option value="">— keiner —</option>' +
+    (alleAdmins || []).map(p => '<option value="' + p.id + '">' + (p.display_name || 'Unbenannt') + '</option>').join('');
+}
+
+document.getElementById('ansprechpartner-edit-btn').addEventListener('click', async () => {
+  document.getElementById('ansprechpartner-anzeige').classList.add('versteckt');
+  document.getElementById('ansprechpartner-formular').classList.remove('versteckt');
+  await ladeAnsprechpartnerOptionen();
+  document.getElementById('form-ansprechpartner').value = aktuellerKunde.verantwortlicher_mitarbeiter_id || '';
+});
+
+document.getElementById('ansprechpartner-abbrechen-btn').addEventListener('click', () => {
+  document.getElementById('ansprechpartner-formular').classList.add('versteckt');
+  document.getElementById('ansprechpartner-anzeige').classList.remove('versteckt');
+});
+
+document.getElementById('ansprechpartner-speichern-btn').addEventListener('click', async () => {
+  const id = document.getElementById('form-ansprechpartner').value || null;
+  const { error } = await supabaseClient
+    .from('customers')
+    .update({ verantwortlicher_mitarbeiter_id: id })
+    .eq('id', kundeId);
+  if (error) {
+    alert('Fehler beim Speichern: ' + error.message);
+    return;
+  }
+  aktuellerKunde.verantwortlicher_mitarbeiter_id = id;
+  await ansprechpartnerAnzeigen();
+  document.getElementById('ansprechpartner-formular').classList.add('versteckt');
+  document.getElementById('ansprechpartner-anzeige').classList.remove('versteckt');
+});
 
 async function ladeLeistungen() {
   const { data: services } = await supabaseClient.from('customer_services').select('service').eq('customer_id', kundeId);
