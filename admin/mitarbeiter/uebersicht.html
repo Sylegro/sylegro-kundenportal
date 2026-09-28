@@ -41,13 +41,17 @@
 
     <div class="card">
       <h2>Alle Mitarbeiter</h2>
-      <p class="hint">Ein Portal-Login ist Voraussetzung dafür, dass ein Mitarbeiter z.B. bei einer Liegenschaft für Qualitätskontrollen als zuständig ausgewählt werden kann.</p>
+      <p class="hint">Ein Portal-Login ist Voraussetzung dafür, dass ein Mitarbeiter z.B. bei einer Liegenschaft für Qualitätskontrollen als zuständig ausgewählt werden kann. Bexio liefert keine zuverlässige Information darüber, ob ein Mitarbeiter noch aktiv ist -- markiere darum ausgeschiedene Mitarbeiter hier manuell als "Inaktiv" (bleibt bei künftigen Synchronisationen erhalten). Inaktive Mitarbeiter werden unten standardmässig ausgeblendet und können kein Login mehr erhalten.</p>
+      <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; margin-bottom:10px;">
+        <input type="checkbox" id="auch-inaktive-checkbox" onchange="ladeMitarbeiter()">
+        Auch inaktive Mitarbeiter anzeigen
+      </label>
       <table>
         <thead>
-          <tr><th>Name</th><th>E-Mail</th><th>Portal-Login</th><th></th></tr>
+          <tr><th>Name</th><th>E-Mail</th><th>Aktiv</th><th>Portal-Login</th><th></th></tr>
         </thead>
         <tbody id="mitarbeiter-body">
-          <tr><td colspan="4" class="hint">Lade Mitarbeiter…</td></tr>
+          <tr><td colspan="5" class="hint">Lade Mitarbeiter…</td></tr>
         </tbody>
       </table>
       <p class="hint" id="mitarbeiter-leer" style="display:none;">Noch keine Mitarbeiter synchronisiert — auf "Mitarbeiter jetzt synchronisieren" klicken.</p>
@@ -61,13 +65,14 @@
 <script>
   async function ladeMitarbeiter() {
     const body = document.getElementById('mitarbeiter-body');
-    const { data: mitarbeiter, error } = await supabaseClient
-      .from('mitarbeiter_stamm')
-      .select('*')
-      .order('nachname');
+    const auchInaktive = document.getElementById('auch-inaktive-checkbox').checked;
+
+    let query = supabaseClient.from('mitarbeiter_stamm').select('*').order('nachname');
+    if (!auchInaktive) query = query.eq('aktiv', true);
+    const { data: mitarbeiter, error } = await query;
 
     if (error) {
-      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
       return;
     }
 
@@ -77,22 +82,38 @@
     (mitarbeiter || []).forEach(m => {
       const tr = document.createElement('tr');
       let loginZelle;
-      if (m.profile_id) {
+      if (!m.aktiv) {
+        loginZelle = '<span class="badge neutral">Inaktiv</span>';
+      } else if (m.profile_id) {
         loginZelle = '<span class="badge success">Vorhanden</span>';
       } else if (!m.email) {
         loginZelle = '<span class="badge neutral">Keine E-Mail in Bexio</span>';
       } else {
         loginZelle = '<span class="badge warning">Noch kein Login</span>';
       }
-      const aktionZelle = (!m.profile_id && m.email)
+      const aktivZelle = '<label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" class="aktiv-checkbox" data-id="' + m.id + '"' + (m.aktiv ? ' checked' : '') + '></label>';
+      const aktionZelle = (m.aktiv && !m.profile_id && m.email)
         ? '<button type="button" class="btn small login-erstellen-btn" data-id="' + m.id + '">Login erstellen</button>'
         : '';
       tr.innerHTML =
         '<td>' + (m.display_name || '—') + '</td>' +
         '<td>' + (m.email || '—') + '</td>' +
+        '<td>' + aktivZelle + '</td>' +
         '<td>' + loginZelle + '</td>' +
         '<td>' + aktionZelle + '</td>';
       body.appendChild(tr);
+    });
+
+    body.querySelectorAll('.aktiv-checkbox').forEach(cb => {
+      cb.addEventListener('change', async () => {
+        cb.disabled = true;
+        const { error } = await supabaseClient
+          .from('mitarbeiter_stamm')
+          .update({ aktiv: cb.checked })
+          .eq('id', cb.dataset.id);
+        if (error) { alert('Fehler: ' + error.message); }
+        await ladeMitarbeiter();
+      });
     });
 
     body.querySelectorAll('.login-erstellen-btn').forEach(btn => {
@@ -153,12 +174,8 @@
       return;
     }
 
-    status.style.whiteSpace = 'pre-wrap';
     status.textContent = erfolgstext(data);
     status.style.color = 'var(--color-success)';
-    if (data && data.debugStatusInfo) {
-      status.textContent += '\n\nDebug-Info (temporär, nur zur Feld-Suche -- keine sensiblen Daten):\n' + JSON.stringify(data.debugStatusInfo, null, 2);
-    }
     ladeMitarbeiter();
   }
 
