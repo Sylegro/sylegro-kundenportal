@@ -40,17 +40,17 @@
     </div>
 
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-        <h2 style="margin:0;">Alle Mitarbeiter</h2>
-        <button type="button" class="btn small" onclick="toggleAktivPanel()" title="Mitarbeiter aktiv/inaktiv stellen">✎ Bearbeiten</button>
+      <div class="abschnitt-kopf">
+        <div class="leistungen-kopf">
+          <h2 style="margin:0;">Alle Mitarbeiter</h2>
+          <button type="button" class="icon-btn" id="mitarbeiter-aktiv-edit-btn" title="Aktiv/Inaktiv bearbeiten">✎</button>
+        </div>
       </div>
-      <p class="hint">Ein Portal-Login ist Voraussetzung dafür, dass ein Mitarbeiter z.B. bei einer Liegenschaft für Qualitätskontrollen als zuständig ausgewählt werden kann. Es werden nur aktive Mitarbeiter angezeigt -- inaktive stellst du über "Bearbeiten" oben um.</p>
+      <p class="hint">Ein Portal-Login ist Voraussetzung dafür, dass ein Mitarbeiter z.B. bei einer Liegenschaft für Qualitätskontrollen als zuständig ausgewählt werden kann. Es werden nur aktive Mitarbeiter angezeigt.</p>
 
-      <div id="aktiv-panel" class="card" style="display:none; background:var(--color-bg-subtle, #f5f5f5); margin-bottom:14px;">
-        <h3 style="margin-top:0;">Mitarbeiter aktiv/inaktiv stellen</h3>
-        <p class="hint">Bexio liefert keine zuverlässige Information darüber, ob ein Mitarbeiter noch aktiv ist -- markiere ausgeschiedene Mitarbeiter hier manuell als inaktiv. Das bleibt auch bei künftigen Synchronisationen erhalten und inaktive Mitarbeiter erscheinen dann nicht mehr in der normalen Liste und können kein Login mehr erhalten.</p>
+      <div id="aktiv-panel" class="versteckt" style="margin-bottom:14px;">
+        <p class="hint">Bexio liefert keine zuverlässige Information darüber, ob ein Mitarbeiter noch aktiv ist -- markiere ausgeschiedene Mitarbeiter hier manuell als inaktiv. Das bleibt auch bei künftigen Synchronisationen erhalten; inaktive Mitarbeiter erscheinen dann nicht mehr in der Liste oben und können kein Login mehr erhalten.</p>
         <div id="aktiv-panel-liste"><p class="hint">Lade…</p></div>
-        <button type="button" class="btn small" onclick="toggleAktivPanel()" style="margin-top:10px;">Fertig</button>
       </div>
 
       <table>
@@ -137,14 +137,11 @@
     });
   }
 
-  let aktivPanelOffen = false;
-
-  async function toggleAktivPanel() {
-    aktivPanelOffen = !aktivPanelOffen;
+  document.getElementById('mitarbeiter-aktiv-edit-btn').addEventListener('click', async () => {
     const panel = document.getElementById('aktiv-panel');
-    panel.style.display = aktivPanelOffen ? 'block' : 'none';
-    if (aktivPanelOffen) await ladeAktivPanel();
-  }
+    panel.classList.toggle('versteckt');
+    if (!panel.classList.contains('versteckt')) await ladeAktivPanel();
+  });
 
   async function ladeAktivPanel() {
     const liste = document.getElementById('aktiv-panel-liste');
