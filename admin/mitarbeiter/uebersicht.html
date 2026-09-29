@@ -32,11 +32,25 @@
 
     <div class="card">
       <h2>Bexio-Synchronisation</h2>
-      <p class="hint">Übernimmt Name und E-Mail-Adresse aller Mitarbeiter aus der Bexio-Lohnbuchhaltung. Löst noch kein Portal-Login aus — das machst du pro Person gezielt unten mit "Login erstellen".</p>
+      <p class="hint">Übernimmt Name und E-Mail-Adresse aller Mitarbeiter aus der Bexio-Lohnbuchhaltung. Löst noch kein Portal-Login aus.</p>
       <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <button class="btn" onclick="bexioSyncMitarbeiter()">Mitarbeiter jetzt synchronisieren</button>
       </div>
       <div id="bexio-status" style="margin-top:10px; font-size:0.85rem;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Portal-Login</h2>
+      <p class="hint">
+        Logins werden aktuell nicht mehr automatisch per E-Mail eingerichtet (Supabase blockiert momentan den Massen-Mailversand). Stattdessen: Login manuell im
+        <strong>Supabase-Dashboard</strong> anlegen (Authentication → Users → Add user), mit exakt derselben E-Mail-Adresse wie unten in der Liste und aktiviertem Häkchen
+        <strong>„Auto Confirm User"</strong>. Danach entweder diese Seite neu laden oder unten auf „Logins jetzt abgleichen" klicken – das Portal erkennt den neuen Login dann
+        automatisch und verknüpft ihn mit dem richtigen Mitarbeiter.
+      </p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button class="btn" onclick="loginsAbgleichen()">Logins jetzt abgleichen</button>
+      </div>
+      <div id="login-sync-status" style="margin-top:10px; font-size:0.85rem;"></div>
     </div>
 
     <div class="card">
@@ -55,10 +69,10 @@
 
       <table>
         <thead>
-          <tr><th>Name</th><th>Abteilung / Position</th><th>E-Mail</th><th>Portal-Login</th><th></th></tr>
+          <tr><th>Name</th><th>Abteilung / Position</th><th>E-Mail</th><th>Portal-Login</th></tr>
         </thead>
         <tbody id="mitarbeiter-body">
-          <tr><td colspan="5" class="hint">Lade Mitarbeiter…</td></tr>
+          <tr><td colspan="4" class="hint">Lade Mitarbeiter…</td></tr>
         </tbody>
       </table>
       <p class="hint" id="mitarbeiter-leer" style="display:none;">Noch keine (aktiven) Mitarbeiter synchronisiert — auf "Mitarbeiter jetzt synchronisieren" klicken.</p>
@@ -80,7 +94,7 @@
       .order('nachname');
 
     if (error) {
-      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="4" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
       return;
     }
 
@@ -97,9 +111,6 @@
       } else {
         loginZelle = '<span class="badge warning">Noch kein Login</span>';
       }
-      const aktionZelle = (!m.profile_id && m.email)
-        ? '<button type="button" class="btn small login-erstellen-btn" data-id="' + m.id + '">Login erstellen</button>'
-        : '';
       const einteilungZelle = m.abteilung
         ? (m.abteilung + (m.position ? ' – ' + m.position : ''))
         : '<span class="badge neutral">Nicht zugewiesen</span>';
@@ -107,37 +118,8 @@
         '<td><a href="profil.html?id=' + m.id + '" class="liegenschaft-link">' + (m.display_name || '—') + '</a></td>' +
         '<td>' + einteilungZelle + '</td>' +
         '<td>' + (m.email || '—') + '</td>' +
-        '<td>' + loginZelle + '</td>' +
-        '<td>' + aktionZelle + '</td>';
+        '<td>' + loginZelle + '</td>';
       body.appendChild(tr);
-    });
-
-    body.querySelectorAll('.login-erstellen-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Login für diese Person erstellen? Es wird eine Einladungs-E-Mail verschickt, mit der sie selbst ein Passwort setzt.')) return;
-        btn.disabled = true;
-        btn.textContent = 'Wird erstellt…';
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        try {
-          const res = await fetch('https://amnaydttfuenhgevqptp.supabase.co/functions/v1/admin-create-mitarbeiter-login', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mitarbeiter_id: btn.dataset.id })
-          });
-          const json = await res.json();
-          if (!res.ok || json.error) {
-            alert('Fehler: ' + (json.error || 'Unbekannter Fehler.'));
-            btn.disabled = false;
-            btn.textContent = 'Login erstellen';
-            return;
-          }
-          await ladeMitarbeiter();
-        } catch (e) {
-          alert('Fehler: ' + e.message);
-          btn.disabled = false;
-          btn.textContent = 'Login erstellen';
-        }
-      });
     });
   }
 
@@ -228,10 +210,57 @@
     bexioAufruf('bexio-sync-mitarbeiter', d => 'Mitarbeiter: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').' + (d.fehleranzahl ? ' Achtung: ' + d.fehleranzahl + ' Fehler — siehe Supabase-Logs.' : ''));
   }
 
+  // Gleicht manuell in Supabase (Authentication -> Users) angelegte Logins mit den
+  // Bexio-Mitarbeitern ab und verknüpft sie automatisch (siehe Hinweistext oben).
+  // "still" = true: läuft beim Laden der Seite im Hintergrund, ohne Statustext zu
+  // überschreiben, ausser es wurde tatsächlich etwas gefunden.
+  async function loginsAbgleichen(still) {
+    const status = document.getElementById('login-sync-status');
+    if (!still) {
+      status.textContent = 'Gleiche ab…';
+      status.style.color = 'var(--color-text-muted)';
+    }
+
+    const { data, error } = await supabaseClient.functions.invoke('admin-sync-mitarbeiter-login', {});
+
+    if (error) {
+      let meldung = error.message;
+      if (error.context && typeof error.context.json === 'function') {
+        try {
+          const body = await error.context.json();
+          if (body && body.error) meldung = body.error;
+        } catch (e) { /* Body war kein JSON -- allgemeine Meldung behalten */ }
+      }
+      if (!still) {
+        status.textContent = 'Fehler: ' + meldung;
+        status.style.color = 'var(--color-danger)';
+      }
+      return;
+    }
+
+    if (data && data.error) {
+      if (!still) {
+        status.textContent = 'Fehler: ' + data.error;
+        status.style.color = 'var(--color-danger)';
+      }
+      return;
+    }
+
+    if (data.verknuepft > 0) {
+      status.textContent = data.verknuepft + ' neue' + (data.verknuepft === 1 ? 'r Login' : ' Logins') + ' gefunden und verknüpft.' + (data.fehleranzahl ? ' Achtung: ' + data.fehleranzahl + ' Fehler — siehe Supabase-Logs.' : '');
+      status.style.color = 'var(--color-success)';
+      await ladeMitarbeiter();
+    } else if (!still) {
+      status.textContent = 'Keine neuen Logins gefunden (geprüft: ' + data.geprueft + ', noch ohne passenden Supabase-Login: ' + data.uebersprungen + ').';
+      status.style.color = 'var(--color-text-muted)';
+    }
+  }
+
   (async function () {
     const admin = await sylegroRequireAdmin();
     if (!admin) return;
-    ladeMitarbeiter();
+    await ladeMitarbeiter();
+    await loginsAbgleichen(true);
   })();
 </script>
 </body>
