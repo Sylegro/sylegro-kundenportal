@@ -207,6 +207,10 @@
     bexioAufruf('bexio-sync-mitarbeiter', d => 'Mitarbeiter: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').' + (d.fehleranzahl ? ' Achtung: ' + d.fehleranzahl + ' Fehler — siehe Supabase-Logs.' : ''));
   }
 
+  // Gleicht manuell in Supabase (Authentication -> Users) angelegte Logins mit den
+  // Bexio-Mitarbeitern ab und verknüpft sie automatisch (siehe Hinweistext oben).
+  // Zeigt jetzt auch Fehlertexte direkt auf der Seite an, statt sie nur still im
+  // Antwort-Objekt mitzuschicken -- so muss Eldin nicht mehr in die Entwicklertools.
   async function loginsAbgleichen(still) {
     const status = document.getElementById('login-sync-status');
     if (!still) {
@@ -224,28 +228,37 @@
           if (body && body.error) meldung = body.error;
         } catch (e) { /* Body war kein JSON -- allgemeine Meldung behalten */ }
       }
-      if (!still) {
-        status.textContent = 'Fehler: ' + meldung;
-        status.style.color = 'var(--color-danger)';
-      }
+      status.textContent = 'Fehler: ' + meldung;
+      status.style.color = 'var(--color-danger)';
       return;
     }
 
     if (data && data.error) {
-      if (!still) {
-        status.textContent = 'Fehler: ' + data.error;
-        status.style.color = 'var(--color-danger)';
-      }
+      status.textContent = 'Fehler: ' + data.error;
+      status.style.color = 'var(--color-danger)';
       return;
     }
 
+    let haupttext = '';
     if (data.verknuepft > 0) {
-      status.textContent = data.verknuepft + ' neue' + (data.verknuepft === 1 ? 'r Login' : ' Logins') + ' gefunden und verknüpft.' + (data.fehleranzahl ? ' Achtung: ' + data.fehleranzahl + ' Fehler — siehe Supabase-Logs.' : '');
-      status.style.color = 'var(--color-success)';
+      haupttext = data.verknuepft + ' neue' + (data.verknuepft === 1 ? 'r Login' : ' Logins') + ' gefunden und verknüpft.';
       await ladeMitarbeiter();
     } else if (!still) {
-      status.textContent = 'Keine neuen Logins gefunden (geprüft: ' + data.geprueft + ', noch ohne passenden Supabase-Login: ' + data.uebersprungen + ').';
-      status.style.color = 'var(--color-text-muted)';
+      haupttext = 'Keine neuen Logins gefunden (geprüft: ' + data.geprueft + ', noch ohne passenden Supabase-Login: ' + data.uebersprungen + ').';
+    }
+
+    if (data.fehleranzahl > 0) {
+      const fehlerListe = (data.fehlerBeispiele || [])
+        .map(f => '<li>' + String(f).replace(/</g, '&lt;') + '</li>')
+        .join('');
+      status.innerHTML =
+        (haupttext ? haupttext + '<br>' : '') +
+        '<strong style="color:var(--color-danger)">Fehler bei ' + data.fehleranzahl + ' Mitarbeiter(n):</strong>' +
+        '<ul style="margin:4px 0 0 18px;">' + fehlerListe + '</ul>';
+      status.style.color = data.verknuepft > 0 ? 'var(--color-success)' : 'var(--color-danger)';
+    } else {
+      status.textContent = haupttext;
+      status.style.color = data.verknuepft > 0 ? 'var(--color-success)' : 'var(--color-text-muted)';
     }
   }
 
