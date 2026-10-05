@@ -180,9 +180,6 @@
     const { data, error } = await supabaseClient.functions.invoke(funktionsname, {});
 
     if (error) {
-      // Wenn die Funktion einen Fehlerstatus (4xx/5xx) zurückgibt, steckt die
-      // eigentliche, verständliche Fehlermeldung im Antwort-Body -- die zeigen
-      // wir hier an, statt nur der allgemeinen Meldung von Supabase.
       let meldung = error.message;
       if (error.context && typeof error.context.json === 'function') {
         try {
@@ -210,10 +207,6 @@
     bexioAufruf('bexio-sync-mitarbeiter', d => 'Mitarbeiter: ' + d.neu + ' neu, ' + d.aktualisiert + ' aktualisiert, ' + d.uebersprungen + ' übersprungen (von ' + d.gesamt + ').' + (d.fehleranzahl ? ' Achtung: ' + d.fehleranzahl + ' Fehler — siehe Supabase-Logs.' : ''));
   }
 
-  // Gleicht manuell in Supabase (Authentication -> Users) angelegte Logins mit den
-  // Bexio-Mitarbeitern ab und verknüpft sie automatisch (siehe Hinweistext oben).
-  // "still" = true: läuft beim Laden der Seite im Hintergrund, ohne Statustext zu
-  // überschreiben, ausser es wurde tatsächlich etwas gefunden.
   async function loginsAbgleichen(still) {
     const status = document.getElementById('login-sync-status');
     if (!still) {
