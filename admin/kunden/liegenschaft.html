@@ -63,4 +63,179 @@
           <thead><tr><th>Titel</th><th>Kategorie</th><th>Hochgeladen am</th><th></th></tr></thead>
           <tbody id="dokumente-tabelle"></tbody>
         </table>
-        <p
+        <p class="hint" id="dokumente-leer" style="display:none;">Noch keine Dokumente zu dieser Liegenschaft.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="schluessel">
+        <table>
+          <thead><tr><th>Bezeichnung</th><th>Aufbewahrungsort</th><th>Inhaber</th><th>Erhalten am</th></tr></thead>
+          <tbody id="schluessel-tabelle"></tbody>
+        </table>
+        <p class="hint" id="schluessel-leer" style="display:none;">Noch keine Schlüssel zu dieser Liegenschaft.</p>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="mitarbeiter">
+        <div class="abschnitt-kopf">
+          <div class="leistungen-kopf">
+            <p class="hint" style="margin:0;">Diese Sylegro-Mitarbeiter sind für diese Liegenschaft zuständig. Nur sie stehen dem Kunden im Portal zur Auswahl, wenn er angibt, mit wem er eine Qualitätskontrolle gemeinsam durchgeführt hat.</p>
+            <button type="button" class="icon-btn" id="mitarbeiter-zuweisung-edit-btn" title="Zuständige Mitarbeiter bearbeiten">✎</button>
+          </div>
+        </div>
+
+        <div id="mitarbeiter-zugewiesen-liste"></div>
+        <p class="hint" id="mitarbeiter-zugewiesen-leer" style="display:none;">Noch keine Mitarbeiter zugewiesen.</p>
+
+        <div id="mitarbeiter-edit-panel" class="versteckt" style="margin-top:14px;">
+          <p class="hint">Hier auswählen, welche Sylegro-Mitarbeiter für diese Liegenschaft zuständig sind.</p>
+          <div id="mitarbeiter-liste"></div>
+          <p class="hint" id="mitarbeiter-leer" style="display:none;">Es wurden noch keine Sylegro-Mitarbeiter-Logins gefunden.</p>
+        </div>
+      </div>
+
+      <div class="tab-panel hidden" data-tab="qualitaet">
+        <div class="wip-note">Dieser Bereich zeigt künftig die Qualitätskontrollen für genau diese Liegenschaft. Noch nicht gebaut – folgt, sobald die Qualitätskontrolle auf Mitarbeiterseite existiert.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const liegenschaftId = params.get('id');
+const kundeId = params.get('kunde');
+
+function initTabsScoped() {
+  document.querySelectorAll('.tabs').forEach(tabBar => {
+    const card = tabBar.closest('.card');
+    tabBar.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        card.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.add('hidden'));
+        card.querySelector(':scope > .tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.remove('hidden');
+      });
+    });
+  });
+}
+
+async function ladeLiegenschaft() {
+  const { data: liegenschaft } = await supabaseClient.from('properties').select('*, customers(firma)').eq('id', liegenschaftId).single();
+  if (!liegenschaft) return;
+  document.getElementById('liegenschaft-name-titel').textContent = liegenschaft.name;
+  document.getElementById('info-name').textContent = liegenschaft.name;
+  document.getElementById('info-adresse').textContent = liegenschaft.adresse || '–';
+  document.getElementById('info-typ').textContent = liegenschaft.typ;
+  document.getElementById('kunde-hinweis').textContent = 'Gehört zu: ' + (liegenschaft.customers ? liegenschaft.customers.firma : '–');
+  document.getElementById('zurueck-link').href = 'detail.html?id=' + kundeId;
+}
+
+async function ladeDokumente() {
+  const { data: dokumente } = await supabaseClient.from('documents').select('*').eq('property_id', liegenschaftId).order('hochgeladen_am', { ascending: false });
+  const tbody = document.getElementById('dokumente-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('dokumente-leer').style.display = (dokumente && dokumente.length > 0) ? 'none' : 'block';
+  (dokumente || []).forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + d.titel + '</td>' +
+      '<td>' + d.kategorie + '</td>' +
+      '<td>' + new Date(d.hochgeladen_am).toLocaleDateString('de-CH') + '</td>' +
+      '<td><a href="#" class="dok-link" data-pfad="' + d.datei_pfad + '">Herunterladen</a></td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.dok-link').forEach(a => {
+    a.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const { data } = await supabaseClient.storage.from('kunden-dokumente').createSignedUrl(a.dataset.pfad, 300);
+      if (data) window.open(data.signedUrl, '_blank');
+    });
+  });
+}
+
+async function ladeSchluessel() {
+  const { data: schluessel } = await supabaseClient.from('keys').select('*').eq('property_id', liegenschaftId).order('bezeichnung');
+  const tbody = document.getElementById('schluessel-tabelle');
+  tbody.innerHTML = '';
+  document.getElementById('schluessel-leer').style.display = (schluessel && schluessel.length > 0) ? 'none' : 'block';
+  (schluessel || []).forEach(k => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + k.bezeichnung + '</td>' +
+      '<td>' + (k.aufbewahrungsort || '–') + '</td>' +
+      '<td>' + (k.inhaber || '–') + '</td>' +
+      '<td>' + (k.erhalten_am ? new Date(k.erhalten_am).toLocaleDateString('de-CH') : '–') + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// Zeigt oben nur die Mitarbeiter, die aktuell zugewiesen sind (rein lesend). Über das
+// Stift-Symbol öffnet sich darunter das Bearbeiten-Panel mit Checkboxen für alle
+// Sylegro-Mitarbeiter-Logins (profiles mit role='admin') -- gleiche Idee wie die
+// Freigabe-Funktion bei den Kunden-Kontakten im Kundenprofil, nur hier auf
+// Liegenschafts-Ebene statt Kunden-Ebene.
+async function ladeMitarbeiterZuweisung() {
+  const [{ data: alleAdmins }, { data: zugewiesen }] = await Promise.all([
+    supabaseClient.from('profiles').select('id, display_name').eq('role', 'admin').order('display_name'),
+    supabaseClient.from('property_mitarbeiter').select('profile_id').eq('property_id', liegenschaftId)
+  ]);
+  const zugewieseneIds = (zugewiesen || []).map(z => z.profile_id);
+
+  // Obere, rein lesende Anzeige: nur die aktuell zugewiesenen Mitarbeiter.
+  const zugewieseneAdmins = (alleAdmins || []).filter(a => zugewieseneIds.includes(a.id));
+  const anzeigeListe = document.getElementById('mitarbeiter-zugewiesen-liste');
+  anzeigeListe.innerHTML = '';
+  document.getElementById('mitarbeiter-zugewiesen-leer').style.display = zugewieseneAdmins.length > 0 ? 'none' : 'block';
+  zugewieseneAdmins.forEach(a => {
+    const zeile = document.createElement('div');
+    zeile.style.padding = '5px 0';
+    zeile.textContent = a.display_name || 'Unbenannt';
+    anzeigeListe.appendChild(zeile);
+  });
+
+  // Bearbeiten-Panel (hinter dem Stift-Symbol): alle Mitarbeiter mit An/Aus-Schalter.
+  const liste = document.getElementById('mitarbeiter-liste');
+  liste.innerHTML = '';
+  document.getElementById('mitarbeiter-leer').style.display = (alleAdmins && alleAdmins.length > 0) ? 'none' : 'block';
+
+  (alleAdmins || []).forEach(a => {
+    const label = document.createElement('label');
+    label.style.display = 'block';
+    label.style.padding = '5px 0';
+    label.innerHTML =
+      '<input type="checkbox" class="mitarbeiter-checkbox" data-id="' + a.id + '"' + (zugewieseneIds.includes(a.id) ? ' checked' : '') + '> ' +
+      (a.display_name || 'Unbenannt');
+    liste.appendChild(label);
+  });
+
+  liste.querySelectorAll('.mitarbeiter-checkbox').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      cb.disabled = true;
+      if (cb.checked) {
+        await supabaseClient.from('property_mitarbeiter').insert({ property_id: liegenschaftId, profile_id: cb.dataset.id });
+      } else {
+        await supabaseClient.from('property_mitarbeiter').delete().eq('property_id', liegenschaftId).eq('profile_id', cb.dataset.id);
+      }
+      await ladeMitarbeiterZuweisung();
+    });
+  });
+}
+
+document.getElementById('mitarbeiter-zuweisung-edit-btn').addEventListener('click', () => {
+  document.getElementById('mitarbeiter-edit-panel').classList.toggle('versteckt');
+});
+
+(async function () {
+  const admin = await sylegroRequireAdmin();
+  if (!admin) return;
+  initTabsScoped();
+  await ladeLiegenschaft();
+  await ladeDokumente();
+  await ladeSchluessel();
+  await ladeMitarbeiterZuweisung();
+})();
+</script>
+</body>
+</html>
