@@ -63,42 +63,46 @@
             </div>
           </div>
 
-          <div class="abschnitt-kopf" style="margin-top:20px;">
-            <div class="leistungen-kopf">
-              <h3 style="margin:0;">Sylegro-Ansprechpartner</h3>
-              <button type="button" class="icon-btn" id="ansprechpartner-edit-btn" title="Bearbeiten" data-benoetigt-recht="vollzugriff">✎</button>
+          <div data-benoetigt-recht="vollzugriff">
+            <div class="abschnitt-kopf" style="margin-top:20px;">
+              <div class="leistungen-kopf">
+                <h3 style="margin:0;">Sylegro-Ansprechpartner</h3>
+                <button type="button" class="icon-btn" id="ansprechpartner-edit-btn" title="Bearbeiten">✎</button>
+              </div>
+            </div>
+            <p class="hint">Der Sylegro-Mitarbeiter, der für diesen Kunden übergeordnet zuständig ist (z.B. Kundenbetreuung). Getrennt von der Mitarbeiter-Zuweisung pro Liegenschaft weiter unten bei den einzelnen Objekten.</p>
+
+            <div id="ansprechpartner-anzeige">
+              <span id="anzeige-ansprechpartner">–</span>
+            </div>
+
+            <div id="ansprechpartner-formular" class="versteckt" style="margin-top:10px;">
+              <select id="form-ansprechpartner" style="max-width:320px; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+                <option value="">— keiner —</option>
+              </select>
+              <button type="button" class="btn primary" id="ansprechpartner-speichern-btn" style="margin-left:8px;">Speichern</button>
+              <button type="button" class="btn small" id="ansprechpartner-abbrechen-btn">Abbrechen</button>
             </div>
           </div>
-          <p class="hint">Der Sylegro-Mitarbeiter, der für diesen Kunden übergeordnet zuständig ist (z.B. Kundenbetreuung). Getrennt von der Mitarbeiter-Zuweisung pro Liegenschaft weiter unten bei den einzelnen Objekten.</p>
 
-          <div id="ansprechpartner-anzeige">
-            <span id="anzeige-ansprechpartner">–</span>
-          </div>
-
-          <div id="ansprechpartner-formular" class="versteckt" style="margin-top:10px;">
-            <select id="form-ansprechpartner" style="max-width:320px; padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-              <option value="">— keiner —</option>
-            </select>
-            <button type="button" class="btn primary" id="ansprechpartner-speichern-btn" style="margin-left:8px;">Speichern</button>
-            <button type="button" class="btn small" id="ansprechpartner-abbrechen-btn">Abbrechen</button>
-          </div>
-
-          <div class="abschnitt-kopf" style="margin-top:20px;">
-            <div class="leistungen-kopf">
-              <h3 style="margin:0;">Kundenbetreuer (Portal-Zugriff)</h3>
-              <button type="button" class="icon-btn" id="kundenbetreuer-edit-btn" title="Bearbeiten" data-benoetigt-recht="vollzugriff">✎</button>
+          <div data-benoetigt-recht="vollzugriff">
+            <div class="abschnitt-kopf" style="margin-top:20px;">
+              <div class="leistungen-kopf">
+                <h3 style="margin:0;">Kundenbetreuer (Portal-Zugriff)</h3>
+                <button type="button" class="icon-btn" id="kundenbetreuer-edit-btn" title="Bearbeiten">✎</button>
+              </div>
             </div>
-          </div>
-          <p class="hint">Diese Mitarbeiter-Logins sehen im Portal den ganzen Kunden (alle Liegenschaften, Kontakte, Verträge, Schlüssel, Dokumente, Angebote) – ausser Rechnungen und dem Finanzen-Tab, das braucht zusätzlich die Freigabe "Rechnungen sehen" bei der jeweiligen Person. Unabhängig vom Sylegro-Ansprechpartner oben, der nur eine Anzeige ohne Rechte-Wirkung ist.</p>
+            <p class="hint">Diese Mitarbeiter-Logins sehen im Portal den ganzen Kunden (alle Liegenschaften, Kontakte, Verträge, Schlüssel, Dokumente, Angebote) – ausser Rechnungen und dem Finanzen-Tab, das braucht zusätzlich die Freigabe "Rechnungen sehen" bei der jeweiligen Person. Unabhängig vom Sylegro-Ansprechpartner oben, der nur eine Anzeige ohne Rechte-Wirkung ist.</p>
 
-          <div id="kundenbetreuer-anzeige">
-            <span id="anzeige-kundenbetreuer">–</span>
-          </div>
+            <div id="kundenbetreuer-anzeige">
+              <span id="anzeige-kundenbetreuer">–</span>
+            </div>
 
-          <div id="kundenbetreuer-formular" class="versteckt" style="margin-top:10px;">
-            <div id="kundenbetreuer-checkboxen"></div>
-            <button type="button" class="btn primary" id="kundenbetreuer-speichern-btn" style="margin-top:8px;">Speichern</button>
-            <button type="button" class="btn small" id="kundenbetreuer-abbrechen-btn">Abbrechen</button>
+            <div id="kundenbetreuer-formular" class="versteckt" style="margin-top:10px;">
+              <div id="kundenbetreuer-checkboxen"></div>
+              <button type="button" class="btn primary" id="kundenbetreuer-speichern-btn" style="margin-top:8px;">Speichern</button>
+              <button type="button" class="btn small" id="kundenbetreuer-abbrechen-btn">Abbrechen</button>
+            </div>
           </div>
 
           <div class="abschnitt-kopf" style="margin-top:20px;">
