@@ -43,7 +43,7 @@
 
         <div class="tabs" data-scope="top">
           <button class="tab-btn active" data-tab="uebersicht">Übersicht</button>
-          <button class="tab-btn" data-tab="finanzen">Finanzen</button>
+          <button class="tab-btn" data-tab="finanzen" data-benoetigt-recht="rechnungen">Finanzen</button>
           <button class="tab-btn" data-tab="qualitaet">Qualitätsbericht</button>
         </div>
 
@@ -85,6 +85,24 @@
 
           <div class="abschnitt-kopf" style="margin-top:20px;">
             <div class="leistungen-kopf">
+              <h3 style="margin:0;">Kundenbetreuer (Portal-Zugriff)</h3>
+              <button type="button" class="icon-btn" id="kundenbetreuer-edit-btn" title="Bearbeiten">✎</button>
+            </div>
+          </div>
+          <p class="hint">Diese Mitarbeiter-Logins sehen im Portal den ganzen Kunden (alle Liegenschaften, Kontakte, Verträge, Schlüssel, Dokumente, Angebote) – ausser Rechnungen und dem Finanzen-Tab, das braucht zusätzlich die Freigabe "Rechnungen sehen" bei der jeweiligen Person. Unabhängig vom Sylegro-Ansprechpartner oben, der nur eine Anzeige ohne Rechte-Wirkung ist.</p>
+
+          <div id="kundenbetreuer-anzeige">
+            <span id="anzeige-kundenbetreuer">–</span>
+          </div>
+
+          <div id="kundenbetreuer-formular" class="versteckt" style="margin-top:10px;">
+            <div id="kundenbetreuer-checkboxen"></div>
+            <button type="button" class="btn primary" id="kundenbetreuer-speichern-btn" style="margin-top:8px;">Speichern</button>
+            <button type="button" class="btn small" id="kundenbetreuer-abbrechen-btn">Abbrechen</button>
+          </div>
+
+          <div class="abschnitt-kopf" style="margin-top:20px;">
+            <div class="leistungen-kopf">
               <h3 style="margin:0;">Leistungen / Kategorie</h3>
               <button type="button" class="icon-btn" id="leistungen-edit-btn" title="Bearbeiten">✎</button>
             </div>
@@ -104,7 +122,7 @@
           </div>
         </div>
 
-        <div class="tab-panel hidden" data-tab="finanzen">
+        <div class="tab-panel hidden" data-tab="finanzen" data-benoetigt-recht="rechnungen">
           <div class="info-grid" style="margin-bottom:20px;">
             <div>
               <div class="label">Ausstehend</div>
@@ -177,7 +195,7 @@
     <div class="card">
       <div class="tabs" data-scope="unten">
         <button class="tab-btn active" data-tab="angebote">Angebote</button>
-        <button class="tab-btn" data-tab="rechnungen">Rechnungen</button>
+        <button class="tab-btn" data-tab="rechnungen" data-benoetigt-recht="rechnungen">Rechnungen</button>
         <button class="tab-btn" data-tab="liegenschaften">Liegenschaften</button>
         <button class="tab-btn" data-tab="schluessel">Schlüsselverzeichnis</button>
         <button class="tab-btn" data-tab="login">Portal-Login</button>
@@ -194,7 +212,7 @@
         <p class="hint" id="angebote-leer" style="display:none;">Noch keine Angebote synchronisiert.</p>
       </div>
 
-      <div class="tab-panel hidden" data-tab="rechnungen">
+      <div class="tab-panel hidden" data-tab="rechnungen" data-benoetigt-recht="rechnungen">
         <table>
           <thead>
             <tr><th>Nr.</th><th>Status</th><th>Fälligkeit</th><th>Titel</th><th>Währung</th><th>Netto</th><th>Brutto</th></tr>
@@ -375,6 +393,7 @@ function chf(betrag) {
 const params = new URLSearchParams(window.location.search);
 const kundeId = params.get('id');
 let umsatzChart = null;
+let eingeloggterAdmin = null;
 
 function initTabsScoped() {
   document.querySelectorAll('.tabs').forEach(tabBar => {
@@ -387,6 +406,26 @@ function initTabsScoped() {
         card.querySelector(':scope > .tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.remove('hidden');
       });
     });
+  });
+}
+
+// Nachdem sylegroApplyAdminNavVisibility() ggf. Tab-Buttons ausgeblendet hat
+// (z.B. "Angebote", weil ohne Rechnungen-Freigabe): falls ausgerechnet der
+// aktuell aktive Tab einer Tab-Leiste jetzt versteckt ist, automatisch auf
+// den ersten noch sichtbaren Tab in dieser Leiste umschalten, statt dass die
+// Person auf eine leere/versteckte Ansicht starrt.
+function aktiviereErstenSichtbarenTab() {
+  document.querySelectorAll('.tabs').forEach(tabBar => {
+    const card = tabBar.closest('.card');
+    const aktiverBtn = tabBar.querySelector('.tab-btn.active');
+    if (aktiverBtn && aktiverBtn.style.display !== 'none') return;
+    const ersterSichtbarer = Array.from(tabBar.querySelectorAll('.tab-btn')).find(b => b.style.display !== 'none');
+    if (!ersterSichtbarer) return;
+    tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    ersterSichtbarer.classList.add('active');
+    card.querySelectorAll(':scope > .tab-panel').forEach(p => p.classList.add('hidden'));
+    const panel = card.querySelector(':scope > .tab-panel[data-tab="' + ersterSichtbarer.dataset.tab + '"]');
+    if (panel) panel.classList.remove('hidden');
   });
 }
 
@@ -434,6 +473,7 @@ async function ladeKunde() {
   ladeLeistungen();
   ladeFinanzen();
   ansprechpartnerAnzeigen();
+  kundenbetreuerAnzeigen();
 }
 
 // Sylegro-Ansprechpartner: übergeordnet zuständiger Mitarbeiter für diesen Kunden.
@@ -492,6 +532,71 @@ document.getElementById('ansprechpartner-speichern-btn').addEventListener('click
   await ansprechpartnerAnzeigen();
   document.getElementById('ansprechpartner-formular').classList.add('versteckt');
   document.getElementById('ansprechpartner-anzeige').classList.remove('versteckt');
+});
+
+// Kundenbetreuer: mehrere Mitarbeiter-Logins können hier einem ganzen Kunden
+// zugewiesen werden (Tabelle kunde_mitarbeiter). Anders als der Sylegro-
+// Ansprechpartner oben (reine Anzeige) hat das hier eine echte Wirkung auf
+// Supabase-Ebene: zugewiesene Logins sehen dadurch den ganzen Kunden im Portal
+// (ausser Rechnungen/Finanzen ohne zusätzliche Freigabe).
+async function kundenbetreuerAnzeigen() {
+  const { data: zuweisungen } = await supabaseClient
+    .from('kunde_mitarbeiter')
+    .select('profile_id, profiles(display_name)')
+    .eq('customer_id', kundeId);
+  const span = document.getElementById('anzeige-kundenbetreuer');
+  if (!zuweisungen || zuweisungen.length === 0) {
+    span.textContent = '—';
+  } else {
+    span.textContent = zuweisungen.map(z => (z.profiles && z.profiles.display_name) || 'Unbenannt').join(', ');
+  }
+}
+
+document.getElementById('kundenbetreuer-edit-btn').addEventListener('click', async () => {
+  document.getElementById('kundenbetreuer-anzeige').classList.add('versteckt');
+  document.getElementById('kundenbetreuer-formular').classList.remove('versteckt');
+
+  const [{ data: alleAdmins }, { data: zuweisungen }] = await Promise.all([
+    supabaseClient.from('profiles').select('id, display_name').eq('role', 'admin').order('display_name'),
+    supabaseClient.from('kunde_mitarbeiter').select('profile_id').eq('customer_id', kundeId)
+  ]);
+  const zugewiesenIds = (zuweisungen || []).map(z => z.profile_id);
+
+  const liste = document.getElementById('kundenbetreuer-checkboxen');
+  if (!alleAdmins || alleAdmins.length === 0) {
+    liste.innerHTML = '<p class="hint">Keine Mitarbeiter-Logins vorhanden.</p>';
+    return;
+  }
+  liste.innerHTML = alleAdmins.map(p =>
+    '<label style="display:block; margin-bottom:4px;"><input type="checkbox" class="kundenbetreuer-checkbox" value="' + p.id + '"' +
+    (zugewiesenIds.includes(p.id) ? ' checked' : '') + '> ' + (p.display_name || 'Unbenannt') + '</label>'
+  ).join('');
+});
+
+document.getElementById('kundenbetreuer-abbrechen-btn').addEventListener('click', () => {
+  document.getElementById('kundenbetreuer-formular').classList.add('versteckt');
+  document.getElementById('kundenbetreuer-anzeige').classList.remove('versteckt');
+});
+
+document.getElementById('kundenbetreuer-speichern-btn').addEventListener('click', async () => {
+  const ausgewaehlt = Array.from(document.querySelectorAll('.kundenbetreuer-checkbox:checked')).map(cb => cb.value);
+  const { error: loeschFehler } = await supabaseClient.from('kunde_mitarbeiter').delete().eq('customer_id', kundeId);
+  if (loeschFehler) {
+    alert('Fehler beim Speichern: ' + loeschFehler.message);
+    return;
+  }
+  if (ausgewaehlt.length > 0) {
+    const { error: einfuegeFehler } = await supabaseClient
+      .from('kunde_mitarbeiter')
+      .insert(ausgewaehlt.map(id => ({ customer_id: kundeId, profile_id: id })));
+    if (einfuegeFehler) {
+      alert('Fehler beim Speichern: ' + einfuegeFehler.message);
+      return;
+    }
+  }
+  document.getElementById('kundenbetreuer-formular').classList.add('versteckt');
+  document.getElementById('kundenbetreuer-anzeige').classList.remove('versteckt');
+  kundenbetreuerAnzeigen();
 });
 
 async function ladeLeistungen() {
@@ -1157,7 +1262,10 @@ document.getElementById('dok-hochladen-btn').addEventListener('click', async () 
 (async function () {
   const admin = await sylegroRequireAdmin();
   if (!admin) return;
+  eingeloggterAdmin = admin;
   initTabsScoped();
+  sylegroApplyAdminNavVisibility(admin);
+  aktiviereErstenSichtbarenTab();
   initZeitraumSchalter();
   initQualitaetZeitraumSchalter();
   await ladeKunde();
