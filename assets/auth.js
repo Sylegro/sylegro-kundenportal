@@ -76,6 +76,17 @@ async function sylegroRequireAdmin() {
     return null;
   }
 
+  // In der Seitenleiste steht standardmässig der Name der eingeloggten Person
+  // statt pauschal "Admin" -- damit sofort erkennbar ist, welcher Mitarbeiter
+  // gerade eingeloggt ist. Nur Eldins eigener Haupt-Login zeigt weiterhin
+  // "Admin", da er der eigentliche Portal-Administrator ist.
+  const istHauptAdmin = session.user.email === 'eldin.sylejmani@sylegro.ch';
+  const seitenleistenName = istHauptAdmin ? 'Admin' : (profile.display_name || 'Mitarbeiter');
+  const brandSubtitle = document.querySelector('.sidebar .brand small');
+  if (brandSubtitle) {
+    brandSubtitle.textContent = seitenleistenName;
+  }
+
   return {
     name: profile.display_name || 'Admin'
   };
