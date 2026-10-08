@@ -58,6 +58,17 @@ async function sylegroLogout() {
 // keine Admin-Rolle hat. Die eigentliche Absicherung passiert zusätzlich
 // serverseitig über Row-Level-Security – diese Prüfung hier blendet nur
 // die Oberfläche korrekt ein/aus.
+//
+// Jeder Admin-Login hat jetzt einen Mitarbeiter-Typ (profiles.mitarbeiter_typ):
+//   'vollzugriff'    -> sieht alles (normalerweise nur du)
+//   'kundenbetreuer' -> sieht nur seine zugewiesenen Kunden
+//   'produktiv'      -> sieht nur seine zugewiesene(n) Liegenschaft(en)
+// Das zurückgegebene admin-Objekt trägt diesen Typ sowie die Zusatz-
+// Freigabe "kannRechnungenSehen", damit einzelne Seiten z.B. den
+// Rechnungen/Finanzen-Tab ein- oder ausblenden können. Die eigentliche
+// Einschränkung, WELCHE Kunden/Liegenschaften überhaupt zurückkommen,
+// passiert serverseitig über die Datenbank-Regeln – hier geht es nur noch
+// um die Beschriftung/Oberfläche.
 async function sylegroRequireAdmin() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) {
@@ -67,7 +78,7 @@ async function sylegroRequireAdmin() {
 
   const { data: profile, error } = await supabaseClient
     .from('profiles')
-    .select('role, display_name')
+    .select('role, display_name, mitarbeiter_typ, kann_rechnungen_sehen')
     .eq('id', session.user.id)
     .single();
 
@@ -76,19 +87,25 @@ async function sylegroRequireAdmin() {
     return null;
   }
 
+  const typ = profile.mitarbeiter_typ || 'produktiv';
+  const istVollzugriff = typ === 'vollzugriff';
+
   // In der Seitenleiste steht standardmässig der Name der eingeloggten Person
   // statt pauschal "Admin" -- damit sofort erkennbar ist, welcher Mitarbeiter
-  // gerade eingeloggt ist. Nur Eldins eigener Haupt-Login zeigt weiterhin
-  // "Admin", da er der eigentliche Portal-Administrator ist.
-  const istHauptAdmin = session.user.email === 'eldin.sylejmani@sylegro.ch';
-  const seitenleistenName = istHauptAdmin ? 'Admin' : (profile.display_name || 'Mitarbeiter');
+  // gerade eingeloggt ist. Nur bei Vollzugriff (dir) bleibt "Admin" stehen.
+  const seitenleistenName = istVollzugriff ? 'Admin' : (profile.display_name || 'Mitarbeiter');
   const brandSubtitle = document.querySelector('.sidebar .brand small');
   if (brandSubtitle) {
     brandSubtitle.textContent = seitenleistenName;
   }
 
   return {
-    name: profile.display_name || 'Admin'
+    name: profile.display_name || 'Admin',
+    typ: typ,
+    istVollzugriff: istVollzugriff,
+    istKundenbetreuer: typ === 'kundenbetreuer',
+    istProduktiv: typ === 'produktiv',
+    kannRechnungenSehen: istVollzugriff || !!profile.kann_rechnungen_sehen
   };
 }
 
@@ -117,5 +134,25 @@ function sylegroApplyNavVisibility(kunde) {
   });
   document.querySelectorAll("[data-kundenname]").forEach(el => {
     el.textContent = kunde.firma;
+  });
+}
+
+// Blendet auf Admin-Seiten Elemente aus, die der aktuelle Mitarbeiter-Typ
+// nicht sehen/bedienen darf. Auf einem Element data-benoetigt-recht setzen:
+//   data-benoetigt-recht="rechnungen"  -> nur sichtbar wenn
+//                                          admin.kannRechnungenSehen
+//   data-benoetigt-recht="vollzugriff" -> nur sichtbar wenn admin.istVollzugriff
+// Noch nirgends im Markup verwendet – kann nach und nach auf Tabs/Links
+// gesetzt werden, die eingeschränkt werden sollen (z.B. der Rechnungen-Tab
+// im Kundenprofil).
+function sylegroApplyAdminNavVisibility(admin) {
+  document.querySelectorAll("[data-benoetigt-recht]").forEach(el => {
+    const benoetigt = el.getAttribute("data-benoetigt-recht");
+    let erlaubt = true;
+    if (benoetigt === 'rechnungen') erlaubt = admin.kannRechnungenSehen;
+    if (benoetigt === 'vollzugriff') erlaubt = admin.istVollzugriff;
+    if (!erlaubt) {
+      el.style.display = "none";
+    }
   });
 }
