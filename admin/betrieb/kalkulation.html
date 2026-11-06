@@ -6,231 +6,91 @@
 <title>Betrieb – SR-Kalkulation | Sylegro Portal</title>
 <link rel="stylesheet" href="../../assets/style.css">
 <style>
-  /* ---------- Seitenspezifische Styles SR-Kalkulation ---------- */
-  .main { max-width: 1440px; padding-left: 28px; padding-right: 28px; }
-  .kalk-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 20px;
-    align-items: start;
-  }
-  @media (max-width: 1250px) { .kalk-layout { grid-template-columns: 1fr; } .kalk-summary { position: static; } }
-  .tabelle-scroll { overflow-x: auto; }
+  .main { max-width: 1240px; }
+  .kalk-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
+  @media (max-width: 1100px) { .kalk-layout { grid-template-columns: 1fr; } .kalk-summary { position: static !important; } }
 
-  .kalk-aktionen { display: flex; gap: 8px; flex-wrap: wrap; }
-  .btn.gruen { background: var(--color-secondary); border-color: var(--color-secondary); color: #fff; }
-  .btn.gruen:hover { background: var(--color-secondary-dark); }
-
-  .kopf-grid {
-    display: grid;
-    grid-template-columns: 2fr 2fr 2fr 1fr;
-    gap: 12px;
+  /* Eingabefelder */
+  .eingabe {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px;
+    font: inherit; font-size: 0.95rem; background: #fff;
   }
-  @media (max-width: 900px) { .kopf-grid { grid-template-columns: 1fr 1fr; } }
-  .feld label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    margin-bottom: 4px;
-  }
-  .feld input, .feld select, .feld textarea {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    font: inherit;
-    font-size: 0.92rem;
-    background: #fff;
-  }
-  .feld input:focus, .feld textarea:focus, .pos-tabelle input:focus, .pos-tabelle select:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary-bg);
-  }
+  .eingabe:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-bg); }
+  .eingabe.zahl { text-align: right; font-variant-numeric: tabular-nums; }
+  .feld-label { display: block; font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 5px; }
+  .kopf-felder { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .kopf-felder { grid-template-columns: 1fr; } }
 
   /* Positionen */
-  .pos-tabelle { table-layout: fixed; min-width: 770px; }
-  .pos-tabelle th { padding: 8px 6px; white-space: nowrap; }
-  .pos-tabelle td { padding: 6px; vertical-align: top; }
-  .pos-tabelle input, .pos-tabelle select {
-    width: 100%;
-    padding: 7px 8px;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    background: #f7f9f8;
-    font: inherit;
-    font-size: 0.9rem;
+  .pos-tabelle { table-layout: fixed; }
+  .pos-tabelle th { padding: 0 6px 8px; border-bottom: none; }
+  .pos-tabelle td { padding: 4px 6px; border-bottom: none; vertical-align: top; }
+  .pos-tabelle td.total { text-align: right; font-weight: 600; padding-top: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pos-tabelle select.eingabe { padding: 10px 6px; }
+  .rechnung { font-size: 0.75rem; color: var(--color-primary); text-align: right; margin-top: 2px; }
+  .rechnung.fehler { color: var(--color-danger); }
+  .x-btn {
+    border: none; background: none; color: #b4b6b5; cursor: pointer;
+    width: 30px; height: 30px; margin-top: 6px; border-radius: 6px; font-size: 1rem;
   }
-  .pos-tabelle select { padding: 7px 2px 7px 5px; font-size: 0.85rem; }
-  .pos-tabelle input:hover, .pos-tabelle select:hover { border-color: var(--color-border); }
-  .pos-tabelle .zahl { text-align: right; font-variant-numeric: tabular-nums; }
-  .pos-tabelle td.betrag {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    padding-top: 13px;
-    font-weight: 600;
-    white-space: nowrap;
+  .x-btn:hover { background: var(--color-danger-bg); color: var(--color-danger); }
+  .text-btn {
+    border: none; background: none; color: var(--color-primary); cursor: pointer;
+    font: inherit; font-size: 0.92rem; font-weight: 600; padding: 8px 6px;
   }
-  .pos-tabelle td.zeit { text-align: right; padding-top: 13px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
-  .pos-tabelle td.nr { color: var(--color-text-muted); padding-top: 13px; font-size: 0.82rem; }
-  .pos-tabelle tr.art-fremd td.nr::after { content: ""; }
-  .formel-hinweis {
-    font-size: 0.72rem;
-    color: var(--color-primary);
-    text-align: right;
-    margin-top: 2px;
-    min-height: 0;
-  }
-  .formel-hinweis.fehler { color: var(--color-danger); }
-  .zeilen-aktionen { display: flex; gap: 2px; padding-top: 6px; justify-content: flex-end; }
-  .mini-btn {
-    border: none;
-    background: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    width: 26px; height: 26px;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    line-height: 1;
-  }
-  .mini-btn:hover { background: var(--color-primary-bg); color: var(--color-primary-dark); }
-  .mini-btn.loeschen:hover { background: var(--color-danger-bg); color: var(--color-danger); }
+  .text-btn:hover { text-decoration: underline; }
+  .leer { color: var(--color-text-muted); font-size: 0.9rem; padding: 6px 6px 2px; }
 
-  .pos-fuss {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--color-border);
-  }
-  .pos-summe { font-size: 0.92rem; color: var(--color-text-muted); }
-  .pos-summe strong { color: var(--color-text); font-variant-numeric: tabular-nums; }
+  /* Einklappbare Einstellungen */
+  .klapp { cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+  .klapp h2 { margin: 0; font-size: 0.98rem; color: var(--color-text-muted); font-weight: 600; }
+  .klapp span { color: var(--color-text-muted); font-size: 0.85rem; }
+  .einstellungen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 16px; }
+  @media (max-width: 800px) { .einstellungen { grid-template-columns: 1fr 1fr; } }
+  .mit-einheit { position: relative; }
+  .mit-einheit .eingabe { padding-right: 58px; text-align: right; }
+  .mit-einheit span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.78rem; color: var(--color-text-muted); pointer-events: none; }
 
-  .vorlagen {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-    margin-top: 14px;
-  }
-  .vorlagen .vorlagen-label { font-size: 0.8rem; color: var(--color-text-muted); margin-right: 4px; }
-  .chip-btn {
-    border: 1px solid var(--color-primary-border);
-    background: var(--color-primary-bg);
-    color: var(--color-primary-dark);
-    border-radius: 999px;
-    padding: 4px 11px;
-    font-size: 0.8rem;
-    cursor: pointer;
-  }
-  .chip-btn:hover { background: #d6e7f2; }
-  .chip-btn small { opacity: 0.7; margin-left: 4px; }
-
-  /* Parameter */
-  .param-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
-  @media (max-width: 900px) { .param-grid { grid-template-columns: 1fr 1fr; } }
-  .einheit-input { position: relative; }
-  .einheit-input input { padding-right: 62px; text-align: right; }
-  .einheit-input span {
-    position: absolute;
-    right: 10px; top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.78rem;
-    color: var(--color-text-muted);
-    pointer-events: none;
-  }
-  .klapp-kopf {
-    display: flex; justify-content: space-between; align-items: center;
-    cursor: pointer; user-select: none;
-  }
-  .klapp-kopf h2 { margin: 0; }
-  .klapp-pfeil { color: var(--color-text-muted); font-size: 0.85rem; }
-  .klapp-inhalt { margin-top: 14px; }
-
-  /* Zusammenfassung rechts */
+  /* Zusammenfassung */
   .kalk-summary { position: sticky; top: 20px; }
-  .summary-card { padding: 0; overflow: hidden; }
-  .summary-hero {
-    background: linear-gradient(135deg, var(--color-primary) 0%, #0a7aa8 60%, var(--color-secondary) 140%);
-    color: #fff;
-    padding: 20px 22px;
-  }
-  .summary-hero .klein { font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
-  .summary-hero .gross { font-size: 1.9rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .summary-hero .zeile { display: flex; justify-content: space-between; font-size: 0.85rem; opacity: 0.92; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .summary-hero .zeile.inkl { font-weight: 600; opacity: 1; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.3); margin-top: 8px; }
-  .summary-block { padding: 16px 22px; border-bottom: 1px solid var(--color-border); }
-  .summary-block:last-child { border-bottom: none; }
-  .summary-block h3 {
-    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;
-    color: var(--color-text-muted); margin: 0 0 10px; font-weight: 600;
-  }
-  .s-zeile { display: flex; justify-content: space-between; font-size: 0.88rem; padding: 3px 0; font-variant-numeric: tabular-nums; }
-  .s-zeile span:first-child { color: var(--color-text-muted); }
-  .s-zeile.fett { font-weight: 700; border-top: 1px solid var(--color-border); margin-top: 6px; padding-top: 8px; }
-  .s-zeile.fett span:first-child { color: var(--color-text); }
-  .aufwand-kacheln { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .aufwand-kachel { background: var(--color-bg); border-radius: 8px; padding: 10px 12px; }
-  .aufwand-kachel .wert { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .aufwand-kachel .txt { font-size: 0.75rem; color: var(--color-text-muted); }
+  .summary { padding: 0; overflow: hidden; }
+  .summary-oben { background: var(--color-primary); color: #fff; padding: 22px; }
+  .summary-oben .klein { font-size: 0.82rem; opacity: 0.85; }
+  .summary-oben .gross { font-size: 2rem; font-weight: 700; margin: 2px 0 4px; font-variant-numeric: tabular-nums; }
+  .summary-teil { padding: 18px 22px; border-bottom: 1px solid var(--color-border); }
+  .summary-teil:last-child { border-bottom: none; }
+  .summary-teil .klein { font-size: 0.82rem; color: var(--color-text-muted); }
+  .summary-teil .wert { font-size: 1.15rem; font-weight: 700; margin-top: 2px; }
+  .ergebnis { border-radius: 10px; padding: 14px 16px; }
+  .ergebnis.gut { background: var(--color-success-bg); }
+  .ergebnis.mittel { background: var(--color-warning-bg); }
+  .ergebnis.schlecht { background: var(--color-danger-bg); }
+  .ergebnis .titel { font-weight: 700; font-size: 1rem; }
+  .ergebnis.gut .titel { color: var(--color-secondary-dark); }
+  .ergebnis.mittel .titel { color: var(--color-warning); }
+  .ergebnis.schlecht .titel { color: var(--color-danger); }
+  .ergebnis .txt { font-size: 0.84rem; margin-top: 4px; line-height: 1.45; }
+  .ergebnis .btn { margin-top: 10px; background: #fff; }
+  .details-link { margin-top: 10px; padding: 4px 0; font-size: 0.82rem; font-weight: 400; }
+  .details { margin-top: 8px; }
+  .d-zeile { display: flex; justify-content: space-between; font-size: 0.84rem; padding: 3px 0; font-variant-numeric: tabular-nums; }
+  .d-zeile span:first-child { color: var(--color-text-muted); }
+  .d-zeile.summe { font-weight: 700; border-top: 1px solid var(--color-border); margin-top: 4px; padding-top: 6px; }
+  .d-zeile.summe span:first-child { color: var(--color-text); }
+  .knoepfe { display: grid; gap: 8px; }
+  .knoepfe .btn { width: 100%; padding: 12px; font-weight: 600; text-align: center; font-size: 0.95rem; }
+  .btn.gruen { background: var(--color-secondary); border-color: var(--color-secondary); color: #fff; }
+  .btn.gruen:hover { background: var(--color-secondary-dark); }
+  .status { font-size: 0.78rem; color: var(--color-text-muted); text-align: center; margin-top: 8px; min-height: 1em; }
 
-  .ergebnis-box { border-radius: 8px; padding: 12px 14px; margin-top: 10px; }
-  .ergebnis-box.gut { background: var(--color-success-bg); }
-  .ergebnis-box.mittel { background: var(--color-warning-bg); }
-  .ergebnis-box.schlecht { background: var(--color-danger-bg); }
-  .ergebnis-box .titel { font-weight: 700; font-size: 0.9rem; }
-  .ergebnis-box.gut .titel { color: var(--color-secondary-dark); }
-  .ergebnis-box.mittel .titel { color: var(--color-warning); }
-  .ergebnis-box.schlecht .titel { color: var(--color-danger); }
-  .ergebnis-box .txt { font-size: 0.8rem; color: var(--color-text); margin-top: 4px; line-height: 1.4; }
-  .ergebnis-box .btn { margin-top: 10px; }
+  /* Liste */
+  .liste td.zahl { text-align: right; font-variant-numeric: tabular-nums; }
+  .liste tr.aktiv td { background: var(--color-primary-bg); }
+  .liste .link-btn { background: none; border: none; color: var(--color-primary); cursor: pointer; font: inherit; font-size: 0.86rem; padding: 2px 6px; }
+  .liste .link-btn:hover { text-decoration: underline; }
+  .liste .link-btn.rot { color: #b4b6b5; }
+  .liste .link-btn.rot:hover { color: var(--color-danger); }
 
-  .summary-aktionen { display: grid; gap: 8px; }
-  .summary-aktionen .btn { width: 100%; text-align: center; padding: 11px 16px; font-weight: 600; }
-
-  /* Zusatzkosten */
-  .zusatz-tabelle td { padding: 6px; vertical-align: top; }
-  .zusatz-tabelle th { padding: 8px 6px; }
-  .zusatz-tabelle input[type=text] {
-    width: 100%; padding: 7px 8px; border: 1px solid transparent; border-radius: 6px;
-    background: #f7f9f8; font: inherit; font-size: 0.9rem;
-  }
-  .zusatz-tabelle input[type=text]:hover { border-color: var(--color-border); }
-  .zusatz-tabelle input[type=text]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-bg); }
-  .zusatz-tabelle .zahl { text-align: right; }
-  .zusatz-tabelle td.check { text-align: center; padding-top: 12px; }
-
-  .stunden-override {
-    display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
-    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-border);
-  }
-  .stunden-override .feld { width: 220px; }
-  .stunden-override .hint { font-size: 0.8rem; color: var(--color-text-muted); flex: 1; min-width: 200px; margin: 0 0 6px; }
-
-  .leer-zeile td { text-align: center; color: var(--color-text-muted); padding: 22px; font-size: 0.9rem; }
-
-  .speicher-status { font-size: 0.78rem; color: var(--color-text-muted); text-align: center; min-height: 1em; }
-
-  .liste-suche { width: 260px; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 8px; font: inherit; font-size: 0.88rem; }
-  .gespeichert-tabelle td.zahl { text-align: right; font-variant-numeric: tabular-nums; }
-  .gespeichert-tabelle tr.aktiv td { background: var(--color-primary-bg); }
-  .gespeichert-tabelle .link-btn {
-    background: none; border: none; color: var(--color-primary); cursor: pointer; font: inherit; font-size: 0.85rem; padding: 2px 6px;
-  }
-  .gespeichert-tabelle .link-btn:hover { text-decoration: underline; }
-  .gespeichert-tabelle .link-btn.rot { color: var(--color-danger); }
-
-  .kein-zugriff { max-width: 560px; }
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
     background: var(--color-text); color: #fff; padding: 10px 18px; border-radius: 8px;
@@ -259,181 +119,129 @@
   <main class="main">
     <div class="topbar">
       <h1>SR-Kalkulation</h1>
-      <div class="kalk-aktionen">
-        <button type="button" class="btn" id="btn-neu">+ Neue Kalkulation</button>
-      </div>
+      <button type="button" class="btn" id="btn-neu">+ Neue Kalkulation</button>
     </div>
 
-    <div id="kein-zugriff" class="card kein-zugriff versteckt">
+    <div id="kein-zugriff" class="card versteckt" style="max-width:520px;">
       <h2>Kein Zugriff</h2>
-      <p class="hint" style="margin:0;">Die Kalkulation zeigt interne Kosten und Margen und ist deshalb nur für Logins mit Vollzugriff freigegeben.</p>
+      <p class="hint" style="margin:0;">Die Kalkulation zeigt interne Kosten und ist nur für Logins mit Vollzugriff freigegeben.</p>
     </div>
 
     <div id="kalk-inhalt" class="versteckt">
     <div class="kalk-layout">
-      <!-- ================= LINKE SPALTE ================= -->
       <div>
+        <!-- 1. Für wen -->
         <div class="card">
-          <h2>Kunde &amp; Objekt</h2>
-          <div class="kopf-grid">
-            <div class="feld">
-              <label for="f-kunde">Kunde</label>
-              <input type="text" id="f-kunde" list="kunden-liste" placeholder="Name oder Firma" autocomplete="off">
+          <div class="kopf-felder">
+            <div>
+              <label class="feld-label" for="f-kunde">Kunde</label>
+              <input type="text" class="eingabe" id="f-kunde" list="kunden-liste" placeholder="Name oder Firma" autocomplete="off">
               <datalist id="kunden-liste"></datalist>
             </div>
-            <div class="feld">
-              <label for="f-objekt">Objekt / Adresse</label>
-              <input type="text" id="f-objekt" placeholder="z.B. Seetalstrasse 4, 6285 Hitzkirch">
-            </div>
-            <div class="feld">
-              <label for="f-bezeichnung">Arbeit / Bezeichnung</label>
-              <input type="text" id="f-bezeichnung" placeholder="z.B. Fenster &amp; Storen, Variante Osmose">
-            </div>
-            <div class="feld">
-              <label for="f-datum">Datum</label>
-              <input type="date" id="f-datum">
+            <div>
+              <label class="feld-label" for="f-objekt">Objekt / Beschreibung</label>
+              <input type="text" class="eingabe" id="f-objekt" placeholder="z.B. Fenster &amp; Storen, Seetalstrasse 4">
             </div>
           </div>
         </div>
 
+        <!-- 2. Was wird gemacht -->
         <div class="card">
-          <div class="abschnitt-kopf" style="margin-bottom:6px;">
-            <h2 style="margin:0;">Positionen</h2>
-            <button type="button" class="fab-add" id="btn-pos-neu" title="Position hinzufügen">+</button>
-          </div>
-          <p class="hint" style="margin-top:4px;">Bei <strong>Menge</strong> darfst du direkt rechnen, z.B. <code>3.6*2.5 + 2.2*1.5</code> – genau wie in Excel. Die Zeit ergibt sich aus Preis ÷ Verrechnungssatz.</p>
-
-          <div class="tabelle-scroll">
+          <h2>Leistungen</h2>
           <table class="pos-tabelle">
-            <colgroup>
-              <col style="width:32px"><col><col style="width:108px"><col style="width:78px">
-              <col style="width:88px"><col style="width:112px"><col style="width:96px"><col style="width:50px"><col style="width:58px">
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Pos.</th><th>Bereich / Leistung</th><th style="text-align:right">Menge</th><th>Einheit</th>
-                <th style="text-align:right">CHF/Einh.</th><th>Art</th><th style="text-align:right">Preis</th><th style="text-align:right">Std.</th><th></th>
-              </tr>
-            </thead>
+            <colgroup><col><col style="width:130px"><col style="width:86px"><col style="width:110px"><col style="width:110px"><col style="width:40px"></colgroup>
+            <thead><tr>
+              <th>Leistung</th><th style="text-align:right">Menge</th><th>Einheit</th>
+              <th style="text-align:right">CHF / Einheit</th><th style="text-align:right">Total</th><th></th>
+            </tr></thead>
             <tbody id="pos-body"></tbody>
           </table>
-          </div>
-
-          <div class="vorlagen" id="vorlagen"><span class="vorlagen-label">Schnell hinzufügen:</span></div>
-
-          <div class="pos-fuss">
-            <div class="pos-summe">Art: <strong>Arbeit</strong> = eigene Leistung (zählt als Arbeitszeit) · <strong>Miete/Fremd</strong> = z.B. Hebebühne (Kosten = Preis, keine Zeit) · <strong>Pauschale</strong> = Zuschlag ohne Kosten/Zeit</div>
-            <div class="pos-summe">Total exkl. MwSt.: <strong id="pos-total">CHF 0.00</strong></div>
-          </div>
+          <datalist id="leistungen-liste"></datalist>
+          <button type="button" class="text-btn" id="btn-pos-neu">+ Leistung hinzufügen</button>
         </div>
 
+        <!-- 3. Zusatzkosten (klein) -->
         <div class="card">
-          <div class="abschnitt-kopf" style="margin-bottom:6px;">
-            <h2 style="margin:0;">Zusatzkosten</h2>
-            <button type="button" class="fab-add" id="btn-zusatz-neu" title="Zusatzkosten hinzufügen">+</button>
-          </div>
-          <p class="hint" style="margin-top:4px;">Fahrt, Hotel, Maschinenmiete, Mietauto usw. Fliessen in die Kostenkontrolle ein, nicht direkt in den Angebotspreis. Ohne Häkchen bei „DB" werden sie ohne Gewinnzuschlag weiterverrechnet.</p>
-          <table class="zusatz-tabelle">
-            <colgroup><col style="width:30%"><col style="width:140px"><col style="width:56px"><col><col style="width:40px"></colgroup>
-            <thead><tr><th>Bezeichnung</th><th style="text-align:right">Betrag CHF</th><th style="text-align:center">DB</th><th>Notiz / Link</th><th></th></tr></thead>
+          <h2>Zusatzkosten <span style="font-weight:400; color:var(--color-text-muted); font-size:0.85rem;">(Fahrt, Hotel, Maschinenmiete …)</span></h2>
+          <table class="pos-tabelle">
+            <colgroup><col><col style="width:150px"><col style="width:40px"></colgroup>
             <tbody id="zusatz-body"></tbody>
           </table>
-          <div class="vorlagen" id="zusatz-vorlagen"><span class="vorlagen-label">Schnell hinzufügen:</span></div>
-
-          <div class="stunden-override">
-            <div class="feld">
-              <label for="f-stunden">Stunden manuell festlegen</label>
-              <input type="text" id="f-stunden" placeholder="leer = automatisch" class="zahl" style="text-align:right">
-              <div class="formel-hinweis" id="f-stunden-hinweis"></div>
-            </div>
-            <p class="hint">Optional. Überschreibt die aus dem Preis berechneten Stunden für die Kostenkontrolle, z.B. <code>3*8.5</code> für 3 Mitarbeiter × 1 Tag (wie bei Flying Tiger).</p>
-          </div>
+          <button type="button" class="text-btn" id="btn-zusatz-neu">+ Zusatzkosten hinzufügen</button>
         </div>
 
+        <!-- 4. Einstellungen (eingeklappt) -->
         <div class="card">
-          <div class="klapp-kopf" id="param-kopf">
-            <h2>Kalkulationsgrundlagen</h2>
-            <span class="klapp-pfeil" id="param-pfeil">▾ ausblenden</span>
-          </div>
-          <div class="klapp-inhalt" id="param-inhalt">
-            <div class="param-grid">
-              <div class="feld"><label>Verrechnungssatz</label><div class="einheit-input"><input type="text" id="p-satz" inputmode="decimal"><span>CHF/h</span></div></div>
-              <div class="feld"><label>Lohnkosten intern</label><div class="einheit-input"><input type="text" id="p-lohn" inputmode="decimal"><span>CHF/h</span></div></div>
-              <div class="feld"><label>Materialaufwand</label><div class="einheit-input"><input type="text" id="p-material" inputmode="decimal"><span>% Lohn</span></div></div>
-              <div class="feld"><label>Fahrzeugaufwand</label><div class="einheit-input"><input type="text" id="p-fahrzeug" inputmode="decimal"><span>% Lohn</span></div></div>
-              <div class="feld"><label>DB-Zuschlag (Ziel)</label><div class="einheit-input"><input type="text" id="p-db" inputmode="decimal"><span>%</span></div></div>
-              <div class="feld"><label>MwSt.</label><div class="einheit-input"><input type="text" id="p-mwst" inputmode="decimal"><span>%</span></div></div>
-              <div class="feld"><label>Arbeitstag</label><div class="einheit-input"><input type="text" id="p-tag" inputmode="decimal"><span>h</span></div></div>
-              <div class="feld"><label>Anzahl Mitarbeiter</label><div class="einheit-input"><input type="text" id="p-ma" inputmode="decimal"><span>MA</span></div></div>
+          <div class="klapp" id="einst-kopf"><h2>⚙ Einstellungen</h2><span id="einst-pfeil">anzeigen ▸</span></div>
+          <div id="einst-inhalt" class="versteckt">
+            <div class="einstellungen">
+              <div><label class="feld-label">Verrechnungssatz</label><div class="mit-einheit"><input class="eingabe" id="p-satz" inputmode="decimal"><span>CHF/h</span></div></div>
+              <div><label class="feld-label">Lohnkosten</label><div class="mit-einheit"><input class="eingabe" id="p-lohn" inputmode="decimal"><span>CHF/h</span></div></div>
+              <div><label class="feld-label">Material</label><div class="mit-einheit"><input class="eingabe" id="p-material" inputmode="decimal"><span>% Lohn</span></div></div>
+              <div><label class="feld-label">Fahrzeug</label><div class="mit-einheit"><input class="eingabe" id="p-fahrzeug" inputmode="decimal"><span>% Lohn</span></div></div>
+              <div><label class="feld-label">Gewinnzuschlag (DB)</label><div class="mit-einheit"><input class="eingabe" id="p-db" inputmode="decimal"><span>%</span></div></div>
+              <div><label class="feld-label">MwSt.</label><div class="mit-einheit"><input class="eingabe" id="p-mwst" inputmode="decimal"><span>%</span></div></div>
+              <div><label class="feld-label">Arbeitstag</label><div class="mit-einheit"><input class="eingabe" id="p-tag" inputmode="decimal"><span>h</span></div></div>
+              <div><label class="feld-label">Personen</label><div class="mit-einheit"><input class="eingabe" id="p-ma" inputmode="decimal"><span>MA</span></div></div>
+              <div style="grid-column: span 2;">
+                <label class="feld-label">Stunden fix vorgeben (optional)</label>
+                <input class="eingabe zahl" id="f-stunden" placeholder="leer = automatisch, z.B. 3*8.5">
+                <div class="rechnung" id="f-stunden-hinweis"></div>
+              </div>
             </div>
-            <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
-              <button type="button" class="btn small" id="btn-param-standard">Als Standard für neue Kalkulationen merken</button>
-              <button type="button" class="btn small" id="btn-param-reset">Auf Standard zurücksetzen</button>
+            <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn small" id="btn-param-standard">Als Standard merken</button>
+              <button type="button" class="btn small" id="btn-param-reset">Standard wiederherstellen</button>
             </div>
           </div>
-        </div>
-
-        <div class="card">
-          <h2>Notizen</h2>
-          <div class="feld"><textarea id="f-notizen" rows="3" placeholder="Interne Bemerkungen, Annahmen, Zugang, Termine …"></textarea></div>
         </div>
       </div>
 
-      <!-- ================= RECHTE SPALTE ================= -->
+      <!-- Rechts: Ergebnis -->
       <div class="kalk-summary">
-        <div class="card summary-card">
-          <div class="summary-hero">
+        <div class="card summary">
+          <div class="summary-oben">
             <div class="klein">Angebot exkl. MwSt.</div>
             <div class="gross" id="s-exkl">CHF 0.00</div>
-            <div class="zeile"><span id="s-mwst-label">MwSt. 8.1 %</span><span id="s-mwst">0.00</span></div>
-            <div class="zeile inkl"><span>Total inkl. MwSt.</span><span id="s-inkl">CHF 0.00</span></div>
+            <div class="klein" id="s-inkl">inkl. MwSt. CHF 0.00</div>
           </div>
-
-          <div class="summary-block">
-            <h3>Aufwand</h3>
-            <div class="aufwand-kacheln">
-              <div class="aufwand-kachel"><div class="wert" id="s-stunden">0.0</div><div class="txt" id="s-stunden-txt">Stunden</div></div>
-              <div class="aufwand-kachel"><div class="wert" id="s-tage">0.0</div><div class="txt" id="s-tage-txt">Tage</div></div>
-            </div>
+          <div class="summary-teil">
+            <div class="klein">Arbeitszeit</div>
+            <div class="wert" id="s-zeit">0 h</div>
+            <div class="klein" id="s-tage"></div>
           </div>
-
-          <div class="summary-block">
-            <h3>Kostenkontrolle</h3>
-            <div class="s-zeile"><span id="s-lohn-label">Lohnaufwand</span><span id="s-lohn">0.00</span></div>
-            <div class="s-zeile"><span id="s-material-label">Material</span><span id="s-material">0.00</span></div>
-            <div class="s-zeile"><span id="s-fahrzeug-label">Fahrzeug</span><span id="s-fahrzeug">0.00</span></div>
-            <div class="s-zeile" id="s-fremd-zeile"><span>Miete / Fremdleistung</span><span id="s-fremd">0.00</span></div>
-            <div class="s-zeile" id="s-zusatz-zeile"><span>Zusatzkosten</span><span id="s-zusatz">0.00</span></div>
-            <div class="s-zeile fett"><span>Selbstkosten</span><span id="s-selbst">0.00</span></div>
-            <div class="s-zeile"><span id="s-db-label">+ DB</span><span id="s-db">0.00</span></div>
-            <div class="s-zeile fett"><span>Richtpreis</span><span id="s-richt">0.00</span></div>
-
-            <div class="ergebnis-box" id="s-ergebnis">
-              <div class="titel" id="s-ergebnis-titel">–</div>
+          <div class="summary-teil">
+            <div class="ergebnis" id="s-ergebnis">
+              <div class="titel" id="s-ergebnis-titel"></div>
               <div class="txt" id="s-ergebnis-txt"></div>
-              <button type="button" class="btn small versteckt" id="btn-differenz">Differenz als Pauschale ergänzen</button>
+              <button type="button" class="btn small versteckt" id="btn-differenz">Preis auf Richtpreis anheben</button>
+            </div>
+            <button type="button" class="text-btn details-link" id="btn-details">Kostenaufstellung anzeigen ▸</button>
+            <div class="details versteckt" id="details">
+              <div class="d-zeile"><span id="d-lohn-label">Lohn</span><span id="d-lohn"></span></div>
+              <div class="d-zeile"><span id="d-material-label">Material</span><span id="d-material"></span></div>
+              <div class="d-zeile"><span id="d-fahrzeug-label">Fahrzeug</span><span id="d-fahrzeug"></span></div>
+              <div class="d-zeile" id="d-fremd-zeile"><span>Miete / Fremd</span><span id="d-fremd"></span></div>
+              <div class="d-zeile" id="d-zusatz-zeile"><span>Zusatzkosten</span><span id="d-zusatz"></span></div>
+              <div class="d-zeile summe"><span>Selbstkosten</span><span id="d-selbst"></span></div>
+              <div class="d-zeile"><span id="d-db-label">+ DB</span><span id="d-db"></span></div>
+              <div class="d-zeile summe"><span>Richtpreis</span><span id="d-richt"></span></div>
             </div>
           </div>
-
-          <div class="summary-block">
-            <div class="summary-aktionen">
+          <div class="summary-teil">
+            <div class="knoepfe">
               <button type="button" class="btn primary" id="btn-speichern">Speichern</button>
-              <button type="button" class="btn gruen" id="btn-excel">⬇ Als Excel herunterladen</button>
+              <button type="button" class="btn gruen" id="btn-excel">Excel herunterladen</button>
             </div>
-            <div class="speicher-status" id="speicher-status" style="margin-top:8px;"></div>
+            <div class="status" id="speicher-status"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:4px;">
-      <div class="abschnitt-kopf">
-        <h2 style="margin:0;">Gespeicherte Kalkulationen</h2>
-        <input type="search" class="liste-suche" id="liste-suche" placeholder="Suchen nach Kunde, Objekt …">
-      </div>
-      <p class="hint" style="margin-top:6px;">Werden vorerst in diesem Browser gespeichert (nicht geräteübergreifend). Für die Ablage beim Kunden: Excel herunterladen.</p>
-      <table class="gespeichert-tabelle">
-        <thead><tr><th>Datum</th><th>Kunde</th><th>Objekt</th><th>Bezeichnung</th><th style="text-align:right">Angebot exkl.</th><th></th></tr></thead>
+    <div class="card">
+      <h2>Gespeicherte Kalkulationen</h2>
+      <table class="liste">
         <tbody id="liste-body"></tbody>
       </table>
     </div>
@@ -662,61 +470,66 @@ function berechne(k) {
     selbstkosten, db, richtpreis, gewinn, marge, differenz, tage, personen, tagesStunden };
 }
 
-/* ---------------- Darstellung ---------------- */
 
-function formelHinweisHtml(text, einheit) {
+/* ---------------- Darstellung (vereinfachte Ansicht) ---------------- */
+
+function setzeText(id, text) { document.getElementById(id).textContent = text; }
+
+function rechnungHinweis(text, einheit) {
   const r = werteAus(text);
-  if (r.fehler) return { klasse: 'formel-hinweis fehler', text: 'Rechnung prüfen' };
-  if (r.formel) return { klasse: 'formel-hinweis', text: '= ' + r.wert.toLocaleString('de-CH', { maximumFractionDigits: 2 }) + (einheit ? ' ' + einheit : '') };
-  return { klasse: 'formel-hinweis', text: '' };
+  if (r.fehler) return { klasse: 'rechnung fehler', text: 'Rechnung prüfen' };
+  if (r.formel) return { klasse: 'rechnung', text: '= ' + r.wert.toLocaleString('de-CH', { maximumFractionDigits: 2 }) + (einheit ? ' ' + einheit : '') };
+  return { klasse: 'rechnung', text: '' };
+}
+
+function vorlageFuer(name) {
+  const n = String(name || '').trim().toLowerCase();
+  return POS_VORLAGEN.find(v => v.bereich.toLowerCase() === n);
 }
 
 function renderPositionen() {
   const body = document.getElementById('pos-body');
   body.innerHTML = '';
   if (state.positionen.length === 0) {
-    body.innerHTML = '<tr class="leer-zeile"><td colspan="9">Noch keine Positionen – mit <strong>+</strong> oder einer Vorlage unten beginnen.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="leer">Noch keine Leistung erfasst.</td></tr>';
     return;
   }
   state.positionen.forEach((pos, i) => {
     const tr = document.createElement('tr');
-    tr.className = 'art-' + pos.art;
-    const einheitOptionen = EINHEITEN.concat(EINHEITEN.includes(pos.einheit) ? [] : [pos.einheit])
-      .map(e => '<option' + (e === pos.einheit ? ' selected' : '') + '>' + esc(e) + '</option>').join('');
-    const artOptionen = Object.keys(ARTEN)
-      .map(a => '<option value="' + a + '"' + (a === pos.art ? ' selected' : '') + '>' + ARTEN[a].label + '</option>').join('');
-    const h = formelHinweisHtml(pos.menge, pos.einheit);
+    const einheiten = EINHEITEN.concat(EINHEITEN.includes(pos.einheit) ? [] : [pos.einheit]);
+    const h = rechnungHinweis(pos.menge, pos.einheit);
     tr.innerHTML =
-      '<td class="nr">' + (i + 1) + '</td>' +
-      '<td><input type="text" data-feld="bereich" value="' + esc(pos.bereich) + '" placeholder="z.B. Fensterreinigung"></td>' +
-      '<td><input type="text" class="zahl" data-feld="menge" value="' + esc(pos.menge) + '" placeholder="0" inputmode="decimal"><div class="' + h.klasse + '" data-hinweis="menge">' + esc(h.text) + '</div></td>' +
-      '<td><select data-feld="einheit">' + einheitOptionen + '</select></td>' +
-      '<td><input type="text" class="zahl" data-feld="ansatz" value="' + esc(pos.ansatz) + '" placeholder="0.00" inputmode="decimal"></td>' +
-      '<td><select data-feld="art">' + artOptionen + '</select></td>' +
-      '<td class="betrag" data-ausgabe="preis">0.00</td>' +
-      '<td class="zeit" data-ausgabe="zeit">–</td>' +
-      '<td><div class="zeilen-aktionen">' +
-        '<button type="button" class="mini-btn" data-aktion="kopieren" title="Duplizieren">⧉</button>' +
-        '<button type="button" class="mini-btn loeschen" data-aktion="loeschen" title="Entfernen">✕</button>' +
-      '</div></td>';
+      '<td><input class="eingabe" data-feld="bereich" list="leistungen-liste" value="' + esc(pos.bereich) + '" placeholder="Leistung wählen oder eintippen"></td>' +
+      '<td><input class="eingabe zahl" data-feld="menge" value="' + esc(pos.menge) + '" placeholder="0" inputmode="decimal"><div class="' + h.klasse + '" data-hinweis>' + esc(h.text) + '</div></td>' +
+      '<td><select class="eingabe" data-feld="einheit">' + einheiten.map(e => '<option' + (e === pos.einheit ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select></td>' +
+      '<td><input class="eingabe zahl" data-feld="ansatz" value="' + esc(pos.ansatz) + '" placeholder="0.00" inputmode="decimal"></td>' +
+      '<td class="total" data-total>0.00</td>' +
+      '<td><button type="button" class="x-btn" title="Entfernen">✕</button></td>';
+
     tr.querySelectorAll('[data-feld]').forEach(el => {
-      const ereignis = el.tagName === 'SELECT' ? 'change' : 'input';
-      el.addEventListener(ereignis, () => {
+      el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', () => {
         pos[el.dataset.feld] = el.value;
-        if (el.dataset.feld === 'art') tr.className = 'art-' + pos.art;
+        // Leistung aus der Liste gewählt -> Einheit und Preis automatisch setzen
+        if (el.dataset.feld === 'bereich') {
+          const v = vorlageFuer(el.value);
+          if (v) {
+            pos.einheit = v.einheit;
+            pos.ansatz = v.ansatz === 'satz' ? state.param.satz : String(v.ansatz);
+            pos.art = v.art || 'arbeit';
+            tr.querySelector('[data-feld="einheit"]').value = pos.einheit;
+            tr.querySelector('[data-feld="ansatz"]').value = pos.ansatz;
+            tr.querySelector('[data-feld="menge"]').focus();
+          }
+        }
         if (el.dataset.feld === 'menge' || el.dataset.feld === 'einheit') {
-          const hh = formelHinweisHtml(pos.menge, pos.einheit);
-          const hint = tr.querySelector('[data-hinweis="menge"]');
+          const hh = rechnungHinweis(pos.menge, pos.einheit);
+          const hint = tr.querySelector('[data-hinweis]');
           hint.className = hh.klasse; hint.textContent = hh.text;
         }
         aktualisiere();
       });
     });
-    tr.querySelector('[data-aktion="kopieren"]').addEventListener('click', () => {
-      state.positionen.splice(i + 1, 0, Object.assign({}, pos));
-      renderPositionen(); aktualisiere();
-    });
-    tr.querySelector('[data-aktion="loeschen"]').addEventListener('click', () => {
+    tr.querySelector('.x-btn').addEventListener('click', () => {
       state.positionen.splice(i, 1);
       renderPositionen(); aktualisiere();
     });
@@ -727,31 +540,25 @@ function renderPositionen() {
 function renderZusatz() {
   const body = document.getElementById('zusatz-body');
   body.innerHTML = '';
-  if (state.zusatz.length === 0) {
-    body.innerHTML = '<tr class="leer-zeile"><td colspan="5">Keine Zusatzkosten erfasst.</td></tr>';
-    return;
-  }
   state.zusatz.forEach((z, i) => {
     const tr = document.createElement('tr');
-    const h = formelHinweisHtml(z.betrag, 'CHF');
+    const h = rechnungHinweis(z.betrag, 'CHF');
     tr.innerHTML =
-      '<td><input type="text" data-feld="bezeichnung" value="' + esc(z.bezeichnung) + '" placeholder="z.B. Hotel 2 Nächte"></td>' +
-      '<td><input type="text" class="zahl" data-feld="betrag" value="' + esc(z.betrag) + '" placeholder="0.00" inputmode="decimal"><div class="' + h.klasse + '" data-hinweis="betrag">' + esc(h.text) + '</div></td>' +
-      '<td class="check"><input type="checkbox" data-feld="mitDb"' + (z.mitDb ? ' checked' : '') + ' title="DB-Zuschlag auf diesen Betrag"></td>' +
-      '<td><input type="text" data-feld="notiz" value="' + esc(z.notiz) + '" placeholder="optional, z.B. Link zum Angebot"></td>' +
-      '<td><div class="zeilen-aktionen"><button type="button" class="mini-btn loeschen" title="Entfernen">✕</button></div></td>';
+      '<td><input class="eingabe" data-feld="bezeichnung" list="zusatz-liste" value="' + esc(z.bezeichnung) + '" placeholder="z.B. Hotel 2 Nächte"></td>' +
+      '<td><input class="eingabe zahl" data-feld="betrag" value="' + esc(z.betrag) + '" placeholder="CHF" inputmode="decimal"><div class="' + h.klasse + '" data-hinweis>' + esc(h.text) + '</div></td>' +
+      '<td><button type="button" class="x-btn" title="Entfernen">✕</button></td>';
     tr.querySelectorAll('[data-feld]').forEach(el => {
-      el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
-        z[el.dataset.feld] = el.type === 'checkbox' ? el.checked : el.value;
+      el.addEventListener('input', () => {
+        z[el.dataset.feld] = el.value;
         if (el.dataset.feld === 'betrag') {
-          const hh = formelHinweisHtml(z.betrag, 'CHF');
-          const hint = tr.querySelector('[data-hinweis="betrag"]');
+          const hh = rechnungHinweis(z.betrag, 'CHF');
+          const hint = tr.querySelector('[data-hinweis]');
           hint.className = hh.klasse; hint.textContent = hh.text;
         }
         aktualisiere();
       });
     });
-    tr.querySelector('.loeschen').addEventListener('click', () => {
+    tr.querySelector('.x-btn').addEventListener('click', () => {
       state.zusatz.splice(i, 1);
       renderZusatz(); aktualisiere();
     });
@@ -759,122 +566,85 @@ function renderZusatz() {
   });
 }
 
-function renderVorlagen() {
-  const box = document.getElementById('vorlagen');
-  POS_VORLAGEN.forEach(v => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'chip-btn';
-    const ansatzText = v.ansatz === 'satz' ? 'Satz/h' : chf(v.ansatz) + '/' + v.einheit;
-    b.innerHTML = esc(v.bereich) + '<small>' + esc(ansatzText) + '</small>';
-    b.addEventListener('click', () => {
-      const ansatz = v.ansatz === 'satz' ? state.param.satz : String(v.ansatz);
-      // leere Startzeile wiederverwenden statt eine weitere anzuhängen
-      const letzte = state.positionen[state.positionen.length - 1];
-      const neu = { bereich: v.bereich, menge: '', einheit: v.einheit, ansatz, art: v.art || 'arbeit' };
-      if (letzte && !letzte.bereich && !letzte.menge && !letzte.ansatz) state.positionen[state.positionen.length - 1] = neu;
-      else state.positionen.push(neu);
-      renderPositionen(); aktualisiere();
-      fokusLetzteZeile('menge');
-    });
-    box.appendChild(b);
-  });
-  const zbox = document.getElementById('zusatz-vorlagen');
-  ZUSATZ_VORLAGEN.forEach(v => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'chip-btn';
-    b.textContent = v.bezeichnung;
-    b.addEventListener('click', () => {
-      state.zusatz.push({ bezeichnung: v.bezeichnung, betrag: '', mitDb: true, notiz: '' });
-      renderZusatz(); aktualisiere();
-      const inputs = document.querySelectorAll('#zusatz-body [data-feld="betrag"]');
-      if (inputs.length) inputs[inputs.length - 1].focus();
-    });
-    zbox.appendChild(b);
-  });
+function fuelleAuswahllisten() {
+  const dl = document.getElementById('leistungen-liste');
+  dl.innerHTML = POS_VORLAGEN.map(v => {
+    const preis = v.ansatz === 'satz' ? 'Stundensatz' : chf(v.ansatz) + ' / ' + v.einheit;
+    return '<option value="' + esc(v.bereich) + '" label="' + esc(preis) + '"></option>';
+  }).join('');
+  const zl = document.createElement('datalist');
+  zl.id = 'zusatz-liste';
+  zl.innerHTML = ZUSATZ_VORLAGEN.map(v => '<option value="' + esc(v.bezeichnung) + '"></option>').join('');
+  document.body.appendChild(zl);
 }
-
-function fokusLetzteZeile(feld) {
-  const inputs = document.querySelectorAll('#pos-body [data-feld="' + feld + '"]');
-  if (inputs.length) inputs[inputs.length - 1].focus();
-}
-
-function setzeText(id, text) { document.getElementById(id).textContent = text; }
 
 function aktualisiere() {
   const r = berechne(state);
 
-  // Zeilenwerte
   document.querySelectorAll('#pos-body tr').forEach((tr, i) => {
-    const x = r.positionen[i];
-    if (!x) return;
-    tr.querySelector('[data-ausgabe="preis"]').textContent = chf(x.preis);
-    tr.querySelector('[data-ausgabe="zeit"]').textContent = state.positionen[i].art === 'arbeit' ? zahl1(x.stunden) : '–';
+    const t = tr.querySelector('[data-total]');
+    if (t && r.positionen[i]) t.textContent = chf(r.positionen[i].preis);
   });
-  setzeText('pos-total', 'CHF ' + chf(r.exkl));
 
-  // Zusammenfassung
   setzeText('s-exkl', 'CHF ' + chf(r.exkl));
-  setzeText('s-mwst-label', 'MwSt. ' + prozentText(r.p.mwst));
-  setzeText('s-mwst', chf(r.mwst));
-  setzeText('s-inkl', 'CHF ' + chf(r.inkl));
-  setzeText('s-stunden', zahl1(r.stunden));
-  setzeText('s-stunden-txt', r.stundenManuell ? 'Stunden (manuell)' : 'Stunden total');
-  setzeText('s-tage', zahl1(r.tage));
-  setzeText('s-tage-txt', 'Tage à ' + zahl1(r.tagesStunden) + ' h mit ' + r.personen.toLocaleString('de-CH') + ' MA');
+  setzeText('s-inkl', 'inkl. MwSt. CHF ' + chf(r.inkl));
+  setzeText('s-zeit', zahl1(r.stunden) + ' Stunden');
+  setzeText('s-tage', r.stunden > 0
+    ? 'ca. ' + zahl1(r.tage) + ' Tage mit ' + r.personen.toLocaleString('de-CH') + ' Person' + (r.personen === 1 ? '' : 'en')
+    : '');
 
-  setzeText('s-lohn-label', 'Lohn (' + zahl1(r.stunden) + ' h × ' + chf(r.p.lohn) + ')');
-  setzeText('s-lohn', chf(r.lohn));
-  setzeText('s-material-label', 'Material (' + prozentText(r.p.material) + ')');
-  setzeText('s-material', chf(r.material));
-  setzeText('s-fahrzeug-label', 'Fahrzeug (' + prozentText(r.p.fahrzeug) + ')');
-  setzeText('s-fahrzeug', chf(r.fahrzeug));
-  setzeText('s-fremd', chf(r.fremd));
-  document.getElementById('s-fremd-zeile').style.display = r.fremd ? '' : 'none';
-  setzeText('s-zusatz', chf(r.zusatz));
-  document.getElementById('s-zusatz-zeile').style.display = r.zusatz ? '' : 'none';
-  setzeText('s-selbst', chf(r.selbstkosten));
-  setzeText('s-db-label', '+ DB ' + prozentText(r.p.db));
-  setzeText('s-db', chf(r.db));
-  setzeText('s-richt', chf(r.richtpreis));
+  // Kostenaufstellung
+  setzeText('d-lohn-label', 'Lohn (' + zahl1(r.stunden) + ' h × ' + chf(r.p.lohn) + ')');
+  setzeText('d-lohn', chf(r.lohn));
+  setzeText('d-material-label', 'Material ' + prozentText(r.p.material));
+  setzeText('d-material', chf(r.material));
+  setzeText('d-fahrzeug-label', 'Fahrzeug ' + prozentText(r.p.fahrzeug));
+  setzeText('d-fahrzeug', chf(r.fahrzeug));
+  setzeText('d-fremd', chf(r.fremd));
+  document.getElementById('d-fremd-zeile').style.display = r.fremd ? '' : 'none';
+  setzeText('d-zusatz', chf(r.zusatz));
+  document.getElementById('d-zusatz-zeile').style.display = r.zusatz ? '' : 'none';
+  setzeText('d-selbst', chf(r.selbstkosten));
+  setzeText('d-db-label', '+ Gewinnzuschlag ' + prozentText(r.p.db));
+  setzeText('d-db', chf(r.db));
+  setzeText('d-richt', chf(r.richtpreis));
 
+  // Ampel
   const box = document.getElementById('s-ergebnis');
-  const btnDiff = document.getElementById('btn-differenz');
-  btnDiff.classList.add('versteckt');
-  if (r.exkl <= 0 && r.selbstkosten <= 0) {
-    box.className = 'ergebnis-box mittel';
-    setzeText('s-ergebnis-titel', 'Noch keine Werte');
-    setzeText('s-ergebnis-txt', 'Erfasse Positionen mit Menge und Ansatz.');
+  const btn = document.getElementById('btn-differenz');
+  btn.classList.add('versteckt');
+  if (r.exkl <= 0) {
+    box.className = 'ergebnis mittel';
+    setzeText('s-ergebnis-titel', 'Noch leer');
+    setzeText('s-ergebnis-txt', 'Links eine Leistung mit Menge und Preis eintragen.');
   } else if (r.differenz <= 0.005) {
-    box.className = 'ergebnis-box gut';
-    setzeText('s-ergebnis-titel', '✓ Gewinn CHF ' + chf(r.gewinn) + ' · Marge ' + r.marge.toFixed(1) + ' %');
-    setzeText('s-ergebnis-txt', 'Das Angebot liegt ' + (r.differenz < -0.005 ? 'CHF ' + chf(-r.differenz) + ' über' : 'genau auf') + ' dem Richtpreis – Ziel-DB erreicht.');
+    box.className = 'ergebnis gut';
+    setzeText('s-ergebnis-titel', '✓ Gewinn CHF ' + chf(r.gewinn));
+    setzeText('s-ergebnis-txt', 'Marge ' + r.marge.toFixed(1) + ' % – der Preis ist gut.');
   } else if (r.gewinn >= 0) {
-    box.className = 'ergebnis-box mittel';
-    setzeText('s-ergebnis-titel', 'Gewinn CHF ' + chf(r.gewinn) + ' · Marge ' + r.marge.toFixed(1) + ' %');
-    setzeText('s-ergebnis-txt', 'Deckt die Kosten, liegt aber CHF ' + chf(r.differenz) + ' unter dem Richtpreis (Ziel-DB ' + prozentText(r.p.db) + ').');
-    btnDiff.classList.remove('versteckt');
+    box.className = 'ergebnis mittel';
+    setzeText('s-ergebnis-titel', 'Gewinn CHF ' + chf(r.gewinn));
+    setzeText('s-ergebnis-txt', 'Marge ' + r.marge.toFixed(1) + ' % – etwas knapp. Für den vollen Gewinnzuschlag fehlen CHF ' + chf(r.differenz) + '.');
+    btn.classList.remove('versteckt');
   } else {
-    box.className = 'ergebnis-box schlecht';
+    box.className = 'ergebnis schlecht';
     setzeText('s-ergebnis-titel', '✕ Verlust CHF ' + chf(-r.gewinn));
-    setzeText('s-ergebnis-txt', 'Das Angebot deckt die Selbstkosten nicht. Bis zum Richtpreis fehlen CHF ' + chf(r.differenz) + '.');
-    btnDiff.classList.remove('versteckt');
+    setzeText('s-ergebnis-txt', 'Der Preis deckt die Kosten nicht. Es fehlen CHF ' + chf(r.differenz) + '.');
+    btn.classList.remove('versteckt');
   }
 
-  // Stunden-Override Hinweis
   const sh = werteAus(state.stundenManuell);
   const hinweis = document.getElementById('f-stunden-hinweis');
-  if (sh.fehler) { hinweis.className = 'formel-hinweis fehler'; hinweis.textContent = 'Rechnung prüfen'; }
-  else if (sh.leer) { hinweis.className = 'formel-hinweis'; hinweis.textContent = 'automatisch: ' + zahl1(r.stundenAuto) + ' h'; }
-  else { hinweis.className = 'formel-hinweis'; hinweis.textContent = '= ' + zahl1(sh.wert) + ' h (statt ' + zahl1(r.stundenAuto) + ' h)'; }
+  if (sh.fehler) { hinweis.className = 'rechnung fehler'; hinweis.textContent = 'Rechnung prüfen'; }
+  else if (sh.leer) { hinweis.className = 'rechnung'; hinweis.textContent = 'automatisch: ' + zahl1(r.stundenAuto) + ' h'; }
+  else { hinweis.className = 'rechnung'; hinweis.textContent = '= ' + zahl1(sh.wert) + ' h'; }
 
   entwurfMerken();
 }
 
 /* ---------------- Formular <-> Zustand ---------------- */
 
-const KOPF_FELDER = { kunde: 'f-kunde', objekt: 'f-objekt', bezeichnung: 'f-bezeichnung', datum: 'f-datum', notizen: 'f-notizen', stundenManuell: 'f-stunden' };
+const KOPF_FELDER = { kunde: 'f-kunde', objekt: 'f-objekt', stundenManuell: 'f-stunden' };
 const PARAM_FELDER = { satz: 'p-satz', lohn: 'p-lohn', material: 'p-material', fahrzeug: 'p-fahrzeug', db: 'p-db', mwst: 'p-mwst', tag: 'p-tag', ma: 'p-ma' };
 
 function zustandInsFormular() {
@@ -884,10 +654,12 @@ function zustandInsFormular() {
   renderZusatz();
   aktualisiere();
   renderListe();
-  let status = 'Neue Kalkulation – noch nicht gespeichert';
-  if (state.gespeichert) status = JSON.stringify(state) === zuletztGespeichertJson ? 'Gespeicherte Kalkulation geöffnet' : 'Ungespeicherte Änderungen';
+  let status = '';
+  if (state.gespeichert) status = JSON.stringify(state) === zuletztGespeichertJson ? 'Gespeichert' : 'Änderungen noch nicht gespeichert';
   setzeText('speicher-status', status);
 }
+
+function neueLeereZeile() { return { bereich: '', menge: '', einheit: 'm²', ansatz: '', art: 'arbeit' }; }
 
 function formularVerdrahten() {
   Object.keys(KOPF_FELDER).forEach(k => {
@@ -898,31 +670,38 @@ function formularVerdrahten() {
   });
 
   document.getElementById('btn-pos-neu').addEventListener('click', () => {
-    state.positionen.push({ bereich: '', menge: '', einheit: 'm²', ansatz: '', art: 'arbeit' });
+    state.positionen.push(neueLeereZeile());
     renderPositionen(); aktualisiere();
-    fokusLetzteZeile('bereich');
+    const felder = document.querySelectorAll('#pos-body [data-feld="bereich"]');
+    if (felder.length) felder[felder.length - 1].focus();
   });
   document.getElementById('btn-zusatz-neu').addEventListener('click', () => {
     state.zusatz.push({ bezeichnung: '', betrag: '', mitDb: true, notiz: '' });
     renderZusatz(); aktualisiere();
-    const inputs = document.querySelectorAll('#zusatz-body [data-feld="bezeichnung"]');
-    if (inputs.length) inputs[inputs.length - 1].focus();
+    const felder = document.querySelectorAll('#zusatz-body [data-feld="bezeichnung"]');
+    if (felder.length) felder[felder.length - 1].focus();
   });
 
   document.getElementById('btn-differenz').addEventListener('click', () => {
     const r = berechne(state);
     if (r.differenz <= 0) return;
-    const betrag = Math.ceil(r.differenz / 5) * 5; // auf 5 CHF aufrunden
-    state.positionen.push({ bereich: 'Anfahrt / Spesen / Zuschlag', menge: '1', einheit: 'pausch.', ansatz: String(betrag), art: 'pauschal' });
+    const betrag = Math.ceil(r.differenz / 5) * 5;
+    state.positionen.push({ bereich: 'Zuschlag / Spesen', menge: '1', einheit: 'pausch.', ansatz: String(betrag), art: 'pauschal' });
     renderPositionen(); aktualisiere();
-    toast('Pauschale CHF ' + chf(betrag) + ' ergänzt');
+    toast('Zuschlag CHF ' + chf(betrag) + ' hinzugefügt');
   });
 
-  document.getElementById('param-kopf').addEventListener('click', () => {
-    const inhalt = document.getElementById('param-inhalt');
-    inhalt.classList.toggle('versteckt');
-    setzeText('param-pfeil', inhalt.classList.contains('versteckt') ? '▸ anzeigen' : '▾ ausblenden');
+  document.getElementById('btn-details').addEventListener('click', () => {
+    const d = document.getElementById('details');
+    d.classList.toggle('versteckt');
+    setzeText('btn-details', d.classList.contains('versteckt') ? 'Kostenaufstellung anzeigen ▸' : 'Kostenaufstellung ausblenden ▾');
   });
+  document.getElementById('einst-kopf').addEventListener('click', () => {
+    const d = document.getElementById('einst-inhalt');
+    d.classList.toggle('versteckt');
+    setzeText('einst-pfeil', d.classList.contains('versteckt') ? 'anzeigen ▸' : 'ausblenden ▾');
+  });
+
   document.getElementById('btn-param-standard').addEventListener('click', () => {
     const std = {};
     Object.keys(PARAM_WERKSEITIG).forEach(k => std[k] = zahlVon(state.param[k]));
@@ -939,14 +718,13 @@ function formularVerdrahten() {
   document.getElementById('btn-neu').addEventListener('click', () => {
     if (hatUngespeicherteInhalte() && !confirm('Neue Kalkulation beginnen? Nicht gespeicherte Änderungen gehen verloren.')) return;
     state = leereKalkulation();
+    zuletztGespeichertJson = null;
     zustandInsFormular();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
   document.getElementById('btn-speichern').addEventListener('click', speichern);
   document.getElementById('btn-excel').addEventListener('click', excelHerunterladen);
-  document.getElementById('liste-suche').addEventListener('input', renderListe);
 }
-
 /* ---------------- Speichern / Liste ---------------- */
 
 let zuletztGespeichertJson = null;
@@ -1412,21 +1190,62 @@ function excelHerunterladen() {
   toast('Excel-Datei wird heruntergeladen');
 }
 
+
+/* ---------------- Vereinfachte Liste (ersetzt die Version oben) ---------------- */
+
+function renderListe() {
+  const liste = speicherLesen(SPEICHER_KEY, []);
+  const body = document.getElementById('liste-body');
+  body.innerHTML = '';
+  if (liste.length === 0) {
+    body.innerHTML = '<tr><td class="leer">Noch nichts gespeichert.</td></tr>';
+    return;
+  }
+  liste.forEach(k => {
+    const tr = document.createElement('tr');
+    if (state && k.id === state.id) tr.className = 'aktiv';
+    const datum = k.datum ? new Date(k.datum + 'T00:00:00').toLocaleDateString('de-CH') : '';
+    const titel = [k.kunde, k.objekt || k.bezeichnung].filter(Boolean).join(' – ') || 'Ohne Namen';
+    tr.innerHTML =
+      '<td style="width:100px; color:var(--color-text-muted);">' + datum + '</td>' +
+      '<td>' + esc(titel) + '</td>' +
+      '<td class="zahl" style="width:140px;">CHF ' + chf(k.angebotExkl != null ? k.angebotExkl : berechne(migriere(k)).exkl) + '</td>' +
+      '<td style="width:210px; text-align:right; white-space:nowrap;">' +
+        '<button class="link-btn" data-a="oeffnen">Öffnen</button>' +
+        '<button class="link-btn" data-a="kopie">Kopieren</button>' +
+        '<button class="link-btn rot" data-a="loeschen" title="Löschen">✕</button>' +
+      '</td>';
+    tr.querySelector('[data-a="oeffnen"]').addEventListener('click', () => oeffnen(k, false));
+    tr.querySelector('[data-a="kopie"]').addEventListener('click', () => oeffnen(k, true));
+    tr.querySelector('[data-a="loeschen"]').addEventListener('click', () => {
+      if (!confirm('„' + titel + '" löschen?')) return;
+      speicherSchreiben(SPEICHER_KEY, speicherLesen(SPEICHER_KEY, []).filter(x => x.id !== k.id));
+      if (state.id === k.id) state.gespeichert = false;
+      renderListe();
+      toast('Gelöscht');
+    });
+    body.appendChild(tr);
+  });
+}
+
+function dateiname(k) {
+  const teil = s => String(s || '').replace(/[^A-Za-z0-9ÄÖÜäöüéèàç\- ]+/g, '').trim().replace(/\s+/g, '_').slice(0, 40);
+  const name = ['Kalk', teil(k.kunde), teil(k.objekt)].filter(Boolean).join('_');
+  return name + '_' + (k.datum || heuteIso()) + '.xlsx';
+}
+
 /* ---------------- Kundenliste für die Vorschläge ---------------- */
 
 async function ladeKundenVorschlaege() {
   try {
-    const { data } = await supabaseClient.from('customers').select('firma, objekt').order('firma');
+    const { data } = await supabaseClient.from('customers').select('firma').order('firma');
     const dl = document.getElementById('kunden-liste');
     (data || []).forEach(c => {
       if (!c.firma) return;
       const o = document.createElement('option');
       o.value = c.firma;
-      if (c.objekt) o.label = c.objekt;
       dl.appendChild(o);
     });
-    window._kundenObjekte = {};
-    (data || []).forEach(c => { if (c.firma && c.objekt) window._kundenObjekte[c.firma] = c.objekt; });
   } catch (e) { /* Vorschläge sind optional */ }
 }
 
@@ -1444,15 +1263,8 @@ async function ladeKundenVorschlaege() {
   }
   document.getElementById('kalk-inhalt').classList.remove('versteckt');
 
-  renderVorlagen();
+  fuelleAuswahllisten();
   formularVerdrahten();
-
-  // Beim Auswählen eines Kunden das Objekt automatisch vorschlagen
-  document.getElementById('f-kunde').addEventListener('change', e => {
-    const obj = (window._kundenObjekte || {})[e.target.value];
-    const objFeld = document.getElementById('f-objekt');
-    if (obj && !objFeld.value) { objFeld.value = obj; state.objekt = obj; aktualisiere(); }
-  });
 
   // Letzten Entwurf wiederherstellen (z.B. nach versehentlichem Neuladen)
   const entwurf = speicherLesen(ENTWURF_KEY, null);
