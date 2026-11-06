@@ -1,0 +1,1473 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Betrieb – SR-Kalkulation | Sylegro Portal</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+  /* ---------- Seitenspezifische Styles SR-Kalkulation ---------- */
+  .main { max-width: 1440px; padding-left: 28px; padding-right: 28px; }
+  .kalk-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1250px) { .kalk-layout { grid-template-columns: 1fr; } .kalk-summary { position: static; } }
+  .tabelle-scroll { overflow-x: auto; }
+
+  .kalk-aktionen { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn.gruen { background: var(--color-secondary); border-color: var(--color-secondary); color: #fff; }
+  .btn.gruen:hover { background: var(--color-secondary-dark); }
+
+  .kopf-grid {
+    display: grid;
+    grid-template-columns: 2fr 2fr 2fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .kopf-grid { grid-template-columns: 1fr 1fr; } }
+  .feld label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px;
+  }
+  .feld input, .feld select, .feld textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.92rem;
+    background: #fff;
+  }
+  .feld input:focus, .feld textarea:focus, .pos-tabelle input:focus, .pos-tabelle select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-bg);
+  }
+
+  /* Positionen */
+  .pos-tabelle { table-layout: fixed; min-width: 770px; }
+  .pos-tabelle th { padding: 8px 6px; white-space: nowrap; }
+  .pos-tabelle td { padding: 6px; vertical-align: top; }
+  .pos-tabelle input, .pos-tabelle select {
+    width: 100%;
+    padding: 7px 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: #f7f9f8;
+    font: inherit;
+    font-size: 0.9rem;
+  }
+  .pos-tabelle select { padding: 7px 2px 7px 5px; font-size: 0.85rem; }
+  .pos-tabelle input:hover, .pos-tabelle select:hover { border-color: var(--color-border); }
+  .pos-tabelle .zahl { text-align: right; font-variant-numeric: tabular-nums; }
+  .pos-tabelle td.betrag {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    padding-top: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pos-tabelle td.zeit { text-align: right; padding-top: 13px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+  .pos-tabelle td.nr { color: var(--color-text-muted); padding-top: 13px; font-size: 0.82rem; }
+  .pos-tabelle tr.art-fremd td.nr::after { content: ""; }
+  .formel-hinweis {
+    font-size: 0.72rem;
+    color: var(--color-primary);
+    text-align: right;
+    margin-top: 2px;
+    min-height: 0;
+  }
+  .formel-hinweis.fehler { color: var(--color-danger); }
+  .zeilen-aktionen { display: flex; gap: 2px; padding-top: 6px; justify-content: flex-end; }
+  .mini-btn {
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+  .mini-btn:hover { background: var(--color-primary-bg); color: var(--color-primary-dark); }
+  .mini-btn.loeschen:hover { background: var(--color-danger-bg); color: var(--color-danger); }
+
+  .pos-fuss {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+  }
+  .pos-summe { font-size: 0.92rem; color: var(--color-text-muted); }
+  .pos-summe strong { color: var(--color-text); font-variant-numeric: tabular-nums; }
+
+  .vorlagen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 14px;
+  }
+  .vorlagen .vorlagen-label { font-size: 0.8rem; color: var(--color-text-muted); margin-right: 4px; }
+  .chip-btn {
+    border: 1px solid var(--color-primary-border);
+    background: var(--color-primary-bg);
+    color: var(--color-primary-dark);
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .chip-btn:hover { background: #d6e7f2; }
+  .chip-btn small { opacity: 0.7; margin-left: 4px; }
+
+  /* Parameter */
+  .param-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .param-grid { grid-template-columns: 1fr 1fr; } }
+  .einheit-input { position: relative; }
+  .einheit-input input { padding-right: 62px; text-align: right; }
+  .einheit-input span {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    pointer-events: none;
+  }
+  .klapp-kopf {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; user-select: none;
+  }
+  .klapp-kopf h2 { margin: 0; }
+  .klapp-pfeil { color: var(--color-text-muted); font-size: 0.85rem; }
+  .klapp-inhalt { margin-top: 14px; }
+
+  /* Zusammenfassung rechts */
+  .kalk-summary { position: sticky; top: 20px; }
+  .summary-card { padding: 0; overflow: hidden; }
+  .summary-hero {
+    background: linear-gradient(135deg, var(--color-primary) 0%, #0a7aa8 60%, var(--color-secondary) 140%);
+    color: #fff;
+    padding: 20px 22px;
+  }
+  .summary-hero .klein { font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.04em; }
+  .summary-hero .gross { font-size: 1.9rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .summary-hero .zeile { display: flex; justify-content: space-between; font-size: 0.85rem; opacity: 0.92; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .summary-hero .zeile.inkl { font-weight: 600; opacity: 1; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.3); margin-top: 8px; }
+  .summary-block { padding: 16px 22px; border-bottom: 1px solid var(--color-border); }
+  .summary-block:last-child { border-bottom: none; }
+  .summary-block h3 {
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--color-text-muted); margin: 0 0 10px; font-weight: 600;
+  }
+  .s-zeile { display: flex; justify-content: space-between; font-size: 0.88rem; padding: 3px 0; font-variant-numeric: tabular-nums; }
+  .s-zeile span:first-child { color: var(--color-text-muted); }
+  .s-zeile.fett { font-weight: 700; border-top: 1px solid var(--color-border); margin-top: 6px; padding-top: 8px; }
+  .s-zeile.fett span:first-child { color: var(--color-text); }
+  .aufwand-kacheln { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .aufwand-kachel { background: var(--color-bg); border-radius: 8px; padding: 10px 12px; }
+  .aufwand-kachel .wert { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .aufwand-kachel .txt { font-size: 0.75rem; color: var(--color-text-muted); }
+
+  .ergebnis-box { border-radius: 8px; padding: 12px 14px; margin-top: 10px; }
+  .ergebnis-box.gut { background: var(--color-success-bg); }
+  .ergebnis-box.mittel { background: var(--color-warning-bg); }
+  .ergebnis-box.schlecht { background: var(--color-danger-bg); }
+  .ergebnis-box .titel { font-weight: 700; font-size: 0.9rem; }
+  .ergebnis-box.gut .titel { color: var(--color-secondary-dark); }
+  .ergebnis-box.mittel .titel { color: var(--color-warning); }
+  .ergebnis-box.schlecht .titel { color: var(--color-danger); }
+  .ergebnis-box .txt { font-size: 0.8rem; color: var(--color-text); margin-top: 4px; line-height: 1.4; }
+  .ergebnis-box .btn { margin-top: 10px; }
+
+  .summary-aktionen { display: grid; gap: 8px; }
+  .summary-aktionen .btn { width: 100%; text-align: center; padding: 11px 16px; font-weight: 600; }
+
+  /* Zusatzkosten */
+  .zusatz-tabelle td { padding: 6px; vertical-align: top; }
+  .zusatz-tabelle th { padding: 8px 6px; }
+  .zusatz-tabelle input[type=text] {
+    width: 100%; padding: 7px 8px; border: 1px solid transparent; border-radius: 6px;
+    background: #f7f9f8; font: inherit; font-size: 0.9rem;
+  }
+  .zusatz-tabelle input[type=text]:hover { border-color: var(--color-border); }
+  .zusatz-tabelle input[type=text]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-bg); }
+  .zusatz-tabelle .zahl { text-align: right; }
+  .zusatz-tabelle td.check { text-align: center; padding-top: 12px; }
+
+  .stunden-override {
+    display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-border);
+  }
+  .stunden-override .feld { width: 220px; }
+  .stunden-override .hint { font-size: 0.8rem; color: var(--color-text-muted); flex: 1; min-width: 200px; margin: 0 0 6px; }
+
+  .leer-zeile td { text-align: center; color: var(--color-text-muted); padding: 22px; font-size: 0.9rem; }
+
+  .speicher-status { font-size: 0.78rem; color: var(--color-text-muted); text-align: center; min-height: 1em; }
+
+  .liste-suche { width: 260px; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 8px; font: inherit; font-size: 0.88rem; }
+  .gespeichert-tabelle td.zahl { text-align: right; font-variant-numeric: tabular-nums; }
+  .gespeichert-tabelle tr.aktiv td { background: var(--color-primary-bg); }
+  .gespeichert-tabelle .link-btn {
+    background: none; border: none; color: var(--color-primary); cursor: pointer; font: inherit; font-size: 0.85rem; padding: 2px 6px;
+  }
+  .gespeichert-tabelle .link-btn:hover { text-decoration: underline; }
+  .gespeichert-tabelle .link-btn.rot { color: var(--color-danger); }
+
+  .kein-zugriff { max-width: 560px; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--color-text); color: #fff; padding: 10px 18px; border-radius: 8px;
+    font-size: 0.88rem; opacity: 0; transition: all .25s; pointer-events: none; z-index: 50;
+  }
+  .toast.sichtbar { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">Sylegro <small>Admin</small></div>
+    <nav>
+      <a href="../kunden/uebersicht.html" class="top-cat">Kunden</a>
+
+      <a href="../mitarbeiter/uebersicht.html" class="top-cat">Mitarbeiter</a>
+
+      <a href="uebersicht.html" class="top-cat">Betrieb</a>
+      <a href="kalkulation.html" class="sub-item active" data-benoetigt-recht="vollzugriff">SR-Kalkulation</a>
+    </nav>
+    <div style="margin-top:auto; padding-top:20px;">
+      <a href="#" onclick="sylegroLogout(); return false;" style="font-size:0.8rem; opacity:0.85;">Abmelden</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h1>SR-Kalkulation</h1>
+      <div class="kalk-aktionen">
+        <button type="button" class="btn" id="btn-neu">+ Neue Kalkulation</button>
+      </div>
+    </div>
+
+    <div id="kein-zugriff" class="card kein-zugriff versteckt">
+      <h2>Kein Zugriff</h2>
+      <p class="hint" style="margin:0;">Die Kalkulation zeigt interne Kosten und Margen und ist deshalb nur für Logins mit Vollzugriff freigegeben.</p>
+    </div>
+
+    <div id="kalk-inhalt" class="versteckt">
+    <div class="kalk-layout">
+      <!-- ================= LINKE SPALTE ================= -->
+      <div>
+        <div class="card">
+          <h2>Kunde &amp; Objekt</h2>
+          <div class="kopf-grid">
+            <div class="feld">
+              <label for="f-kunde">Kunde</label>
+              <input type="text" id="f-kunde" list="kunden-liste" placeholder="Name oder Firma" autocomplete="off">
+              <datalist id="kunden-liste"></datalist>
+            </div>
+            <div class="feld">
+              <label for="f-objekt">Objekt / Adresse</label>
+              <input type="text" id="f-objekt" placeholder="z.B. Seetalstrasse 4, 6285 Hitzkirch">
+            </div>
+            <div class="feld">
+              <label for="f-bezeichnung">Arbeit / Bezeichnung</label>
+              <input type="text" id="f-bezeichnung" placeholder="z.B. Fenster &amp; Storen, Variante Osmose">
+            </div>
+            <div class="feld">
+              <label for="f-datum">Datum</label>
+              <input type="date" id="f-datum">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="abschnitt-kopf" style="margin-bottom:6px;">
+            <h2 style="margin:0;">Positionen</h2>
+            <button type="button" class="fab-add" id="btn-pos-neu" title="Position hinzufügen">+</button>
+          </div>
+          <p class="hint" style="margin-top:4px;">Bei <strong>Menge</strong> darfst du direkt rechnen, z.B. <code>3.6*2.5 + 2.2*1.5</code> – genau wie in Excel. Die Zeit ergibt sich aus Preis ÷ Verrechnungssatz.</p>
+
+          <div class="tabelle-scroll">
+          <table class="pos-tabelle">
+            <colgroup>
+              <col style="width:32px"><col><col style="width:108px"><col style="width:78px">
+              <col style="width:88px"><col style="width:112px"><col style="width:96px"><col style="width:50px"><col style="width:58px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Pos.</th><th>Bereich / Leistung</th><th style="text-align:right">Menge</th><th>Einheit</th>
+                <th style="text-align:right">CHF/Einh.</th><th>Art</th><th style="text-align:right">Preis</th><th style="text-align:right">Std.</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="pos-body"></tbody>
+          </table>
+          </div>
+
+          <div class="vorlagen" id="vorlagen"><span class="vorlagen-label">Schnell hinzufügen:</span></div>
+
+          <div class="pos-fuss">
+            <div class="pos-summe">Art: <strong>Arbeit</strong> = eigene Leistung (zählt als Arbeitszeit) · <strong>Miete/Fremd</strong> = z.B. Hebebühne (Kosten = Preis, keine Zeit) · <strong>Pauschale</strong> = Zuschlag ohne Kosten/Zeit</div>
+            <div class="pos-summe">Total exkl. MwSt.: <strong id="pos-total">CHF 0.00</strong></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="abschnitt-kopf" style="margin-bottom:6px;">
+            <h2 style="margin:0;">Zusatzkosten</h2>
+            <button type="button" class="fab-add" id="btn-zusatz-neu" title="Zusatzkosten hinzufügen">+</button>
+          </div>
+          <p class="hint" style="margin-top:4px;">Fahrt, Hotel, Maschinenmiete, Mietauto usw. Fliessen in die Kostenkontrolle ein, nicht direkt in den Angebotspreis. Ohne Häkchen bei „DB" werden sie ohne Gewinnzuschlag weiterverrechnet.</p>
+          <table class="zusatz-tabelle">
+            <colgroup><col style="width:30%"><col style="width:140px"><col style="width:56px"><col><col style="width:40px"></colgroup>
+            <thead><tr><th>Bezeichnung</th><th style="text-align:right">Betrag CHF</th><th style="text-align:center">DB</th><th>Notiz / Link</th><th></th></tr></thead>
+            <tbody id="zusatz-body"></tbody>
+          </table>
+          <div class="vorlagen" id="zusatz-vorlagen"><span class="vorlagen-label">Schnell hinzufügen:</span></div>
+
+          <div class="stunden-override">
+            <div class="feld">
+              <label for="f-stunden">Stunden manuell festlegen</label>
+              <input type="text" id="f-stunden" placeholder="leer = automatisch" class="zahl" style="text-align:right">
+              <div class="formel-hinweis" id="f-stunden-hinweis"></div>
+            </div>
+            <p class="hint">Optional. Überschreibt die aus dem Preis berechneten Stunden für die Kostenkontrolle, z.B. <code>3*8.5</code> für 3 Mitarbeiter × 1 Tag (wie bei Flying Tiger).</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="klapp-kopf" id="param-kopf">
+            <h2>Kalkulationsgrundlagen</h2>
+            <span class="klapp-pfeil" id="param-pfeil">▾ ausblenden</span>
+          </div>
+          <div class="klapp-inhalt" id="param-inhalt">
+            <div class="param-grid">
+              <div class="feld"><label>Verrechnungssatz</label><div class="einheit-input"><input type="text" id="p-satz" inputmode="decimal"><span>CHF/h</span></div></div>
+              <div class="feld"><label>Lohnkosten intern</label><div class="einheit-input"><input type="text" id="p-lohn" inputmode="decimal"><span>CHF/h</span></div></div>
+              <div class="feld"><label>Materialaufwand</label><div class="einheit-input"><input type="text" id="p-material" inputmode="decimal"><span>% Lohn</span></div></div>
+              <div class="feld"><label>Fahrzeugaufwand</label><div class="einheit-input"><input type="text" id="p-fahrzeug" inputmode="decimal"><span>% Lohn</span></div></div>
+              <div class="feld"><label>DB-Zuschlag (Ziel)</label><div class="einheit-input"><input type="text" id="p-db" inputmode="decimal"><span>%</span></div></div>
+              <div class="feld"><label>MwSt.</label><div class="einheit-input"><input type="text" id="p-mwst" inputmode="decimal"><span>%</span></div></div>
+              <div class="feld"><label>Arbeitstag</label><div class="einheit-input"><input type="text" id="p-tag" inputmode="decimal"><span>h</span></div></div>
+              <div class="feld"><label>Anzahl Mitarbeiter</label><div class="einheit-input"><input type="text" id="p-ma" inputmode="decimal"><span>MA</span></div></div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+              <button type="button" class="btn small" id="btn-param-standard">Als Standard für neue Kalkulationen merken</button>
+              <button type="button" class="btn small" id="btn-param-reset">Auf Standard zurücksetzen</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Notizen</h2>
+          <div class="feld"><textarea id="f-notizen" rows="3" placeholder="Interne Bemerkungen, Annahmen, Zugang, Termine …"></textarea></div>
+        </div>
+      </div>
+
+      <!-- ================= RECHTE SPALTE ================= -->
+      <div class="kalk-summary">
+        <div class="card summary-card">
+          <div class="summary-hero">
+            <div class="klein">Angebot exkl. MwSt.</div>
+            <div class="gross" id="s-exkl">CHF 0.00</div>
+            <div class="zeile"><span id="s-mwst-label">MwSt. 8.1 %</span><span id="s-mwst">0.00</span></div>
+            <div class="zeile inkl"><span>Total inkl. MwSt.</span><span id="s-inkl">CHF 0.00</span></div>
+          </div>
+
+          <div class="summary-block">
+            <h3>Aufwand</h3>
+            <div class="aufwand-kacheln">
+              <div class="aufwand-kachel"><div class="wert" id="s-stunden">0.0</div><div class="txt" id="s-stunden-txt">Stunden</div></div>
+              <div class="aufwand-kachel"><div class="wert" id="s-tage">0.0</div><div class="txt" id="s-tage-txt">Tage</div></div>
+            </div>
+          </div>
+
+          <div class="summary-block">
+            <h3>Kostenkontrolle</h3>
+            <div class="s-zeile"><span id="s-lohn-label">Lohnaufwand</span><span id="s-lohn">0.00</span></div>
+            <div class="s-zeile"><span id="s-material-label">Material</span><span id="s-material">0.00</span></div>
+            <div class="s-zeile"><span id="s-fahrzeug-label">Fahrzeug</span><span id="s-fahrzeug">0.00</span></div>
+            <div class="s-zeile" id="s-fremd-zeile"><span>Miete / Fremdleistung</span><span id="s-fremd">0.00</span></div>
+            <div class="s-zeile" id="s-zusatz-zeile"><span>Zusatzkosten</span><span id="s-zusatz">0.00</span></div>
+            <div class="s-zeile fett"><span>Selbstkosten</span><span id="s-selbst">0.00</span></div>
+            <div class="s-zeile"><span id="s-db-label">+ DB</span><span id="s-db">0.00</span></div>
+            <div class="s-zeile fett"><span>Richtpreis</span><span id="s-richt">0.00</span></div>
+
+            <div class="ergebnis-box" id="s-ergebnis">
+              <div class="titel" id="s-ergebnis-titel">–</div>
+              <div class="txt" id="s-ergebnis-txt"></div>
+              <button type="button" class="btn small versteckt" id="btn-differenz">Differenz als Pauschale ergänzen</button>
+            </div>
+          </div>
+
+          <div class="summary-block">
+            <div class="summary-aktionen">
+              <button type="button" class="btn primary" id="btn-speichern">Speichern</button>
+              <button type="button" class="btn gruen" id="btn-excel">⬇ Als Excel herunterladen</button>
+            </div>
+            <div class="speicher-status" id="speicher-status" style="margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:4px;">
+      <div class="abschnitt-kopf">
+        <h2 style="margin:0;">Gespeicherte Kalkulationen</h2>
+        <input type="search" class="liste-suche" id="liste-suche" placeholder="Suchen nach Kunde, Objekt …">
+      </div>
+      <p class="hint" style="margin-top:6px;">Werden vorerst in diesem Browser gespeichert (nicht geräteübergreifend). Für die Ablage beim Kunden: Excel herunterladen.</p>
+      <table class="gespeichert-tabelle">
+        <thead><tr><th>Datum</th><th>Kunde</th><th>Objekt</th><th>Bezeichnung</th><th style="text-align:right">Angebot exkl.</th><th></th></tr></thead>
+        <tbody id="liste-body"></tbody>
+      </table>
+    </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../assets/supabase-client.js"></script>
+<script src="../../assets/auth.js"></script>
+<script>
+/* =====================================================================
+   SR-Kalkulation
+   Bildet die bisherigen Excel-Kalkulationen nach:
+   1) Angebotspreis: Menge × CHF/Einheit, Zeit = Preis ÷ Verrechnungssatz
+   2) Kostenkontrolle: Lohn (Stunden × Lohnkosten), Material/Fahrzeug in %
+      vom Lohn, Miete/Fremd, Zusatzkosten -> Selbstkosten -> DB -> Richtpreis
+   Speicherung vorerst im Browser (localStorage). Excel-Export erzeugt eine
+   echte .xlsx-Datei mit Formeln, ohne externe Bibliothek.
+   ===================================================================== */
+
+const SPEICHER_KEY = 'sylegro_sr_kalkulationen_v1';
+const ENTWURF_KEY = 'sylegro_sr_kalkulation_entwurf_v1';
+const STANDARD_KEY = 'sylegro_sr_kalkulation_standard_v1';
+
+const PARAM_WERKSEITIG = { satz: 58, lohn: 50, material: 20, fahrzeug: 10, db: 15, mwst: 8.1, tag: 8.5, ma: 2 };
+
+const EINHEITEN = ['m²', 'Stk.', 'lfm', 'h', 'Tag', 'pausch.'];
+const ARTEN = {
+  arbeit:   { label: 'Arbeit',        excel: 'Arbeit' },
+  fremd:    { label: 'Miete/Fremd', excel: 'Miete / Fremd' },
+  pauschal: { label: 'Pauschale',     excel: 'Pauschale' }
+};
+
+// Ansätze aus deinen bisherigen Excel-Kalkulationen
+const POS_VORLAGEN = [
+  { bereich: 'Grundreinigung',              einheit: 'm²',  ansatz: 5.5 },
+  { bereich: 'Baureinigung',                einheit: 'm²',  ansatz: 9.5 },
+  { bereich: '2K-Anstrich',                 einheit: 'm²',  ansatz: 0.86 },
+  { bereich: 'Fensterreinigung',            einheit: 'm²',  ansatz: 6.5 },
+  { bereich: 'Fensterreinigung aussen (Osmose)', einheit: 'm²', ansatz: 1.5 },
+  { bereich: 'Storen',                      einheit: 'm²',  ansatz: 13 },
+  { bereich: 'Lamellenstoren',              einheit: 'm²',  ansatz: 15 },
+  { bereich: 'Garagentore',                 einheit: 'm²',  ansatz: 3 },
+  { bereich: 'Küche',                       einheit: 'm²',  ansatz: 25 },
+  { bereich: 'Bad / WC',                    einheit: 'm²',  ansatz: 20 },
+  { bereich: 'Wohnräume',                   einheit: 'm²',  ansatz: 1.5 },
+  { bereich: 'Balkon',                      einheit: 'm²',  ansatz: 6 },
+  { bereich: 'Regiearbeit',                 einheit: 'h',   ansatz: 'satz' },
+  { bereich: 'Hebebühne',                   einheit: 'Tag', ansatz: 500, art: 'fremd' }
+];
+const ZUSATZ_VORLAGEN = [
+  { bezeichnung: 'Fahrt', betrag: '' },
+  { bezeichnung: 'Hotel', betrag: '' },
+  { bezeichnung: 'Maschinenmiete', betrag: '' },
+  { bezeichnung: 'Mietfahrzeug', betrag: '' }
+];
+
+let state = null;
+
+/* ---------------- Hilfsfunktionen ---------------- */
+
+function chf(betrag) {
+  const n = Number(betrag);
+  if (!isFinite(n)) return '–';
+  return n.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function zahl1(n) {
+  return Number(n || 0).toLocaleString('de-CH', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+function prozentText(n) {
+  return Number(n || 0).toLocaleString('de-CH', { maximumFractionDigits: 2 }) + ' %';
+}
+function heuteIso() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function neueId() {
+  return 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function toast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('sichtbar');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => t.classList.remove('sichtbar'), 2200);
+}
+function speicherLesen(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+}
+function speicherSchreiben(key, wert) {
+  try { localStorage.setItem(key, JSON.stringify(wert)); return true; } catch (e) { return false; }
+}
+
+/* Rechenausdruck sicher auswerten (ohne eval).
+   Erlaubt: Zahlen (Komma oder Punkt), + - * / ( ), x oder × als Mal,
+   Apostroph als Tausendertrennzeichen. Liefert { wert, formel, fehler }. */
+function normalisiereAusdruck(text) {
+  return String(text == null ? '' : text)
+    .trim()
+    .replace(/^=/, '')
+    .replace(/[’'\s]/g, '')
+    .replace(/,/g, '.')
+    .replace(/[x×X]/g, '*')
+    .replace(/[÷:]/g, '/');
+}
+function werteAus(text) {
+  const s = normalisiereAusdruck(text);
+  if (s === '') return { wert: 0, formel: false, leer: true, fehler: false, norm: '' };
+  let i = 0;
+  function zahl() {
+    const start = i;
+    while (i < s.length && /[0-9.]/.test(s[i])) i++;
+    if (start === i) throw new Error('Zahl erwartet');
+    const n = parseFloat(s.slice(start, i));
+    if (!isFinite(n)) throw new Error('Ungültige Zahl');
+    return n;
+  }
+  function faktor() {
+    if (s[i] === '+') { i++; return faktor(); }
+    if (s[i] === '-') { i++; return -faktor(); }
+    if (s[i] === '(') {
+      i++;
+      const v = summe();
+      if (s[i] !== ')') throw new Error('Klammer fehlt');
+      i++;
+      return v;
+    }
+    return zahl();
+  }
+  function produkt() {
+    let v = faktor();
+    while (s[i] === '*' || s[i] === '/') {
+      const op = s[i++];
+      const r = faktor();
+      v = op === '*' ? v * r : (r === 0 ? NaN : v / r);
+    }
+    return v;
+  }
+  function summe() {
+    let v = produkt();
+    while (s[i] === '+' || s[i] === '-') {
+      const op = s[i++];
+      const r = produkt();
+      v = op === '+' ? v + r : v - r;
+    }
+    return v;
+  }
+  try {
+    const v = summe();
+    if (i !== s.length || !isFinite(v)) throw new Error('Ungültig');
+    return { wert: v, formel: /[+\-*/()]/.test(s.replace(/^-/, '')), leer: false, fehler: false, norm: s };
+  } catch (e) {
+    return { wert: 0, formel: false, leer: false, fehler: true, norm: s };
+  }
+}
+function zahlVon(text) { return werteAus(text).wert; }
+
+/* ---------------- Zustand ---------------- */
+
+function standardParameter() {
+  return Object.assign({}, PARAM_WERKSEITIG, speicherLesen(STANDARD_KEY, {}));
+}
+function leereKalkulation() {
+  const p = standardParameter();
+  const param = {};
+  Object.keys(p).forEach(k => param[k] = String(p[k]));
+  return {
+    id: neueId(),
+    gespeichert: false,
+    kunde: '', objekt: '', bezeichnung: '', datum: heuteIso(), notizen: '',
+    param,
+    positionen: [ { bereich: '', menge: '', einheit: 'm²', ansatz: '', art: 'arbeit' } ],
+    zusatz: [],
+    stundenManuell: ''
+  };
+}
+
+/* ---------------- Berechnung (eine Quelle für Bildschirm UND Excel) ---------------- */
+
+function berechne(k) {
+  const p = {};
+  Object.keys(PARAM_WERKSEITIG).forEach(key => p[key] = zahlVon(k.param[key]));
+  const satz = p.satz > 0 ? p.satz : 0;
+
+  const positionen = k.positionen.map(pos => {
+    const menge = zahlVon(pos.menge);
+    const ansatz = zahlVon(pos.ansatz);
+    const preis = menge * ansatz;
+    const stunden = (pos.art === 'arbeit' && satz > 0) ? preis / satz : 0;
+    return { menge, ansatz, preis, stunden };
+  });
+
+  const exkl = positionen.reduce((s, x) => s + x.preis, 0);
+  const mwst = exkl * p.mwst / 100;
+  const inkl = exkl + mwst;
+  const stundenAuto = positionen.reduce((s, x) => s + x.stunden, 0);
+  const manuell = werteAus(k.stundenManuell);
+  const stunden = (!manuell.leer && !manuell.fehler) ? manuell.wert : stundenAuto;
+
+  const lohn = stunden * p.lohn;
+  const material = lohn * p.material / 100;
+  const fahrzeug = lohn * p.fahrzeug / 100;
+  const fremd = k.positionen.reduce((s, pos, i) => s + (pos.art === 'fremd' ? positionen[i].preis : 0), 0);
+  let zusatzMitDb = 0, zusatzOhneDb = 0;
+  k.zusatz.forEach(z => { const b = zahlVon(z.betrag); if (z.mitDb) zusatzMitDb += b; else zusatzOhneDb += b; });
+
+  const selbstkosten = lohn + material + fahrzeug + fremd + zusatzMitDb + zusatzOhneDb;
+  const dbBasis = selbstkosten - zusatzOhneDb;
+  const db = dbBasis * p.db / 100;
+  const richtpreis = selbstkosten + db;
+  const gewinn = exkl - selbstkosten;
+  const marge = exkl > 0 ? gewinn / exkl * 100 : 0;
+  const differenz = richtpreis - exkl;
+
+  const tagesStunden = p.tag > 0 ? p.tag : 8.5;
+  const personen = p.ma > 0 ? p.ma : 1;
+  const tage = stunden / tagesStunden / personen;
+
+  return { p, positionen, exkl, mwst, inkl, stundenAuto, stunden, stundenManuell: !manuell.leer && !manuell.fehler,
+    lohn, material, fahrzeug, fremd, zusatzMitDb, zusatzOhneDb, zusatz: zusatzMitDb + zusatzOhneDb,
+    selbstkosten, db, richtpreis, gewinn, marge, differenz, tage, personen, tagesStunden };
+}
+
+/* ---------------- Darstellung ---------------- */
+
+function formelHinweisHtml(text, einheit) {
+  const r = werteAus(text);
+  if (r.fehler) return { klasse: 'formel-hinweis fehler', text: 'Rechnung prüfen' };
+  if (r.formel) return { klasse: 'formel-hinweis', text: '= ' + r.wert.toLocaleString('de-CH', { maximumFractionDigits: 2 }) + (einheit ? ' ' + einheit : '') };
+  return { klasse: 'formel-hinweis', text: '' };
+}
+
+function renderPositionen() {
+  const body = document.getElementById('pos-body');
+  body.innerHTML = '';
+  if (state.positionen.length === 0) {
+    body.innerHTML = '<tr class="leer-zeile"><td colspan="9">Noch keine Positionen – mit <strong>+</strong> oder einer Vorlage unten beginnen.</td></tr>';
+    return;
+  }
+  state.positionen.forEach((pos, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'art-' + pos.art;
+    const einheitOptionen = EINHEITEN.concat(EINHEITEN.includes(pos.einheit) ? [] : [pos.einheit])
+      .map(e => '<option' + (e === pos.einheit ? ' selected' : '') + '>' + esc(e) + '</option>').join('');
+    const artOptionen = Object.keys(ARTEN)
+      .map(a => '<option value="' + a + '"' + (a === pos.art ? ' selected' : '') + '>' + ARTEN[a].label + '</option>').join('');
+    const h = formelHinweisHtml(pos.menge, pos.einheit);
+    tr.innerHTML =
+      '<td class="nr">' + (i + 1) + '</td>' +
+      '<td><input type="text" data-feld="bereich" value="' + esc(pos.bereich) + '" placeholder="z.B. Fensterreinigung"></td>' +
+      '<td><input type="text" class="zahl" data-feld="menge" value="' + esc(pos.menge) + '" placeholder="0" inputmode="decimal"><div class="' + h.klasse + '" data-hinweis="menge">' + esc(h.text) + '</div></td>' +
+      '<td><select data-feld="einheit">' + einheitOptionen + '</select></td>' +
+      '<td><input type="text" class="zahl" data-feld="ansatz" value="' + esc(pos.ansatz) + '" placeholder="0.00" inputmode="decimal"></td>' +
+      '<td><select data-feld="art">' + artOptionen + '</select></td>' +
+      '<td class="betrag" data-ausgabe="preis">0.00</td>' +
+      '<td class="zeit" data-ausgabe="zeit">–</td>' +
+      '<td><div class="zeilen-aktionen">' +
+        '<button type="button" class="mini-btn" data-aktion="kopieren" title="Duplizieren">⧉</button>' +
+        '<button type="button" class="mini-btn loeschen" data-aktion="loeschen" title="Entfernen">✕</button>' +
+      '</div></td>';
+    tr.querySelectorAll('[data-feld]').forEach(el => {
+      const ereignis = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(ereignis, () => {
+        pos[el.dataset.feld] = el.value;
+        if (el.dataset.feld === 'art') tr.className = 'art-' + pos.art;
+        if (el.dataset.feld === 'menge' || el.dataset.feld === 'einheit') {
+          const hh = formelHinweisHtml(pos.menge, pos.einheit);
+          const hint = tr.querySelector('[data-hinweis="menge"]');
+          hint.className = hh.klasse; hint.textContent = hh.text;
+        }
+        aktualisiere();
+      });
+    });
+    tr.querySelector('[data-aktion="kopieren"]').addEventListener('click', () => {
+      state.positionen.splice(i + 1, 0, Object.assign({}, pos));
+      renderPositionen(); aktualisiere();
+    });
+    tr.querySelector('[data-aktion="loeschen"]').addEventListener('click', () => {
+      state.positionen.splice(i, 1);
+      renderPositionen(); aktualisiere();
+    });
+    body.appendChild(tr);
+  });
+}
+
+function renderZusatz() {
+  const body = document.getElementById('zusatz-body');
+  body.innerHTML = '';
+  if (state.zusatz.length === 0) {
+    body.innerHTML = '<tr class="leer-zeile"><td colspan="5">Keine Zusatzkosten erfasst.</td></tr>';
+    return;
+  }
+  state.zusatz.forEach((z, i) => {
+    const tr = document.createElement('tr');
+    const h = formelHinweisHtml(z.betrag, 'CHF');
+    tr.innerHTML =
+      '<td><input type="text" data-feld="bezeichnung" value="' + esc(z.bezeichnung) + '" placeholder="z.B. Hotel 2 Nächte"></td>' +
+      '<td><input type="text" class="zahl" data-feld="betrag" value="' + esc(z.betrag) + '" placeholder="0.00" inputmode="decimal"><div class="' + h.klasse + '" data-hinweis="betrag">' + esc(h.text) + '</div></td>' +
+      '<td class="check"><input type="checkbox" data-feld="mitDb"' + (z.mitDb ? ' checked' : '') + ' title="DB-Zuschlag auf diesen Betrag"></td>' +
+      '<td><input type="text" data-feld="notiz" value="' + esc(z.notiz) + '" placeholder="optional, z.B. Link zum Angebot"></td>' +
+      '<td><div class="zeilen-aktionen"><button type="button" class="mini-btn loeschen" title="Entfernen">✕</button></div></td>';
+    tr.querySelectorAll('[data-feld]').forEach(el => {
+      el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
+        z[el.dataset.feld] = el.type === 'checkbox' ? el.checked : el.value;
+        if (el.dataset.feld === 'betrag') {
+          const hh = formelHinweisHtml(z.betrag, 'CHF');
+          const hint = tr.querySelector('[data-hinweis="betrag"]');
+          hint.className = hh.klasse; hint.textContent = hh.text;
+        }
+        aktualisiere();
+      });
+    });
+    tr.querySelector('.loeschen').addEventListener('click', () => {
+      state.zusatz.splice(i, 1);
+      renderZusatz(); aktualisiere();
+    });
+    body.appendChild(tr);
+  });
+}
+
+function renderVorlagen() {
+  const box = document.getElementById('vorlagen');
+  POS_VORLAGEN.forEach(v => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip-btn';
+    const ansatzText = v.ansatz === 'satz' ? 'Satz/h' : chf(v.ansatz) + '/' + v.einheit;
+    b.innerHTML = esc(v.bereich) + '<small>' + esc(ansatzText) + '</small>';
+    b.addEventListener('click', () => {
+      const ansatz = v.ansatz === 'satz' ? state.param.satz : String(v.ansatz);
+      // leere Startzeile wiederverwenden statt eine weitere anzuhängen
+      const letzte = state.positionen[state.positionen.length - 1];
+      const neu = { bereich: v.bereich, menge: '', einheit: v.einheit, ansatz, art: v.art || 'arbeit' };
+      if (letzte && !letzte.bereich && !letzte.menge && !letzte.ansatz) state.positionen[state.positionen.length - 1] = neu;
+      else state.positionen.push(neu);
+      renderPositionen(); aktualisiere();
+      fokusLetzteZeile('menge');
+    });
+    box.appendChild(b);
+  });
+  const zbox = document.getElementById('zusatz-vorlagen');
+  ZUSATZ_VORLAGEN.forEach(v => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip-btn';
+    b.textContent = v.bezeichnung;
+    b.addEventListener('click', () => {
+      state.zusatz.push({ bezeichnung: v.bezeichnung, betrag: '', mitDb: true, notiz: '' });
+      renderZusatz(); aktualisiere();
+      const inputs = document.querySelectorAll('#zusatz-body [data-feld="betrag"]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    });
+    zbox.appendChild(b);
+  });
+}
+
+function fokusLetzteZeile(feld) {
+  const inputs = document.querySelectorAll('#pos-body [data-feld="' + feld + '"]');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function setzeText(id, text) { document.getElementById(id).textContent = text; }
+
+function aktualisiere() {
+  const r = berechne(state);
+
+  // Zeilenwerte
+  document.querySelectorAll('#pos-body tr').forEach((tr, i) => {
+    const x = r.positionen[i];
+    if (!x) return;
+    tr.querySelector('[data-ausgabe="preis"]').textContent = chf(x.preis);
+    tr.querySelector('[data-ausgabe="zeit"]').textContent = state.positionen[i].art === 'arbeit' ? zahl1(x.stunden) : '–';
+  });
+  setzeText('pos-total', 'CHF ' + chf(r.exkl));
+
+  // Zusammenfassung
+  setzeText('s-exkl', 'CHF ' + chf(r.exkl));
+  setzeText('s-mwst-label', 'MwSt. ' + prozentText(r.p.mwst));
+  setzeText('s-mwst', chf(r.mwst));
+  setzeText('s-inkl', 'CHF ' + chf(r.inkl));
+  setzeText('s-stunden', zahl1(r.stunden));
+  setzeText('s-stunden-txt', r.stundenManuell ? 'Stunden (manuell)' : 'Stunden total');
+  setzeText('s-tage', zahl1(r.tage));
+  setzeText('s-tage-txt', 'Tage à ' + zahl1(r.tagesStunden) + ' h mit ' + r.personen.toLocaleString('de-CH') + ' MA');
+
+  setzeText('s-lohn-label', 'Lohn (' + zahl1(r.stunden) + ' h × ' + chf(r.p.lohn) + ')');
+  setzeText('s-lohn', chf(r.lohn));
+  setzeText('s-material-label', 'Material (' + prozentText(r.p.material) + ')');
+  setzeText('s-material', chf(r.material));
+  setzeText('s-fahrzeug-label', 'Fahrzeug (' + prozentText(r.p.fahrzeug) + ')');
+  setzeText('s-fahrzeug', chf(r.fahrzeug));
+  setzeText('s-fremd', chf(r.fremd));
+  document.getElementById('s-fremd-zeile').style.display = r.fremd ? '' : 'none';
+  setzeText('s-zusatz', chf(r.zusatz));
+  document.getElementById('s-zusatz-zeile').style.display = r.zusatz ? '' : 'none';
+  setzeText('s-selbst', chf(r.selbstkosten));
+  setzeText('s-db-label', '+ DB ' + prozentText(r.p.db));
+  setzeText('s-db', chf(r.db));
+  setzeText('s-richt', chf(r.richtpreis));
+
+  const box = document.getElementById('s-ergebnis');
+  const btnDiff = document.getElementById('btn-differenz');
+  btnDiff.classList.add('versteckt');
+  if (r.exkl <= 0 && r.selbstkosten <= 0) {
+    box.className = 'ergebnis-box mittel';
+    setzeText('s-ergebnis-titel', 'Noch keine Werte');
+    setzeText('s-ergebnis-txt', 'Erfasse Positionen mit Menge und Ansatz.');
+  } else if (r.differenz <= 0.005) {
+    box.className = 'ergebnis-box gut';
+    setzeText('s-ergebnis-titel', '✓ Gewinn CHF ' + chf(r.gewinn) + ' · Marge ' + r.marge.toFixed(1) + ' %');
+    setzeText('s-ergebnis-txt', 'Das Angebot liegt ' + (r.differenz < -0.005 ? 'CHF ' + chf(-r.differenz) + ' über' : 'genau auf') + ' dem Richtpreis – Ziel-DB erreicht.');
+  } else if (r.gewinn >= 0) {
+    box.className = 'ergebnis-box mittel';
+    setzeText('s-ergebnis-titel', 'Gewinn CHF ' + chf(r.gewinn) + ' · Marge ' + r.marge.toFixed(1) + ' %');
+    setzeText('s-ergebnis-txt', 'Deckt die Kosten, liegt aber CHF ' + chf(r.differenz) + ' unter dem Richtpreis (Ziel-DB ' + prozentText(r.p.db) + ').');
+    btnDiff.classList.remove('versteckt');
+  } else {
+    box.className = 'ergebnis-box schlecht';
+    setzeText('s-ergebnis-titel', '✕ Verlust CHF ' + chf(-r.gewinn));
+    setzeText('s-ergebnis-txt', 'Das Angebot deckt die Selbstkosten nicht. Bis zum Richtpreis fehlen CHF ' + chf(r.differenz) + '.');
+    btnDiff.classList.remove('versteckt');
+  }
+
+  // Stunden-Override Hinweis
+  const sh = werteAus(state.stundenManuell);
+  const hinweis = document.getElementById('f-stunden-hinweis');
+  if (sh.fehler) { hinweis.className = 'formel-hinweis fehler'; hinweis.textContent = 'Rechnung prüfen'; }
+  else if (sh.leer) { hinweis.className = 'formel-hinweis'; hinweis.textContent = 'automatisch: ' + zahl1(r.stundenAuto) + ' h'; }
+  else { hinweis.className = 'formel-hinweis'; hinweis.textContent = '= ' + zahl1(sh.wert) + ' h (statt ' + zahl1(r.stundenAuto) + ' h)'; }
+
+  entwurfMerken();
+}
+
+/* ---------------- Formular <-> Zustand ---------------- */
+
+const KOPF_FELDER = { kunde: 'f-kunde', objekt: 'f-objekt', bezeichnung: 'f-bezeichnung', datum: 'f-datum', notizen: 'f-notizen', stundenManuell: 'f-stunden' };
+const PARAM_FELDER = { satz: 'p-satz', lohn: 'p-lohn', material: 'p-material', fahrzeug: 'p-fahrzeug', db: 'p-db', mwst: 'p-mwst', tag: 'p-tag', ma: 'p-ma' };
+
+function zustandInsFormular() {
+  Object.keys(KOPF_FELDER).forEach(k => document.getElementById(KOPF_FELDER[k]).value = state[k] || '');
+  Object.keys(PARAM_FELDER).forEach(k => document.getElementById(PARAM_FELDER[k]).value = state.param[k] != null ? state.param[k] : '');
+  renderPositionen();
+  renderZusatz();
+  aktualisiere();
+  renderListe();
+  let status = 'Neue Kalkulation – noch nicht gespeichert';
+  if (state.gespeichert) status = JSON.stringify(state) === zuletztGespeichertJson ? 'Gespeicherte Kalkulation geöffnet' : 'Ungespeicherte Änderungen';
+  setzeText('speicher-status', status);
+}
+
+function formularVerdrahten() {
+  Object.keys(KOPF_FELDER).forEach(k => {
+    document.getElementById(KOPF_FELDER[k]).addEventListener('input', e => { state[k] = e.target.value; aktualisiere(); });
+  });
+  Object.keys(PARAM_FELDER).forEach(k => {
+    document.getElementById(PARAM_FELDER[k]).addEventListener('input', e => { state.param[k] = e.target.value; aktualisiere(); });
+  });
+
+  document.getElementById('btn-pos-neu').addEventListener('click', () => {
+    state.positionen.push({ bereich: '', menge: '', einheit: 'm²', ansatz: '', art: 'arbeit' });
+    renderPositionen(); aktualisiere();
+    fokusLetzteZeile('bereich');
+  });
+  document.getElementById('btn-zusatz-neu').addEventListener('click', () => {
+    state.zusatz.push({ bezeichnung: '', betrag: '', mitDb: true, notiz: '' });
+    renderZusatz(); aktualisiere();
+    const inputs = document.querySelectorAll('#zusatz-body [data-feld="bezeichnung"]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  document.getElementById('btn-differenz').addEventListener('click', () => {
+    const r = berechne(state);
+    if (r.differenz <= 0) return;
+    const betrag = Math.ceil(r.differenz / 5) * 5; // auf 5 CHF aufrunden
+    state.positionen.push({ bereich: 'Anfahrt / Spesen / Zuschlag', menge: '1', einheit: 'pausch.', ansatz: String(betrag), art: 'pauschal' });
+    renderPositionen(); aktualisiere();
+    toast('Pauschale CHF ' + chf(betrag) + ' ergänzt');
+  });
+
+  document.getElementById('param-kopf').addEventListener('click', () => {
+    const inhalt = document.getElementById('param-inhalt');
+    inhalt.classList.toggle('versteckt');
+    setzeText('param-pfeil', inhalt.classList.contains('versteckt') ? '▸ anzeigen' : '▾ ausblenden');
+  });
+  document.getElementById('btn-param-standard').addEventListener('click', () => {
+    const std = {};
+    Object.keys(PARAM_WERKSEITIG).forEach(k => std[k] = zahlVon(state.param[k]));
+    speicherSchreiben(STANDARD_KEY, std);
+    toast('Als Standard gemerkt');
+  });
+  document.getElementById('btn-param-reset').addEventListener('click', () => {
+    const p = standardParameter();
+    Object.keys(p).forEach(k => state.param[k] = String(p[k]));
+    Object.keys(PARAM_FELDER).forEach(k => document.getElementById(PARAM_FELDER[k]).value = state.param[k]);
+    aktualisiere();
+  });
+
+  document.getElementById('btn-neu').addEventListener('click', () => {
+    if (hatUngespeicherteInhalte() && !confirm('Neue Kalkulation beginnen? Nicht gespeicherte Änderungen gehen verloren.')) return;
+    state = leereKalkulation();
+    zustandInsFormular();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.getElementById('btn-speichern').addEventListener('click', speichern);
+  document.getElementById('btn-excel').addEventListener('click', excelHerunterladen);
+  document.getElementById('liste-suche').addEventListener('input', renderListe);
+}
+
+/* ---------------- Speichern / Liste ---------------- */
+
+let zuletztGespeichertJson = null;
+
+function hatUngespeicherteInhalte() {
+  const leer = !state.kunde && !state.objekt && state.positionen.every(p => !p.bereich && !p.menge);
+  if (leer) return false;
+  return JSON.stringify(state) !== zuletztGespeichertJson;
+}
+
+function entwurfMerken() {
+  speicherSchreiben(ENTWURF_KEY, state);
+}
+
+function speichern() {
+  if (!state.kunde.trim() && !state.objekt.trim()) {
+    toast('Bitte zuerst Kunde oder Objekt eintragen');
+    document.getElementById('f-kunde').focus();
+    return;
+  }
+  const liste = speicherLesen(SPEICHER_KEY, []);
+  state.gespeichert = true;
+  state.geaendertAm = new Date().toISOString();
+  state.angebotExkl = berechne(state).exkl;
+  const idx = liste.findIndex(k => k.id === state.id);
+  if (idx >= 0) liste[idx] = JSON.parse(JSON.stringify(state));
+  else liste.unshift(JSON.parse(JSON.stringify(state)));
+  if (!speicherSchreiben(SPEICHER_KEY, liste)) { alert('Speichern im Browser ist fehlgeschlagen.'); return; }
+  zuletztGespeichertJson = JSON.stringify(state);
+  entwurfMerken();
+  renderListe();
+  setzeText('speicher-status', 'Gespeichert um ' + new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }));
+  toast('Kalkulation gespeichert');
+}
+
+function renderListe() {
+  const liste = speicherLesen(SPEICHER_KEY, []);
+  const suche = document.getElementById('liste-suche').value.trim().toLowerCase();
+  const body = document.getElementById('liste-body');
+  body.innerHTML = '';
+  const gefiltert = liste.filter(k => !suche || [k.kunde, k.objekt, k.bezeichnung].join(' ').toLowerCase().includes(suche));
+  if (gefiltert.length === 0) {
+    body.innerHTML = '<tr class="leer-zeile"><td colspan="6">' + (liste.length ? 'Keine Treffer.' : 'Noch keine Kalkulation gespeichert.') + '</td></tr>';
+    return;
+  }
+  gefiltert.forEach(k => {
+    const tr = document.createElement('tr');
+    if (state && k.id === state.id) tr.className = 'aktiv';
+    const datum = k.datum ? new Date(k.datum + 'T00:00:00').toLocaleDateString('de-CH') : '–';
+    tr.innerHTML =
+      '<td>' + datum + '</td>' +
+      '<td>' + esc(k.kunde || '–') + '</td>' +
+      '<td>' + esc(k.objekt || '–') + '</td>' +
+      '<td>' + esc(k.bezeichnung || '–') + '</td>' +
+      '<td class="zahl">CHF ' + chf(k.angebotExkl != null ? k.angebotExkl : berechne(k).exkl) + '</td>' +
+      '<td style="text-align:right; white-space:nowrap;">' +
+        '<button class="link-btn" data-a="oeffnen">Öffnen</button>' +
+        '<button class="link-btn" data-a="kopie">Als Kopie</button>' +
+        '<button class="link-btn rot" data-a="loeschen">Löschen</button>' +
+      '</td>';
+    tr.querySelector('[data-a="oeffnen"]').addEventListener('click', () => oeffnen(k, false));
+    tr.querySelector('[data-a="kopie"]').addEventListener('click', () => oeffnen(k, true));
+    tr.querySelector('[data-a="loeschen"]').addEventListener('click', () => {
+      if (!confirm('Kalkulation „' + (k.kunde || k.objekt || 'ohne Namen') + '" wirklich löschen?')) return;
+      speicherSchreiben(SPEICHER_KEY, speicherLesen(SPEICHER_KEY, []).filter(x => x.id !== k.id));
+      if (state.id === k.id) state.gespeichert = false;
+      renderListe();
+      toast('Gelöscht');
+    });
+    body.appendChild(tr);
+  });
+}
+
+function oeffnen(k, alsKopie) {
+  if (hatUngespeicherteInhalte() && !confirm('Andere Kalkulation öffnen? Nicht gespeicherte Änderungen gehen verloren.')) return;
+  state = migriere(JSON.parse(JSON.stringify(k)));
+  if (alsKopie) {
+    state.id = neueId();
+    state.gespeichert = false;
+    state.datum = heuteIso();
+    state.bezeichnung = (state.bezeichnung ? state.bezeichnung + ' ' : '') + '(Kopie)';
+    zuletztGespeichertJson = null;
+  } else {
+    zuletztGespeichertJson = JSON.stringify(state);
+  }
+  zustandInsFormular();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Fehlende Felder bei älteren Speicherständen ergänzen
+function migriere(k) {
+  const leer = leereKalkulation();
+  const out = Object.assign({}, leer, k);
+  out.param = Object.assign({}, leer.param, k.param || {});
+  out.positionen = (k.positionen || []).map(p => Object.assign({ bereich: '', menge: '', einheit: 'm²', ansatz: '', art: 'arbeit' }, p));
+  out.zusatz = (k.zusatz || []).map(z => Object.assign({ bezeichnung: '', betrag: '', mitDb: true, notiz: '' }, z));
+  return out;
+}
+
+/* =====================================================================
+   EXCEL-EXPORT (.xlsx) – ohne externe Bibliothek
+   Eine .xlsx-Datei ist ein ZIP-Archiv mit XML-Dateien. Wir bauen beides
+   selbst: Zellen mit echten Excel-Formeln (inkl. vorberechneter Werte,
+   damit auch Vorschau-Programme sofort Zahlen anzeigen).
+   ===================================================================== */
+
+function xmlEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+}
+function spaltenName(n) { // 1 -> A
+  let s = '';
+  while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
+class Blatt {
+  constructor(name) { this.name = name; this.zellen = {}; this.breiten = []; this.merges = []; this.hoehen = {}; }
+  set(ref, inhalt) { this.zellen[ref] = inhalt; return this; }
+  // inhalt: { v: Wert, f: 'Formel ohne =', s: Stil-Index }
+  text(ref, v, s) { return this.set(ref, { v: String(v == null ? '' : v), s }); }
+  zahl(ref, v, s) { return this.set(ref, { v: Number(v) || 0, s }); }
+  formel(ref, f, v, s) { return this.set(ref, { f, v, s }); }
+  xml() {
+    const zeilen = {};
+    Object.keys(this.zellen).forEach(ref => {
+      const m = ref.match(/^([A-Z]+)(\d+)$/);
+      const r = Number(m[2]);
+      (zeilen[r] = zeilen[r] || []).push({ ref, col: m[1], z: this.zellen[ref] });
+    });
+    const colNr = c => c.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
+    let daten = '';
+    Object.keys(zeilen).map(Number).sort((a, b) => a - b).forEach(r => {
+      const cells = zeilen[r].sort((a, b) => colNr(a.col) - colNr(b.col));
+      const ht = this.hoehen[r] ? ' ht="' + this.hoehen[r] + '" customHeight="1"' : '';
+      daten += '<row r="' + r + '"' + ht + '>';
+      cells.forEach(({ ref, z }) => {
+        const s = z.s ? ' s="' + z.s + '"' : '';
+        if (z.f != null) {
+          if (typeof z.v === 'string') daten += '<c r="' + ref + '"' + s + ' t="str"><f>' + xmlEsc(z.f) + '</f><v>' + xmlEsc(z.v) + '</v></c>';
+          else daten += '<c r="' + ref + '"' + s + '><f>' + xmlEsc(z.f) + '</f><v>' + (isFinite(z.v) ? z.v : 0) + '</v></c>';
+        } else if (typeof z.v === 'number') {
+          daten += '<c r="' + ref + '"' + s + '><v>' + (isFinite(z.v) ? z.v : 0) + '</v></c>';
+        } else if (z.v === '' || z.v == null) {
+          daten += '<c r="' + ref + '"' + s + '/>';
+        } else {
+          daten += '<c r="' + ref + '"' + s + ' t="inlineStr"><is><t xml:space="preserve">' + xmlEsc(z.v) + '</t></is></c>';
+        }
+      });
+      daten += '</row>';
+    });
+    const cols = this.breiten.length
+      ? '<cols>' + this.breiten.map((b, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + b + '" customWidth="1"/>').join('') + '</cols>'
+      : '';
+    const merges = this.merges.length
+      ? '<mergeCells count="' + this.merges.length + '">' + this.merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>'
+      : '';
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>' +
+      '<sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews>' +
+      '<sheetFormatPr defaultRowHeight="16"/>' +
+      cols + '<sheetData>' + daten + '</sheetData>' + merges +
+      '<pageMargins left="0.6" right="0.6" top="0.7" bottom="0.7" header="0.3" footer="0.3"/>' +
+      '<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>' +
+      '</worksheet>';
+  }
+}
+
+/* Stil-Indizes (siehe STYLES_XML unten) */
+const S = {
+  titel: 1, kopf: 2, text: 3, geld: 4, std: 5, prozentEingabe: 6, zahlEingabe: 7, fett: 8, geldFett: 9,
+  totalGeld: 10, totalText: 11, klein: 12, zwischentitel: 13, stdEingabe: 14, stdFett: 15, geldGruen: 16, textGruen: 17, label: 18, prozentFett: 19
+};
+
+const STYLES_XML =
+  '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="3">' +
+    '<numFmt numFmtId="164" formatCode="#,##0.00"/>' +
+    '<numFmt numFmtId="165" formatCode="0.0"/>' +
+    '<numFmt numFmtId="166" formatCode="0.0#%"/>' +
+  '</numFmts>' +
+  '<fonts count="7">' +
+    '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +                                   // 0
+    '<font><b/><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +                               // 1
+    '<font><b/><sz val="16"/><color rgb="FF00609D"/><name val="Calibri"/><family val="2"/></font>' +       // 2
+    '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font>' +       // 3
+    '<font><i/><sz val="9"/><color rgb="FF696B6A"/><name val="Calibri"/><family val="2"/></font>' +        // 4
+    '<font><b/><sz val="12"/><color rgb="FF00609D"/><name val="Calibri"/><family val="2"/></font>' +       // 5
+    '<font><sz val="10"/><color rgb="FF696B6A"/><name val="Calibri"/><family val="2"/></font>' +           // 6
+  '</fonts>' +
+  '<fills count="6">' +
+    '<fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF00609D"/><bgColor indexed="64"/></patternFill></fill>' + // 2 blau
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFE6EFF5"/><bgColor indexed="64"/></patternFill></fill>' + // 3 hellblau
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFEAF6F1"/><bgColor indexed="64"/></patternFill></fill>' + // 4 hellgrün
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF8E1"/><bgColor indexed="64"/></patternFill></fill>' + // 5 Eingabe gelblich
+  '</fills>' +
+  '<borders count="3">' +
+    '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left/><right/><top/><bottom style="thin"><color rgb="FFE1E2E1"/></bottom><diagonal/></border>' +
+    '<border><left/><right/><top style="thin"><color rgb="FF31A971"/></top><bottom style="thin"><color rgb="FF31A971"/></bottom><diagonal/></border>' +
+  '</borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="20">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +                                                                 // 0
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                                   // 1 titel
+    '<xf numFmtId="0" fontId="3" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment vertical="center"/></xf>' +   // 2 kopf
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment vertical="top" wrapText="1"/></xf>' +   // 3 text
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"><alignment vertical="top"/></xf>' + // 4 geld
+    '<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"><alignment vertical="top"/></xf>' + // 5 std
+    '<xf numFmtId="166" fontId="0" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>' +            // 6 prozent eingabe
+    '<xf numFmtId="164" fontId="0" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"><alignment vertical="top"/></xf>' + // 7 zahl eingabe
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                                   // 8 fett
+    '<xf numFmtId="164" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>' +            // 9 geld fett
+    '<xf numFmtId="164" fontId="1" fillId="4" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' + // 10 total geld
+    '<xf numFmtId="0" fontId="1" fillId="4" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +                     // 11 total text
+    '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"><alignment wrapText="0"/></xf>' +                      // 12 klein
+    '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                                   // 13 zwischentitel
+    '<xf numFmtId="165" fontId="0" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>' +            // 14 std eingabe
+    '<xf numFmtId="165" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>' +            // 15 std fett
+    '<xf numFmtId="164" fontId="1" fillId="4" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +             // 16 geld grün
+    '<xf numFmtId="0" fontId="1" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +                                     // 17 text grün
+    '<xf numFmtId="0" fontId="6" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>' +                                   // 18 label grau
+    '<xf numFmtId="166" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>' +            // 19 prozent fett
+  '</cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+
+/* Excel-Formel für eine Eingabe: bei Rechenausdruck "=3.6*2.5+…" übernehmen,
+   sonst als normale Zahl. */
+function eingabeZelle(blatt, ref, text, stil) {
+  const r = werteAus(text);
+  if (r.formel && !r.fehler) blatt.formel(ref, r.norm, r.wert, stil);
+  else blatt.zahl(ref, r.wert, stil);
+}
+
+function baueExcel(k) {
+  const r = berechne(k);
+  const k1 = new Blatt('Kalkulation');
+  k1.breiten = [8, 38, 12, 10, 14, 15, 9, 16];
+
+  const datumText = k.datum ? new Date(k.datum + 'T00:00:00').toLocaleDateString('de-CH') : '';
+  k1.text('A1', 'Kalkulation Spezialreinigung', S.titel); k1.hoehen[1] = 24;
+  k1.text('A3', 'Kunde', S.label); k1.text('B3', k.kunde, S.fett);
+  k1.text('A4', 'Objekt', S.label); k1.text('B4', k.objekt, S.text);
+  k1.text('A5', 'Auftrag', S.label); k1.text('B5', k.bezeichnung, S.text);
+  k1.text('A6', 'Datum', S.label); k1.text('B6', datumText, S.text);
+
+  // Parameter rechts oben (Spalten E/F)
+  k1.text('D3', 'Verrechnungssatz CHF/h', S.label); k1.zahl('F3', r.p.satz, S.zahlEingabe);
+  k1.text('D4', 'Lohnkosten CHF/h', S.label);      k1.zahl('F4', r.p.lohn, S.zahlEingabe);
+  k1.text('D5', 'MwSt.', S.label);                 k1.zahl('F5', r.p.mwst / 100, S.prozentEingabe);
+  k1.text('D6', 'Arbeitstag h / Anzahl MA', S.label);     k1.zahl('F6', r.p.tag, S.stdEingabe); k1.zahl('G6', r.p.ma, S.stdEingabe);
+  k1.merges.push('B3:C3', 'B4:C4', 'B5:C5', 'B6:C6', 'D3:E3', 'D4:E4', 'D5:E5', 'D6:E6');
+
+  const kopfZeile = 8;
+  ['Pos.', 'Bereich / Leistung', 'Menge', 'Einheit', 'CHF/Einh.', 'Preis CHF', 'Zeit h', 'Art']
+    .forEach((t, i) => k1.text(spaltenName(i + 1) + kopfZeile, t, S.kopf));
+  k1.hoehen[kopfZeile] = 20;
+
+  const start = kopfZeile + 1;
+  const positionen = k.positionen.length ? k.positionen : [{ bereich: '', menge: '', einheit: '', ansatz: '', art: 'arbeit' }];
+  positionen.forEach((pos, i) => {
+    const z = start + i;
+    const x = r.positionen[i] || { preis: 0, stunden: 0 };
+    k1.text('A' + z, 'Pos. ' + (i + 1), S.text);
+    k1.text('B' + z, pos.bereich, S.text);
+    eingabeZelle(k1, 'C' + z, pos.menge, S.zahlEingabe);
+    k1.text('D' + z, pos.einheit, S.text);
+    eingabeZelle(k1, 'E' + z, pos.ansatz, S.zahlEingabe);
+    k1.formel('F' + z, 'C' + z + '*E' + z, x.preis, S.geld);
+    k1.formel('G' + z, 'IF(H' + z + '="Arbeit",IF($F$3>0,F' + z + '/$F$3,0),0)', x.stunden, S.std);
+    k1.text('H' + z, ARTEN[pos.art] ? ARTEN[pos.art].excel : 'Arbeit', S.text);
+  });
+  const ende = start + positionen.length - 1;
+  const bereichF = 'F' + start + ':F' + ende;
+  const bereichG = 'G' + start + ':G' + ende;
+  const bereichH = 'H' + start + ':H' + ende;
+
+  let z = ende + 2;
+  const zExkl = z;
+  k1.text('B' + z, 'Total exkl. MwSt.', S.totalText); ['C', 'D', 'E'].forEach(c => k1.text(c + z, '', S.totalText));
+  k1.formel('F' + z, 'SUM(' + bereichF + ')', r.exkl, S.totalGeld);
+  k1.formel('G' + z, 'SUM(' + bereichG + ')', r.stundenAuto, S.stdFett);
+  z++;
+  k1.text('B' + z, 'MwSt.', S.label);
+  k1.formel('F' + z, 'F' + zExkl + '*$F$5', r.mwst, S.geld);
+  const zMwst = z; z++;
+  k1.text('B' + z, 'Total inkl. MwSt.', S.totalText); ['C', 'D', 'E'].forEach(c => k1.text(c + z, '', S.totalText));
+  k1.formel('F' + z, 'F' + zExkl + '+F' + zMwst, r.inkl, S.totalGeld);
+  z += 2;
+  k1.text('B' + z, 'Arbeitstage (bei Arbeitstag h / Anzahl MA)', S.label);
+  k1.formel('F' + z, 'IF(AND($F$6>0,$G$6>0),Kostenkontrolle!B5/$F$6/$G$6,0)', r.tage, S.std);
+  z += 2;
+  k1.text('A' + z, 'Gelb hinterlegte Felder sind Eingaben – alle übrigen Werte rechnen sich automatisch neu. Art: Arbeit = zählt als Arbeitszeit, Miete / Fremd = Kosten ohne Zeit, Pauschale = Zuschlag ohne Kosten.', S.klein);
+
+  /* ---------- Blatt 2: Kostenkontrolle ---------- */
+  const k2 = new Blatt('Kostenkontrolle');
+  k2.breiten = [40, 16, 12, 50];
+  k2.text('A1', 'Kostenkontrolle', S.titel); k2.hoehen[1] = 24;
+  k2.formel('A2', 'Kalkulation!B3&IF(Kalkulation!B5<>"",", "&Kalkulation!B5,"")',
+    (k.kunde || '') + (k.bezeichnung ? ', ' + k.bezeichnung : ''), S.klein);
+
+  k2.text('A4', 'Kalkulationsgrundlagen', S.zwischentitel);
+  // Zeile 5: Stunden – automatisch aus Kalkulation oder manuell
+  k2.text('A5', r.stundenManuell ? 'Benötigte Stunden (manuell festgelegt)' : 'Benötigte Stunden (aus Kalkulation)', S.text);
+  if (r.stundenManuell) eingabeZelle(k2, 'B5', k.stundenManuell, S.stdEingabe);
+  else k2.formel('B5', 'Kalkulation!G' + zExkl, r.stunden, S.std);
+  k2.text('A6', 'Lohnkosten CHF/h', S.text);           k2.formel('B6', 'Kalkulation!F4', r.p.lohn, S.geld);
+  k2.text('A7', 'Materialaufwand (% vom Lohn)', S.text); k2.zahl('B7', r.p.material / 100, S.prozentEingabe);
+  k2.text('A8', 'Fahrzeugaufwand (% vom Lohn)', S.text); k2.zahl('B8', r.p.fahrzeug / 100, S.prozentEingabe);
+  k2.text('A9', 'DB-Zuschlag (Ziel)', S.text);           k2.zahl('B9', r.p.db / 100, S.prozentEingabe);
+
+  // Zusatzkosten-Tabelle
+  let y = 11;
+  k2.text('A' + y, 'Zusatzkosten', S.zwischentitel); y++;
+  ['Bezeichnung', 'Betrag CHF', 'DB-Zuschlag', 'Notiz / Link'].forEach((t, i) => k2.text(spaltenName(i + 1) + y, t, S.kopf));
+  y++;
+  const zStart = y;
+  const zusatz = k.zusatz.length ? k.zusatz : [{ bezeichnung: '', betrag: '', mitDb: true, notiz: '' }];
+  zusatz.forEach(zz => {
+    k2.text('A' + y, zz.bezeichnung, S.text);
+    eingabeZelle(k2, 'B' + y, zz.betrag, S.zahlEingabe);
+    k2.text('C' + y, zz.mitDb ? 'Ja' : 'Nein', S.text);
+    k2.text('D' + y, zz.notiz, S.text);
+    y++;
+  });
+  const zEnde = y - 1;
+  const zB = 'B' + zStart + ':B' + zEnde, zC = 'C' + zStart + ':C' + zEnde;
+
+  y++;
+  k2.text('A' + y, 'Berechnung', S.zwischentitel); y++;
+  const zeile = (label, formel, wert, stil, labelStil) => {
+    k2.text('A' + y, label, labelStil || S.text);
+    k2.formel('B' + y, formel, wert, stil || S.geld);
+    return y++;
+  };
+  const yLohn = zeile('Lohnaufwand (Stunden × Lohnkosten)', 'B5*B6', r.lohn);
+  const yMat = zeile('Materialaufwand', 'B' + yLohn + '*B7', r.material);
+  const yFz = zeile('Fahrzeugaufwand', 'B' + yLohn + '*B8', r.fahrzeug);
+  const yFremd = zeile('Miete / Fremdleistungen (aus Positionen)', 'SUMIF(Kalkulation!' + bereichH + ',"Miete / Fremd",Kalkulation!' + bereichF + ')', r.fremd);
+  const yZus = zeile('Zusatzkosten', 'SUM(' + zB + ')', r.zusatz);
+  const ySelbst = zeile('Selbstkosten', 'SUM(B' + yLohn + ':B' + yZus + ')', r.selbstkosten, S.totalGeld, S.totalText);
+  const yDb = zeile('DB-Zuschlag (ohne Zusatzkosten mit „Nein")', '(B' + ySelbst + '-SUMIF(' + zC + ',"Nein",' + zB + '))*B9', r.db);
+  const yRicht = zeile('Richtpreis (kostenbasiert) exkl. MwSt.', 'B' + ySelbst + '+B' + yDb, r.richtpreis, S.totalGeld, S.totalText);
+  y++;
+  k2.text('A' + y, 'Vergleich mit dem Angebot', S.zwischentitel); y++;
+  const yAng = zeile('Angebotspreis exkl. MwSt. (aus Kalkulation)', 'Kalkulation!F' + zExkl, r.exkl);
+  const yGew = zeile('Gewinn (Angebot − Selbstkosten)', 'B' + yAng + '-B' + ySelbst, r.gewinn, S.geldGruen, S.textGruen);
+  k2.text('A' + y, 'Marge', S.text);
+  k2.formel('B' + y, 'IF(B' + yAng + '>0,B' + yGew + '/B' + yAng + ',0)', r.marge / 100, S.prozentFett); y++;
+  zeile('Differenz zum Richtpreis (+ = Angebot zu tief)', 'B' + yRicht + '-B' + yAng, r.differenz);
+
+  return [k1, k2];
+}
+
+/* ---- Minimaler ZIP-Ersteller (unkomprimiert, "stored") ---- */
+const CRC_TABELLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABELLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function baueZip(dateien) { // [{ name, inhalt (string) }]
+  const enc = new TextEncoder();
+  const teile = [], zentral = [];
+  let offset = 0;
+  const d = new Date();
+  const dosZeit = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
+  const dosDatum = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  dateien.forEach(f => {
+    const name = enc.encode(f.name);
+    const daten = enc.encode(f.inhalt);
+    const crc = crc32(daten);
+    const lokal = new DataView(new ArrayBuffer(30));
+    lokal.setUint32(0, 0x04034b50, true); lokal.setUint16(4, 20, true); lokal.setUint16(6, 0x0800, true);
+    lokal.setUint16(8, 0, true); lokal.setUint16(10, dosZeit, true); lokal.setUint16(12, dosDatum, true);
+    lokal.setUint32(14, crc, true); lokal.setUint32(18, daten.length, true); lokal.setUint32(22, daten.length, true);
+    lokal.setUint16(26, name.length, true); lokal.setUint16(28, 0, true);
+    teile.push(new Uint8Array(lokal.buffer), name, daten);
+    const z = new DataView(new ArrayBuffer(46));
+    z.setUint32(0, 0x02014b50, true); z.setUint16(4, 20, true); z.setUint16(6, 20, true); z.setUint16(8, 0x0800, true);
+    z.setUint16(10, 0, true); z.setUint16(12, dosZeit, true); z.setUint16(14, dosDatum, true);
+    z.setUint32(16, crc, true); z.setUint32(20, daten.length, true); z.setUint32(24, daten.length, true);
+    z.setUint16(28, name.length, true); z.setUint16(30, 0, true); z.setUint16(32, 0, true); z.setUint16(34, 0, true);
+    z.setUint16(36, 0, true); z.setUint32(38, 0, true); z.setUint32(42, offset, true);
+    zentral.push(new Uint8Array(z.buffer), name);
+    offset += 30 + name.length + daten.length;
+  });
+  const zentralGroesse = zentral.reduce((s, a) => s + a.length, 0);
+  const endeRec = new DataView(new ArrayBuffer(22));
+  endeRec.setUint32(0, 0x06054b50, true); endeRec.setUint16(8, dateien.length, true); endeRec.setUint16(10, dateien.length, true);
+  endeRec.setUint32(12, zentralGroesse, true); endeRec.setUint32(16, offset, true);
+  return new Blob([...teile, ...zentral, new Uint8Array(endeRec.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function excelBlob(k) {
+  const blaetter = baueExcel(k);
+  const dateien = [
+    { name: '[Content_Types].xml', inhalt:
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      blaetter.map((b, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') +
+      '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+      '</Types>' },
+    { name: '_rels/.rels', inhalt:
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+      '</Relationships>' },
+    { name: 'docProps/core.xml', inhalt:
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+      '<dc:title>' + xmlEsc('Kalkulation ' + (k.kunde || '')) + '</dc:title><dc:creator>Sylegro Kundenportal</dc:creator>' +
+      '<dcterms:created xsi:type="dcterms:W3CDTF">' + new Date().toISOString().replace(/\.\d+Z$/, 'Z') + '</dcterms:created>' +
+      '</cp:coreProperties>' },
+    { name: 'xl/workbook.xml', inhalt:
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<bookViews><workbookView/></bookViews><sheets>' +
+      blaetter.map((b, i) => '<sheet name="' + xmlEsc(b.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') +
+      '</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>' },
+    { name: 'xl/_rels/workbook.xml.rels', inhalt:
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      blaetter.map((b, i) => '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') +
+      '<Relationship Id="rId' + (blaetter.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+      '</Relationships>' },
+    { name: 'xl/styles.xml', inhalt: STYLES_XML }
+  ];
+  blaetter.forEach((b, i) => dateien.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', inhalt: b.xml() }));
+  return baueZip(dateien);
+}
+
+function dateiname(k) {
+  const teil = s => String(s || '').replace(/[^A-Za-z0-9ÄÖÜäöüéèàç\- ]+/g, '').trim().replace(/\s+/g, '_').slice(0, 40);
+  const name = ['Kalk', teil(k.kunde), teil(k.bezeichnung)].filter(Boolean).join('_');
+  return name + '_' + (k.datum || heuteIso()) + '.xlsx';
+}
+
+function excelHerunterladen() {
+  const blob = excelBlob(state);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = dateiname(state);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  toast('Excel-Datei wird heruntergeladen');
+}
+
+/* ---------------- Kundenliste für die Vorschläge ---------------- */
+
+async function ladeKundenVorschlaege() {
+  try {
+    const { data } = await supabaseClient.from('customers').select('firma, objekt').order('firma');
+    const dl = document.getElementById('kunden-liste');
+    (data || []).forEach(c => {
+      if (!c.firma) return;
+      const o = document.createElement('option');
+      o.value = c.firma;
+      if (c.objekt) o.label = c.objekt;
+      dl.appendChild(o);
+    });
+    window._kundenObjekte = {};
+    (data || []).forEach(c => { if (c.firma && c.objekt) window._kundenObjekte[c.firma] = c.objekt; });
+  } catch (e) { /* Vorschläge sind optional */ }
+}
+
+/* ---------------- Start ---------------- */
+
+(async () => {
+  const admin = await sylegroRequireAdmin();
+  if (!admin) return;
+  sylegroApplyAdminNavVisibility(admin);
+
+  if (!admin.istVollzugriff) {
+    document.getElementById('kein-zugriff').classList.remove('versteckt');
+    document.getElementById('btn-neu').classList.add('versteckt');
+    return;
+  }
+  document.getElementById('kalk-inhalt').classList.remove('versteckt');
+
+  renderVorlagen();
+  formularVerdrahten();
+
+  // Beim Auswählen eines Kunden das Objekt automatisch vorschlagen
+  document.getElementById('f-kunde').addEventListener('change', e => {
+    const obj = (window._kundenObjekte || {})[e.target.value];
+    const objFeld = document.getElementById('f-objekt');
+    if (obj && !objFeld.value) { objFeld.value = obj; state.objekt = obj; aktualisiere(); }
+  });
+
+  // Letzten Entwurf wiederherstellen (z.B. nach versehentlichem Neuladen)
+  const entwurf = speicherLesen(ENTWURF_KEY, null);
+  if (entwurf && entwurf.positionen) {
+    state = migriere(entwurf);
+    const gespeichert = speicherLesen(SPEICHER_KEY, []).find(k => k.id === state.id);
+    zuletztGespeichertJson = gespeichert ? JSON.stringify(migriere(gespeichert)) : null;
+  } else {
+    state = leereKalkulation();
+  }
+  zustandInsFormular();
+  ladeKundenVorschlaege();
+
+  window.addEventListener('beforeunload', entwurfMerken);
+})();
+</script>
+</body>
+</html>
