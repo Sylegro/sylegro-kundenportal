@@ -38,7 +38,20 @@
           <div>
             <div class="firma-name" id="firma-name">–</div>
             <span class="badge neutral">Kunde</span>
+            <span class="badge versteckt" id="vertrag-status-badge"></span>
+            <button type="button" class="icon-btn" id="vertragsstatus-edit-btn" title="Vertragsstatus bearbeiten" data-benoetigt-recht="vollzugriff" style="margin-left:4px;">✎</button>
           </div>
+        </div>
+
+        <div id="vertragsstatus-formular" class="versteckt" style="margin-top:10px;">
+          <select id="form-vertragsstatus" style="padding:9px; border:1px solid var(--color-border); border-radius:6px;">
+            <option value="aktiv">Aktiv</option>
+            <option value="gekuendigt">Gekündigt – läuft noch</option>
+            <option value="beendet">Beendet</option>
+          </select>
+          <input type="date" id="form-vertrag-bis" style="padding:9px; border:1px solid var(--color-border); border-radius:6px; margin-left:8px;">
+          <button type="button" class="btn primary" id="vertragsstatus-speichern-btn" style="margin-left:8px;">Speichern</button>
+          <button type="button" class="btn small" id="vertragsstatus-abbrechen-btn">Abbrechen</button>
         </div>
 
         <div class="tabs" data-scope="top">
@@ -478,7 +491,55 @@ async function ladeKunde() {
   ladeFinanzen();
   ansprechpartnerAnzeigen();
   kundenbetreuerAnzeigen();
+  vertragsstatusAnzeigen();
 }
+
+const VERTRAGSSTATUS_LABEL = { gekuendigt: 'Gekündigt', beendet: 'Vertrag beendet' };
+const VERTRAGSSTATUS_BADGE_KLASSE = { gekuendigt: 'warning', beendet: 'neutral' };
+
+function vertragsstatusAnzeigen() {
+  const badge = document.getElementById('vertrag-status-badge');
+  const status = aktuellerKunde.vertragsstatus || 'aktiv';
+
+  if (status === 'aktiv') {
+    badge.className = 'badge versteckt';
+    badge.textContent = '';
+    return;
+  }
+
+  let text = VERTRAGSSTATUS_LABEL[status] || status;
+  if (aktuellerKunde.vertrag_bis) {
+    const datum = new Date(aktuellerKunde.vertrag_bis).toLocaleDateString('de-CH');
+    text += (status === 'gekuendigt' ? ' – läuft bis ' : ' am ') + datum;
+  }
+  badge.className = 'badge ' + (VERTRAGSSTATUS_BADGE_KLASSE[status] || 'neutral');
+  badge.textContent = text;
+}
+
+document.getElementById('vertragsstatus-edit-btn').addEventListener('click', () => {
+  document.getElementById('form-vertragsstatus').value = aktuellerKunde.vertragsstatus || 'aktiv';
+  document.getElementById('form-vertrag-bis').value = aktuellerKunde.vertrag_bis || '';
+  document.getElementById('vertragsstatus-formular').classList.toggle('versteckt');
+});
+document.getElementById('vertragsstatus-abbrechen-btn').addEventListener('click', () => {
+  document.getElementById('vertragsstatus-formular').classList.add('versteckt');
+});
+document.getElementById('vertragsstatus-speichern-btn').addEventListener('click', async () => {
+  const status = document.getElementById('form-vertragsstatus').value;
+  const bis = document.getElementById('form-vertrag-bis').value || null;
+  const { error } = await supabaseClient
+    .from('customers')
+    .update({ vertragsstatus: status, vertrag_bis: bis })
+    .eq('id', kundeId);
+  if (error) {
+    alert('Fehler beim Speichern: ' + error.message);
+    return;
+  }
+  aktuellerKunde.vertragsstatus = status;
+  aktuellerKunde.vertrag_bis = bis;
+  vertragsstatusAnzeigen();
+  document.getElementById('vertragsstatus-formular').classList.add('versteckt');
+});
 
 // Sylegro-Ansprechpartner: übergeordnet zuständiger Mitarbeiter für diesen Kunden.
 // Wie bei der Mitarbeiter-Zuweisung pro Liegenschaft in liegenschaft.html wird hier

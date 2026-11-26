@@ -52,10 +52,11 @@
             <th class="sortable" data-sort="objekt">Objekt <span class="sort-arrow">↕</span></th>
             <th class="sortable" data-sort="branche">Branche <span class="sort-arrow">↕</span></th>
             <th>Leistungen</th>
+            <th>Vertragsstatus</th>
           </tr>
         </thead>
         <tbody id="kunden-body">
-          <tr><td colspan="5" class="hint">Lade Kunden…</td></tr>
+          <tr><td colspan="6" class="hint">Lade Kunden…</td></tr>
         </tbody>
       </table>
     </div>
@@ -75,10 +76,10 @@
     const body = document.getElementById('kunden-body');
     const { data: customers, error } = await supabaseClient
       .from('customers')
-      .select('id, kundennummer, firma, objekt, branche, customer_services(service)');
+      .select('id, kundennummer, firma, objekt, branche, vertragsstatus, vertrag_bis, customer_services(service)');
 
     if (error) {
-      body.innerHTML = '<tr><td colspan="5" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" class="hint">Fehler beim Laden: ' + error.message + '</td></tr>';
       return;
     }
 
@@ -89,7 +90,7 @@
   function renderKunden() {
     const body = document.getElementById('kunden-body');
     if (kundenDaten.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" class="hint">Noch keine Kunden angelegt.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" class="hint">Noch keine Kunden angelegt.</td></tr>';
       return;
     }
 
@@ -106,9 +107,19 @@
     body.innerHTML = '';
     sortiert.forEach(c => {
       const services = (c.customer_services || []).map(s => SERVICE_LABEL[s.service] || s.service).join(', ') || '—';
+      const vertragLabel = { gekuendigt: 'Gekündigt', beendet: 'Vertrag beendet' };
+      const vertragKlasse = { gekuendigt: 'warning', beendet: 'neutral' };
+      let vertragZelle = '—';
+      if (c.vertragsstatus && c.vertragsstatus !== 'aktiv') {
+        let text = vertragLabel[c.vertragsstatus] || c.vertragsstatus;
+        if (c.vertrag_bis) {
+          text += (c.vertragsstatus === 'gekuendigt' ? ' – bis ' : ' am ') + new Date(c.vertrag_bis).toLocaleDateString('de-CH');
+        }
+        vertragZelle = '<span class="badge ' + (vertragKlasse[c.vertragsstatus] || 'neutral') + '">' + text + '</span>';
+      }
       const tr = document.createElement('tr');
       tr.style.cursor = 'pointer';
-      tr.innerHTML = '<td>' + (c.kundennummer || '—') + '</td><td>' + c.firma + '</td><td>' + (c.objekt || '—') + '</td><td>' + (c.branche || '—') + '</td><td>' + services + '</td>';
+      tr.innerHTML = '<td>' + (c.kundennummer || '—') + '</td><td>' + c.firma + '</td><td>' + (c.objekt || '—') + '</td><td>' + (c.branche || '—') + '</td><td>' + services + '</td><td>' + vertragZelle + '</td>';
       tr.addEventListener('click', () => { window.location.href = 'detail.html?id=' + c.id; });
       body.appendChild(tr);
     });
