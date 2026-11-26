@@ -45,11 +45,13 @@
 
         <div id="vertragsstatus-formular" class="versteckt" style="margin-top:10px;">
           <select id="form-vertragsstatus" style="padding:9px; border:1px solid var(--color-border); border-radius:6px;">
-            <option value="aktiv">Aktiv</option>
+            <option value="aktiv">Aktiv (meist ohne festes Enddatum)</option>
             <option value="gekuendigt">Gekündigt – läuft noch</option>
             <option value="beendet">Beendet</option>
           </select>
-          <input type="date" id="form-vertrag-bis" style="padding:9px; border:1px solid var(--color-border); border-radius:6px; margin-left:8px;">
+          <span id="vertrag-bis-wrapper" class="versteckt">
+            <input type="date" id="form-vertrag-bis" style="padding:9px; border:1px solid var(--color-border); border-radius:6px; margin-left:8px;">
+          </span>
           <button type="button" class="btn primary" id="vertragsstatus-speichern-btn" style="margin-left:8px;">Speichern</button>
           <button type="button" class="btn small" id="vertragsstatus-abbrechen-btn">Abbrechen</button>
         </div>
@@ -532,9 +534,21 @@ async function vertragsstatusAnzeigen() {
   badge.textContent = text;
 }
 
+function vertragBisFeldAktualisieren() {
+  const status = document.getElementById('form-vertragsstatus').value;
+  const wrapper = document.getElementById('vertrag-bis-wrapper');
+  if (status === 'aktiv') {
+    wrapper.classList.add('versteckt');
+  } else {
+    wrapper.classList.remove('versteckt');
+  }
+}
+document.getElementById('form-vertragsstatus').addEventListener('change', vertragBisFeldAktualisieren);
+
 document.getElementById('vertragsstatus-edit-btn').addEventListener('click', () => {
   document.getElementById('form-vertragsstatus').value = aktuellerKunde.vertragsstatus || 'aktiv';
   document.getElementById('form-vertrag-bis').value = aktuellerKunde.vertrag_bis || '';
+  vertragBisFeldAktualisieren();
   document.getElementById('vertragsstatus-formular').classList.toggle('versteckt');
 });
 document.getElementById('vertragsstatus-abbrechen-btn').addEventListener('click', () => {
