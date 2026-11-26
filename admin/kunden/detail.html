@@ -39,7 +39,7 @@
             <div class="firma-name" id="firma-name">–</div>
             <span class="badge neutral">Kunde</span>
             <span class="badge versteckt" id="vertrag-status-badge"></span>
-            <button type="button" class="icon-btn" id="vertragsstatus-edit-btn" title="Vertragsstatus bearbeiten" data-benoetigt-recht="vollzugriff" style="margin-left:4px;">✎</button>
+            <button type="button" class="icon-btn versteckt" id="vertragsstatus-edit-btn" title="Vertragsstatus bearbeiten" data-benoetigt-recht="vollzugriff" style="margin-left:4px;">✎</button>
           </div>
         </div>
 
@@ -497,8 +497,24 @@ async function ladeKunde() {
 const VERTRAGSSTATUS_LABEL = { gekuendigt: 'Gekündigt', beendet: 'Vertrag beendet' };
 const VERTRAGSSTATUS_BADGE_KLASSE = { gekuendigt: 'warning', beendet: 'neutral' };
 
-function vertragsstatusAnzeigen() {
+// Vertragsstatus gibt es konzeptionell nur bei Unterhaltsreinigung und
+// Hauswartung (laufende Verträge) -- bei Spezial-/Baureinigung läuft es über
+// einzelne Angebote/Aufträge statt über einen fortlaufenden Vertrag.
+async function vertragsstatusAnzeigen() {
   const badge = document.getElementById('vertrag-status-badge');
+  const editBtn = document.getElementById('vertragsstatus-edit-btn');
+
+  const { data: services } = await supabaseClient.from('customer_services').select('service').eq('customer_id', kundeId);
+  const hatVertragsleistung = (services || []).some(s => s.service === 'uhr' || s.service === 'hauswartung');
+
+  if (!hatVertragsleistung) {
+    badge.className = 'badge versteckt';
+    badge.textContent = '';
+    editBtn.classList.add('versteckt');
+    return;
+  }
+  editBtn.classList.remove('versteckt');
+
   const status = aktuellerKunde.vertragsstatus || 'aktiv';
 
   if (status === 'aktiv') {

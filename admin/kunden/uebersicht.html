@@ -106,11 +106,13 @@
 
     body.innerHTML = '';
     sortiert.forEach(c => {
-      const services = (c.customer_services || []).map(s => SERVICE_LABEL[s.service] || s.service).join(', ') || '—';
+      const serviceListe = (c.customer_services || []).map(s => s.service);
+      const services = serviceListe.map(s => SERVICE_LABEL[s] || s).join(', ') || '—';
+      const hatVertragsleistung = serviceListe.includes('uhr') || serviceListe.includes('hauswartung');
       const vertragLabel = { gekuendigt: 'Gekündigt', beendet: 'Vertrag beendet' };
       const vertragKlasse = { gekuendigt: 'warning', beendet: 'neutral' };
       let vertragZelle = '—';
-      if (c.vertragsstatus && c.vertragsstatus !== 'aktiv') {
+      if (hatVertragsleistung && c.vertragsstatus && c.vertragsstatus !== 'aktiv') {
         let text = vertragLabel[c.vertragsstatus] || c.vertragsstatus;
         if (c.vertrag_bis) {
           text += (c.vertragsstatus === 'gekuendigt' ? ' – bis ' : ' am ') + new Date(c.vertrag_bis).toLocaleDateString('de-CH');
